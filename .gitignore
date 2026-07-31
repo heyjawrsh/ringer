@@ -10,3 +10,8 @@ hud/dist/
 hud/gen/
 hud/icons/icon.iconset/
 *.log
+
+# Local scratch manifests and editor/tool state
+/swarm.json
+/proof-*.json
+.serena/
