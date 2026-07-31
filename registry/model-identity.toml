@@ -98,3 +98,29 @@ lab = "Meta"
 confidence = "verified"
 source = "manifest model field; OpenRouter slug meta-llama/llama-3.3-70b-instruct:free"
 last_verified = 2026-07-10
+
+# GLM family (Z.ai / Zhipu AI) reached through the OpenCode harness on three
+# different plans — same lab, different access. NOTE: the loader applies access
+# at the engine level (engines.opencode.access = "OpenRouter API"), so the
+# scoreboard's Access column reads "OpenRouter API" for all three; the flat-rate
+# OpenCode Go and Z.ai Coding Plan lanes are not distinguished there today.
+[engines.opencode.models."openrouter/z-ai/glm-4.7"]
+display = "GLM 4.7"
+lab = "Z.ai (Zhipu AI)"
+confidence = "verified"
+source = "manifest model field; OpenRouter slug z-ai/glm-4.7"
+last_verified = 2026-07-11
+
+[engines.opencode.models."zai-coding-plan/glm-4.7"]
+display = "GLM 4.7"
+lab = "Z.ai (Zhipu AI)"
+confidence = "verified"     # Z.ai Coding Plan (flat-rate), same trained model as z-ai/glm-4.7
+source = "manifest model field; Z.ai Coding Plan slug zai-coding-plan/glm-4.7"
+last_verified = 2026-07-11
+
+[engines.opencode.models."opencode-go/glm-5.1"]
+display = "GLM 5.1"
+lab = "Z.ai (Zhipu AI)"
+confidence = "verified"     # OpenCode Go / Zen (flat-rate) access to Z.ai's GLM 5.1
+source = "manifest model field; OpenCode Go slug opencode-go/glm-5.1"
+last_verified = 2026-07-11
