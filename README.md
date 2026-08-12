@@ -108,11 +108,14 @@ Each task gets its own directory, its own worker, its own log, and its own verdi
 | `engine_args` | Extra CLI flags for this task's worker, spliced in at the engine's `{engine_args}` placeholder — e.g. `["-c", "model_reasoning_effort=low"]` so the orchestrator picks reasoning depth per task |
 | `verified` | One plain-English sentence saying what the check proves — shown on the results page next to "finished & checked" |
 | `full_access` | Worker runs unsandboxed — required for workers that spawn their own sub-workers; must also be enabled in config |
+| `owns` | Per-task list of repo-relative paths or globs; after the worker exits and before the check runs, any changed path outside it is an ownership violation that fails the attempt — offending paths named in the failure output that reaches the retry prompt. Paths the foundation patch touched are excluded; tasks without `owns` are not checked (opt-in) |
 | `worktrees` (run-level) | Give each task an isolated git worktree of `repo` so parallel workers can't collide |
 | `integration_check` (run-level) | Optional shell command run once after ALL tasks pass, against the combined result; nonzero fails the run |
 | `integration_timeout_s` (run-level) | Kill timer for `integration_check` (default 600) |
 | `pilot` (run-level) | Optional key of the one task to run first; the run pauses for review after it passes |
 | `pilot_wait_s` (run-level) | How long the paused run waits for a decision (default 1800) |
+| `foundation` (run-level) | Key of the one task that runs FIRST and alone while every other lane is held unspawned; on failure the run fails, on pass its diff is exported to `<workdir>/foundation.patch` and applied to every other lane's worktree before its worker starts (empty diff allowed). Requires worktrees; cannot combine with `pilot`; naming a missing task key is an error |
+| `contracts` (run-level) | List of symbol names no lane may redefine — an added line defining one (`class`, `def`, `struct`, `enum`, `interface`, `type`, `typedef`, `protocol`, `func`, `fn`, `const`, `let`, `var`) fails that lane with the symbol, file, and line named. The foundation task itself is exempt |
 
 > **Worktree footgun:** on PASS the task's worktree is removed — including anything written inside it. In worktrees mode, worker logs live outside task worktrees in `workdir/logs/`; have workers write deliverables outside the worktree too, or have your `check` copy artifacts out before it exits 0.
 
@@ -221,6 +224,30 @@ The point: redirect after one lane, not after N — aesthetic and architectural 
 ```
 ./ringer.py approve <run_id>
 ./ringer.py reject <run_id>
+```
+
+### Foundation rounds: freeze the shared vocabulary first
+
+Parallel lanes over one repo collide on shared vocabulary — two lanes define the same type and the combined build breaks even though every lane passed. `foundation` names one task that runs FIRST and alone while every other lane is held unspawned. If it fails, nothing else spawns and the run fails. If it passes, its diff is exported to `<workdir>/foundation.patch` and applied to every other lane's worktree before that lane's worker starts, so every lane inherits the same shared vocabulary. An empty foundation diff is allowed and noted.
+
+`foundation` requires worktrees mode (propagation is impossible without it) and cannot be combined with `pilot`; naming a task key that does not exist is an error.
+
+`contracts` is a run-level list of symbol names no lane may redefine. An added line defining one of those symbols — `class`, `def`, `struct`, `enum`, `interface`, `type`, `typedef`, `protocol`, `func`, `fn`, `const`, `let`, `var` — fails that lane with the symbol, file, and line named. The foundation task itself is exempt; it is what defines them.
+
+`owns` is a per-task list of repo-relative paths or globs. After the worker exits and before the check runs, any changed path outside that list is an ownership violation that fails the attempt, with the offending paths named in the failure output that reaches the retry prompt. Paths the foundation patch touched are excluded — a lane is never blamed for inheriting foundation output. Tasks without `owns` are not ownership-checked; it is opt-in.
+
+Both violation kinds are recorded in the run state.
+
+```json
+{
+  "worktrees": true,
+  "foundation": "schema",
+  "contracts": ["User", "Order", "Repository"],
+  "tasks": [
+    { "key": "schema", "spec": "Define the shared types.", "check": "pytest -q test_schema.py", "owns": ["src/schema/**"] },
+    { "key": "api", "spec": "Build the API on the shared types.", "check": "pytest -q test_api.py", "owns": ["src/api/**"] }
+  ]
+}
 ```
 
 ## Make your agent actually use this
