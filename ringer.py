@@ -5,6 +5,7 @@ import argparse
 import asyncio
 import base64
 import contextlib
+import fnmatch
 import hashlib
 import json
 import mimetypes
@@ -1645,6 +1646,7 @@ class TaskSpec:
     # engine's {model} placeholder); empty means the engine's model_default.
     model: str = ""
     task_type: str = ""
+    owns: tuple[str, ...] = ()
 
     @classmethod
     def from_obj(cls, obj: dict[str, Any]) -> "TaskSpec":
@@ -1700,6 +1702,11 @@ class TaskSpec:
         task_type = obj.get("task_type", "")
         if not isinstance(task_type, str):
             raise ValueError(f"task {key}: task_type must be a string")
+        owns = obj.get("owns", [])
+        if not isinstance(owns, list) or not all(
+            isinstance(item, str) for item in owns
+        ):
+            raise ValueError(f"task {key}: owns must be a list of strings")
         return cls(
             key=key,
             spec=spec,
@@ -1715,6 +1722,7 @@ class TaskSpec:
             verified=verified.strip(),
             model=model.strip(),
             task_type=task_type.strip(),
+            owns=tuple(owns),
         )
 
 
@@ -1731,6 +1739,8 @@ class Manifest:
     source_path: Path | None = None
     pilot: str = ""
     pilot_wait_s: int = DEFAULT_PILOT_WAIT_S
+    foundation: str = ""
+    contracts: tuple[str, ...] = ()
 
     @classmethod
     def from_path(cls, path: Path) -> "Manifest":
@@ -1749,6 +1759,8 @@ class Manifest:
             integration_timeout_s=manifest.integration_timeout_s,
             pilot=manifest.pilot,
             pilot_wait_s=manifest.pilot_wait_s,
+            foundation=manifest.foundation,
+            contracts=manifest.contracts,
             source_path=path,
         )
 
@@ -1799,6 +1811,20 @@ class Manifest:
         pilot = pilot_raw.strip()
         if pilot and pilot not in keys:
             raise ValueError(f"pilot must name a manifest task key: {pilot}")
+        foundation_raw = obj.get("foundation", "")
+        if not isinstance(foundation_raw, str):
+            raise ValueError("foundation must be a string")
+        foundation = foundation_raw.strip()
+        if foundation and foundation not in keys:
+            raise ValueError(f"foundation must name a manifest task key: {foundation}")
+        if foundation and pilot:
+            raise ValueError("foundation and pilot are mutually exclusive")
+        contracts_raw = obj.get("contracts", [])
+        if not isinstance(contracts_raw, list):
+            raise ValueError("contracts must be a list of strings")
+        if not all(isinstance(item, str) for item in contracts_raw):
+            raise ValueError("contracts must be a list of strings")
+        contracts = tuple(contracts_raw)
         raw_pilot_wait_s = obj.get("pilot_wait_s", DEFAULT_PILOT_WAIT_S)
         if isinstance(raw_pilot_wait_s, bool) or not isinstance(raw_pilot_wait_s, int):
             raise ValueError(
@@ -1809,6 +1835,10 @@ class Manifest:
         if pilot_wait_s <= 0:
             raise ValueError("pilot_wait_s must be positive")
         worktrees = bool(obj.get("worktrees", False))
+        if foundation and (not worktrees or repo is None):
+            raise ValueError(
+                "foundation output cannot be propagated without worktrees true and repo set"
+            )
         if worktrees:
             reserved_logs_dir = (workdir / "logs").resolve()
             collisions = []
@@ -1832,6 +1862,8 @@ class Manifest:
             integration_timeout_s=integration_timeout_s,
             pilot=pilot,
             pilot_wait_s=pilot_wait_s,
+            foundation=foundation,
+            contracts=contracts,
         )
 
     def with_max_parallel(self, value: int | None) -> "Manifest":
@@ -1850,6 +1882,8 @@ class Manifest:
             integration_timeout_s=self.integration_timeout_s,
             pilot=self.pilot,
             pilot_wait_s=self.pilot_wait_s,
+            foundation=self.foundation,
+            contracts=self.contracts,
             source_path=self.source_path,
         )
 
@@ -2149,6 +2183,7 @@ class TaskRuntime:
     setup_error: str | None = None
     last_worker_command: list[str] = field(default_factory=list)
     steering: dict[str, Any] | None = None
+    violations: list[str] = field(default_factory=list)
 
     def elapsed_s(self, now: float) -> float:
         if self.started_at_monotonic is None:
@@ -2394,6 +2429,8 @@ class StateWriter:
                 }
                 if runtime.steering is not None:
                     task_state["steering"] = dict(runtime.steering)
+                if runtime.violations:
+                    task_state["violations"] = list(runtime.violations)
                 tasks.append(task_state)
             pass_count = sum(1 for item in tasks if item["status"] == "pass")
             fail_count = sum(1 for item in tasks if item["status"] == "fail")
@@ -8784,6 +8821,84 @@ class Verifier:
         return proc.returncode, timed_out, output
 
 
+def foundation_paths_from_patch(patch: bytes) -> set[str]:
+    paths: set[str] = set()
+    text = patch.decode("utf-8", errors="replace")
+    for line in text.splitlines():
+        if not line.startswith("diff --git "):
+            continue
+        try:
+            parts = shlex.split(line)
+        except ValueError:
+            continue
+        for value in parts[2:4]:
+            if value.startswith(("a/", "b/")):
+                paths.add(value[2:])
+    return paths
+
+
+def changed_paths_from_porcelain(output: bytes) -> set[str]:
+    paths: set[str] = set()
+    entries = output.split(b"\0")
+    index = 0
+    while index < len(entries):
+        entry = entries[index]
+        index += 1
+        if not entry:
+            continue
+        text = entry.decode("utf-8", errors="replace")
+        if len(text) < 4:
+            continue
+        status = text[:2]
+        paths.add(text[3:])
+        if "R" in status or "C" in status:
+            if index < len(entries) and entries[index]:
+                paths.add(entries[index].decode("utf-8", errors="replace"))
+                index += 1
+    return paths
+
+
+def contract_violations_from_diff(
+    path: str,
+    diff: str,
+    contracts: tuple[str, ...],
+) -> list[str]:
+    patterns = [
+        (
+            symbol,
+            re.compile(
+                r"^\+?\s*"
+                r"(class|def|struct|enum|interface|type|typedef|protocol|func|fn|const|let|var)"
+                rf"\s+{re.escape(symbol)}\b"
+            ),
+        )
+        for symbol in contracts
+    ]
+    violations: list[str] = []
+    new_line_number: int | None = None
+    for line in diff.splitlines():
+        hunk = re.match(r"^@@ [^+]*\+(\d+)(?:,\d+)? @@", line)
+        if hunk:
+            new_line_number = int(hunk.group(1))
+            continue
+        if new_line_number is None:
+            continue
+        if line.startswith("+") and not line.startswith("+++"):
+            for symbol, pattern in patterns:
+                if pattern.match(line):
+                    source = line[1:].strip()
+                    violations.append(
+                        f"[ringer.py] contract violation: symbol {symbol} redefined "
+                        f"in {path}:{new_line_number}: {source}"
+                    )
+            new_line_number += 1
+        elif line.startswith("-") or line.startswith("\\"):
+            continue
+        else:
+            new_line_number += 1
+    return violations
+
+
 class RingerRunner:
     def __init__(
         self,
@@ -8827,6 +8942,11 @@ class RingerRunner:
         self.verifier = Verifier()
         self.semaphore = asyncio.Semaphore(manifest.max_parallel)
         self.active_processes: dict[int, asyncio.subprocess.Process] = {}
+        self.foundation_patch_path = (
+            self.manifest.workdir / "foundation.patch"
+        ).resolve()
+        self.foundation_patch = b""
+        self.foundation_paths: set[str] = set()
         self.pilot_decision_path = (
             self.manifest.workdir / "control" / "pilot.decision"
         ).resolve()
@@ -8838,7 +8958,12 @@ class RingerRunner:
             self.state_writer.start()
             if self.dashboard is not None:
                 self.state_writer.set_port(self.dashboard.start())
-            if self.manifest.pilot:
+            if self.manifest.foundation:
+                foundation_passed = await self._run_foundation_gate()
+                if not foundation_passed:
+                    final_state = True
+                    return 1
+            elif self.manifest.pilot:
                 approved = await self._run_pilot_gate()
                 if not approved:
                     final_state = True
@@ -8880,6 +9005,90 @@ class RingerRunner:
                     results_page = artifact_live_path(self.state_writer.state_dir, self.manifest.run_name)
                     print(f"\nYour results: {results_page}")
                     print("Open it in a browser, or run './ringer.py hud' for the full Ringside view (http://127.0.0.1:8700).")
+
+    async def _run_foundation_gate(self) -> bool:
+        foundation_runtime = next(
+            runtime
+            for runtime in self.runtimes
+            if runtime.task.key == self.manifest.foundation
+        )
+        held_runtimes = [
+            runtime for runtime in self.runtimes if runtime is not foundation_runtime
+        ]
+        release = asyncio.Event()
+        held_tasks = [
+            asyncio.create_task(self._run_held_task(runtime, release))
+            for runtime in held_runtimes
+        ]
+        try:
+            await self._run_task(foundation_runtime)
+            held_count = len(held_runtimes)
+            if foundation_runtime.status != "pass":
+                print(
+                    f"Foundation '{foundation_runtime.task.key}' failed; "
+                    f"{held_count} held lane(s) were never started."
+                )
+                return False
+            exported, error = await self._export_foundation_patch(foundation_runtime)
+            if not exported:
+                with self.lock:
+                    foundation_runtime.status = "fail"
+                    foundation_runtime.final_verdict = "ERROR"
+                    foundation_runtime.setup_error = error
+                print(
+                    f"Foundation '{foundation_runtime.task.key}' failed; "
+                    f"{held_count} held lane(s) were never started."
+                )
+                return False
+            await self._cleanup_worktree_on_pass(foundation_runtime)
+            release.set()
+            await asyncio.gather(*held_tasks)
+            return True
+        finally:
+            if not release.is_set():
+                for task in held_tasks:
+                    task.cancel()
+                await asyncio.gather(*held_tasks, return_exceptions=True)
+
+    async def _export_foundation_patch(
+        self,
+        runtime: TaskRuntime,
+    ) -> tuple[bool, str | None]:
+        add_proc = await asyncio.create_subprocess_exec(
+            "git",
+            "add",
+            "-A",
+            cwd=str(runtime.taskdir),
+            stdin=asyncio.subprocess.DEVNULL,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        add_stdout, _ = await add_proc.communicate()
+        if add_proc.returncode != 0:
+            message = add_stdout.decode("utf-8", errors="replace").strip()
+            return False, message or "git add -A failed while exporting foundation"
+        diff_proc = await asyncio.create_subprocess_exec(
+            "git",
+            "diff",
+            "--cached",
+            "--binary",
+            cwd=str(runtime.taskdir),
+            stdin=asyncio.subprocess.DEVNULL,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        patch, stderr = await diff_proc.communicate()
+        if diff_proc.returncode != 0:
+            message = stderr.decode("utf-8", errors="replace").strip()
+            return False, message or "git diff failed while exporting foundation"
+        self.foundation_patch_path.write_bytes(patch)
+        self.foundation_patch = patch
+        self.foundation_paths = foundation_paths_from_patch(patch)
+        if not patch:
+            print(
+                f"Foundation '{runtime.task.key}' produced no changes; continuing."
+            )
+        return True, None
 
     async def _run_pilot_gate(self) -> bool:
         pilot_runtime = next(
@@ -9153,7 +9362,22 @@ class RingerRunner:
                     runtime.status = "verifying"
                     if worker.tokens is not None:
                         runtime.tokens = (runtime.tokens or 0) + worker.tokens
-                verify = await self.verifier.verify(runtime.task, runtime.taskdir)
+                violations = await self._task_violations(runtime)
+                if violations:
+                    for violation in violations:
+                        print(violation, flush=True)
+                    with self.lock:
+                        for violation in violations:
+                            if violation not in runtime.violations:
+                                runtime.violations.append(violation)
+                    verify = VerifyResult(
+                        ok=False,
+                        check_returncode=1,
+                        check_timed_out=False,
+                        raw_output_excerpt="\n".join(violations)[:2000],
+                    )
+                else:
+                    verify = await self.verifier.verify(runtime.task, runtime.taskdir)
                 verdict = verdict_for(worker, verify)
                 with self.lock:
                     runtime.last_check_returncode = verify.check_returncode
@@ -9167,7 +9391,10 @@ class RingerRunner:
                         runtime.status = "pass"
                         runtime.final_verdict = verdict
                         runtime.ended_at_monotonic = time.monotonic()
-                    if runtime.task.key != self.manifest.pilot:
+                    if runtime.task.key not in {
+                        self.manifest.pilot,
+                        self.manifest.foundation,
+                    }:
                         await self._cleanup_worktree_on_pass(runtime)
                     return
                 if attempt < max_attempts and verdict in {"FAIL", "TIMEOUT"}:
@@ -9245,6 +9472,102 @@ class RingerRunner:
                 runtime.deliverables = harvested
                 runtime.deliverable_notes.extend(notes)
 
+    async def _task_violations(self, runtime: TaskRuntime) -> list[str]:
+        if not (self.manifest.worktrees and self.manifest.repo is not None):
+            return []
+        enforce_ownership = bool(runtime.task.owns)
+        enforce_contracts = bool(
+            self.manifest.contracts
+            and runtime.task.key != self.manifest.foundation
+        )
+        if not enforce_ownership and not enforce_contracts:
+            return []
+
+        status_proc = await asyncio.create_subprocess_exec(
+            "git",
+            "status",
+            "--porcelain=v1",
+            "-z",
+            "--untracked-files=all",
+            cwd=str(runtime.taskdir),
+            stdin=asyncio.subprocess.DEVNULL,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        status_stdout, _ = await status_proc.communicate()
+        if status_proc.returncode != 0:
+            message = status_stdout.decode("utf-8", errors="replace").strip()
+            prefix = "ownership" if enforce_ownership else "contract"
+            return [
+                f"[ringer.py] {prefix} violation: could not inspect changed paths: "
+                f"{message or 'git status failed'}"
+            ]
+        changed_paths = changed_paths_from_porcelain(status_stdout)
+        lane_paths = sorted(changed_paths - self.foundation_paths)
+        violations: list[str] = []
+        if enforce_ownership:
+            offending = [
+                path
+                for path in lane_paths
+                if not any(fnmatch.fnmatch(path, pattern) for pattern in runtime.task.owns)
+            ]
+            if offending:
+                violations.append(
+                    "[ringer.py] ownership violation: changed path(s) outside owns: "
+                    + ", ".join(offending)
+                )
+
+        if not enforce_contracts:
+            return violations
+        add_proc = await asyncio.create_subprocess_exec(
+            "git",
+            "add",
+            "-A",
+            cwd=str(runtime.taskdir),
+            stdin=asyncio.subprocess.DEVNULL,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        add_stdout, _ = await add_proc.communicate()
+        if add_proc.returncode != 0:
+            message = add_stdout.decode("utf-8", errors="replace").strip()
+            violations.append(
+                "[ringer.py] contract violation: could not stage changes for inspection: "
+                f"{message or 'git add -A failed'}"
+            )
+            return violations
+        for path in lane_paths:
+            diff_proc = await asyncio.create_subprocess_exec(
+                "git",
+                "diff",
+                "--cached",
+                "--unified=0",
+                "--no-color",
+                "--no-ext-diff",
+                "--",
+                f":(literal){path}",
+                cwd=str(runtime.taskdir),
+                stdin=asyncio.subprocess.DEVNULL,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+            diff_stdout, _ = await diff_proc.communicate()
+            if diff_proc.returncode != 0:
+                message = diff_stdout.decode("utf-8", errors="replace").strip()
+                violations.append(
+                    f"[ringer.py] contract violation: could not inspect {path}: "
+                    f"{message or 'git diff failed'}"
+                )
+                continue
+            violations.extend(
+                contract_violations_from_diff(
+                    path,
+                    diff_stdout.decode("utf-8", errors="replace"),
+                    self.manifest.contracts,
+                )
+            )
+        return violations
+
     async def _prepare_taskdir(self, runtime: TaskRuntime) -> tuple[bool, str | None]:
         taskdir = runtime.taskdir
         if self.manifest.worktrees and self.manifest.repo is not None:
@@ -9288,6 +9611,23 @@ class RingerRunner:
                 message = stdout.decode("utf-8", errors="replace")
                 append_text(runtime.log_path, f"[ringer.py] git worktree add failed:\n{message}\n")
                 return False, message.strip() or "git worktree add failed"
+            if (
+                self.manifest.foundation
+                and runtime.task.key != self.manifest.foundation
+            ):
+                apply_proc = await asyncio.create_subprocess_exec(
+                    "git",
+                    "apply",
+                    "--allow-empty",
+                    cwd=str(taskdir),
+                    stdin=asyncio.subprocess.PIPE,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT,
+                )
+                apply_stdout, _ = await apply_proc.communicate(self.foundation_patch)
+                if apply_proc.returncode != 0:
+                    message = apply_stdout.decode("utf-8", errors="replace")
+                    return False, message.strip() or "git apply foundation patch failed"
             return True, None
         taskdir.mkdir(parents=True, exist_ok=True)
         return True, None
