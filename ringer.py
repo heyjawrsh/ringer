@@ -53,6 +53,7 @@ CONFIG_FILE_NAME = "config.toml"
 DEFAULT_ENGINE_NAME = "codex"
 DEFAULT_TIMEOUT_S = 900
 DEFAULT_INTEGRATION_TIMEOUT_S = 600
+DEFAULT_PILOT_WAIT_S = 1800
 CHECK_TIMEOUT_S = 60
 DEFAULT_DASHBOARD_PORT_BASE = 8787
 DEFAULT_HUD_PORT = 8700
@@ -1728,6 +1729,8 @@ class Manifest:
     integration_check: str = ""
     integration_timeout_s: int = DEFAULT_INTEGRATION_TIMEOUT_S
     source_path: Path | None = None
+    pilot: str = ""
+    pilot_wait_s: int = DEFAULT_PILOT_WAIT_S
 
     @classmethod
     def from_path(cls, path: Path) -> "Manifest":
@@ -1744,6 +1747,8 @@ class Manifest:
             tasks=manifest.tasks,
             integration_check=manifest.integration_check,
             integration_timeout_s=manifest.integration_timeout_s,
+            pilot=manifest.pilot,
+            pilot_wait_s=manifest.pilot_wait_s,
             source_path=path,
         )
 
@@ -1788,6 +1793,21 @@ class Manifest:
         duplicates = sorted({key for key in keys if keys.count(key) > 1})
         if duplicates:
             raise ValueError(f"duplicate task keys: {', '.join(duplicates)}")
+        pilot_raw = obj.get("pilot", "")
+        if not isinstance(pilot_raw, str):
+            raise ValueError("pilot must be a string")
+        pilot = pilot_raw.strip()
+        if pilot and pilot not in keys:
+            raise ValueError(f"pilot must name a manifest task key: {pilot}")
+        raw_pilot_wait_s = obj.get("pilot_wait_s", DEFAULT_PILOT_WAIT_S)
+        if isinstance(raw_pilot_wait_s, bool) or not isinstance(raw_pilot_wait_s, int):
+            raise ValueError(
+                "pilot_wait_s must be an integer, "
+                f"got {type(raw_pilot_wait_s).__name__}"
+            )
+        pilot_wait_s = raw_pilot_wait_s
+        if pilot_wait_s <= 0:
+            raise ValueError("pilot_wait_s must be positive")
         worktrees = bool(obj.get("worktrees", False))
         if worktrees:
             reserved_logs_dir = (workdir / "logs").resolve()
@@ -1810,6 +1830,8 @@ class Manifest:
             tasks=tasks,
             integration_check=integration_check,
             integration_timeout_s=integration_timeout_s,
+            pilot=pilot,
+            pilot_wait_s=pilot_wait_s,
         )
 
     def with_max_parallel(self, value: int | None) -> "Manifest":
@@ -1826,6 +1848,8 @@ class Manifest:
             tasks=self.tasks,
             integration_check=self.integration_check,
             integration_timeout_s=self.integration_timeout_s,
+            pilot=self.pilot,
+            pilot_wait_s=self.pilot_wait_s,
             source_path=self.source_path,
         )
 
@@ -2253,6 +2277,7 @@ class StateWriter:
         self.finished = False
         self.summary: dict[str, int] | None = None
         self.integration: IntegrationResult | None = None
+        self.pilot: dict[str, Any] | None = None
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self.artifact = artifact or ArtifactConfig(
@@ -2407,6 +2432,8 @@ class StateWriter:
             }
             if self.integration is not None:
                 state["integration"] = self.integration.state_obj()
+            if self.pilot is not None:
+                state["pilot"] = dict(self.pilot)
             return state
 
     def build_summary(self) -> dict[str, int]:
@@ -5493,6 +5520,38 @@ def run_state_path_for_id(state_dir: Path, run_id: str) -> Path | None:
     if candidate.parent != runs_root:
         return None
     return candidate
+
+
+def write_pilot_decision(config: AppConfig, run_id: str, decision: str) -> int:
+    state_path = run_state_path_for_id(config.state_dir, run_id)
+    if state_path is None or not state_path.is_file():
+        print(f"ringer.py: error: unknown run_id: {run_id}", file=sys.stderr)
+        return 1
+    try:
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"ringer.py: error: cannot read run state for {run_id}: {exc}", file=sys.stderr)
+        return 1
+    pilot = state.get("pilot") if isinstance(state, dict) else None
+    if not isinstance(pilot, dict) or pilot.get("status") != "awaiting":
+        print(
+            f"ringer.py: error: run {run_id} is not awaiting pilot review",
+            file=sys.stderr,
+        )
+        return 1
+    decision_file = pilot.get("decision_file")
+    if not isinstance(decision_file, str) or not decision_file:
+        print(
+            f"ringer.py: error: run {run_id} has no pilot decision-file path",
+            file=sys.stderr,
+        )
+        return 1
+    atomic_write_json(
+        Path(decision_file),
+        {"decision": decision, "decided_at": utc_now_iso()},
+    )
+    print(f"Pilot {decision} recorded for run {run_id}.")
+    return 0
 
 
 def hud_task_log_path(state_dir: Path, run_id: str, task_key: str) -> Path | None:
@@ -8768,6 +8827,9 @@ class RingerRunner:
         self.verifier = Verifier()
         self.semaphore = asyncio.Semaphore(manifest.max_parallel)
         self.active_processes: dict[int, asyncio.subprocess.Process] = {}
+        self.pilot_decision_path = (
+            self.manifest.workdir / "control" / "pilot.decision"
+        ).resolve()
 
     async def run(self) -> int:
         self.manifest.workdir.mkdir(parents=True, exist_ok=True)
@@ -8776,7 +8838,13 @@ class RingerRunner:
             self.state_writer.start()
             if self.dashboard is not None:
                 self.state_writer.set_port(self.dashboard.start())
-            await asyncio.gather(*(self._run_task(runtime) for runtime in self.runtimes))
+            if self.manifest.pilot:
+                approved = await self._run_pilot_gate()
+                if not approved:
+                    final_state = True
+                    return 1
+            else:
+                await asyncio.gather(*(self._run_task(runtime) for runtime in self.runtimes))
             integration = await self._run_integration_check()
             with self.lock:
                 self.state_writer.integration = integration
@@ -8812,6 +8880,94 @@ class RingerRunner:
                     results_page = artifact_live_path(self.state_writer.state_dir, self.manifest.run_name)
                     print(f"\nYour results: {results_page}")
                     print("Open it in a browser, or run './ringer.py hud' for the full Ringside view (http://127.0.0.1:8700).")
+
+    async def _run_pilot_gate(self) -> bool:
+        pilot_runtime = next(
+            runtime for runtime in self.runtimes if runtime.task.key == self.manifest.pilot
+        )
+        held_runtimes = [runtime for runtime in self.runtimes if runtime is not pilot_runtime]
+        release = asyncio.Event()
+        held_tasks = [
+            asyncio.create_task(self._run_held_task(runtime, release))
+            for runtime in held_runtimes
+        ]
+        with contextlib.suppress(FileNotFoundError):
+            self.pilot_decision_path.unlink()
+        try:
+            await self._run_task(pilot_runtime)
+            held_count = len(held_runtimes)
+            if pilot_runtime.status != "pass":
+                print(
+                    f"Pilot '{pilot_runtime.task.key}' failed; {held_count} held lane(s) "
+                    "were never started."
+                )
+                return False
+
+            with self.lock:
+                self.state_writer.pilot = {
+                    "task": pilot_runtime.task.key,
+                    "status": "awaiting",
+                    "since": utc_now_iso(),
+                    "wait_s": self.manifest.pilot_wait_s,
+                    "decision_file": str(self.pilot_decision_path),
+                }
+            self.state_writer.flush()
+            print(f"Pilot '{pilot_runtime.task.key}' passed.")
+            print(f"Run {self.run_id} is awaiting pilot review.")
+            print(f"./ringer.py approve {self.run_id}")
+            print(f"./ringer.py reject {self.run_id}")
+
+            decision = await self._wait_for_pilot_decision()
+            with self.lock:
+                assert self.state_writer.pilot is not None
+                self.state_writer.pilot["status"] = decision
+            self.state_writer.flush()
+            if decision == "approved":
+                await self._cleanup_worktree_on_pass(pilot_runtime)
+                release.set()
+                await asyncio.gather(*held_tasks)
+                return True
+            if decision == "rejected":
+                print(
+                    f"Pilot run rejected; {held_count} held lane(s) were never started."
+                )
+            else:
+                print(
+                    f"Pilot review timed out after {self.manifest.pilot_wait_s}s; "
+                    f"{held_count} held lane(s) were never started."
+                )
+            return False
+        finally:
+            if not release.is_set():
+                for task in held_tasks:
+                    task.cancel()
+                await asyncio.gather(*held_tasks, return_exceptions=True)
+
+    async def _run_held_task(
+        self,
+        runtime: TaskRuntime,
+        release: asyncio.Event,
+    ) -> None:
+        await release.wait()
+        await self._run_task(runtime)
+
+    async def _wait_for_pilot_decision(self) -> str:
+        deadline = time.monotonic() + self.manifest.pilot_wait_s
+        while True:
+            try:
+                payload = json.loads(self.pilot_decision_path.read_text(encoding="utf-8"))
+            except (FileNotFoundError, OSError, json.JSONDecodeError):
+                payload = None
+            if isinstance(payload, dict):
+                decision = payload.get("decision")
+                if decision == "approve":
+                    return "approved"
+                if decision == "reject":
+                    return "rejected"
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return "timeout"
+            await asyncio.sleep(min(1.0, remaining))
 
     async def _run_integration_check(self) -> IntegrationResult | None:
         command = self.manifest.integration_check
@@ -9011,7 +9167,8 @@ class RingerRunner:
                         runtime.status = "pass"
                         runtime.final_verdict = verdict
                         runtime.ended_at_monotonic = time.monotonic()
-                    await self._cleanup_worktree_on_pass(runtime)
+                    if runtime.task.key != self.manifest.pilot:
+                        await self._cleanup_worktree_on_pass(runtime)
                     return
                 if attempt < max_attempts and verdict in {"FAIL", "TIMEOUT"}:
                     failure_context = build_failure_context(runtime.log_path, verify.raw_output_excerpt)
@@ -11382,6 +11539,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="allow a registry-marked noncanonical model route for a deliberate bakeoff",
     )
 
+    for decision in ("approve", "reject"):
+        decision_parser = subparsers.add_parser(
+            decision,
+            help=f"{decision} a run awaiting pilot review",
+        )
+        decision_parser.add_argument("run_id", help="run ID awaiting pilot review")
+        decision_parser.add_argument(
+            "--config",
+            type=Path,
+            default=argparse.SUPPRESS,
+            help=argparse.SUPPRESS,
+        )
+
     ask_parser = subparsers.add_parser(
         "ask",
         help="answer one normal request with a small, clean worker",
@@ -11626,6 +11796,8 @@ def main(argv: list[str] | None = None) -> int:
             return run_catalog_command(args)
 
         config = AppConfig.load(args.config)
+        if args.command in {"approve", "reject"}:
+            return write_pilot_decision(config, args.run_id, args.command)
         if args.command == "db":
             return run_db_command(config, args)
         if args.command == "models":
