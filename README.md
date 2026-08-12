@@ -109,6 +109,8 @@ Each task gets its own directory, its own worker, its own log, and its own verdi
 | `verified` | One plain-English sentence saying what the check proves — shown on the results page next to "finished & checked" |
 | `full_access` | Worker runs unsandboxed — required for workers that spawn their own sub-workers; must also be enabled in config |
 | `worktrees` (run-level) | Give each task an isolated git worktree of `repo` so parallel workers can't collide |
+| `integration_check` (run-level) | Optional shell command run once after ALL tasks pass, against the combined result; nonzero fails the run |
+| `integration_timeout_s` (run-level) | Kill timer for `integration_check` (default 600) |
 
 > **Worktree footgun:** on PASS the task's worktree is removed — including anything written inside it. In worktrees mode, worker logs live outside task worktrees in `workdir/logs/`; have workers write deliverables outside the worktree too, or have your `check` copy artifacts out before it exits 0.
 
@@ -191,6 +193,20 @@ For each task that declares `known_bad`, prove-fail makes a fresh scratch dir (a
 The check FAILING is the good outcome — reported as **proved**, with the check's failure output shown (that output is what a retry prompt would see). A check that PASSES on the known-bad state is **broken**: it cannot be trusted to verify the task. A check that passes while `expect_files` are missing is **inconclusive** — the `known_bad` command must fabricate the deliverables in bad form for the test to mean anything. A `known_bad` command that itself fails or times out is an **error**. Tasks without `known_bad` are **skipped**; coverage is opt-in per task.
 
 The summary reads `prove-fail: P proved, B broken, I inconclusive, E error, S skipped of T task(s).` Exit code is 0 only when broken, inconclusive, and error are all zero — unlike `--baseline` (always 0, judgment left to you), a check that passes on a known-bad state is objectively broken. The two flags cannot be combined in one invocation.
+
+### Integration check: verify the merged result
+
+Per-task checks verify each lane in isolation; lanes that each pass can still break the combined build. `integration_check` runs exactly once, only when every task passed. In worktrees mode its cwd is a fresh detached worktree of `repo` at HEAD (removed afterwards); otherwise it is the run's `workdir`. If any task failed, it is skipped and reported as skipped.
+
+It never retries — it is the orchestrator's gate, not a worker task. Exit 0 prints `integration: pass`; nonzero or timeout fails the WHOLE run even though every task passed, with the output surfaced and the full log in `<workdir>/logs/integration.log`. `--dry-run`, `--baseline`, and `--prove-fail` never run it.
+
+```json
+{
+  "worktrees": true,
+  "integration_check": "git apply patches/*.patch && pytest -q",
+  "integration_timeout_s": 600
+}
+```
 
 ## Make your agent actually use this
 
