@@ -112,6 +112,14 @@ Each task gets its own directory, its own worker, its own log, and its own verdi
 
 > **Worktree footgun:** on PASS the task's worktree is removed — including anything written inside it. In worktrees mode, worker logs live outside task worktrees in `workdir/logs/`; have workers write deliverables outside the worktree too, or have your `check` copy artifacts out before it exits 0.
 
+> **Worktree pre-flight:** every worktrees run begins with a sweep over all lanes, before engines are even checked, so a blocked lane costs zero tokens. It prints a verification table — each lane marked fresh or stale, with the repo's base commit SHA. Failed tasks keep their worktrees for post-mortems, so stale lanes show up by design on re-runs. If any lane is stale the run aborts before anything spawns and prints the exact removal command per lane. Pass `--reset-worktrees` instead and it removes stale registered worktrees for you (`git worktree remove --force`, then a prune) and proceeds:
+
+```
+./ringer.py run swarm.json --reset-worktrees
+```
+
+A stale path that is NOT a registered worktree — a plain directory — is never auto-deleted, flag or no flag: move or delete it yourself. `--dry-run`, `--baseline`, and `--prove-fail` are unaffected.
+
 Not sure what your tasks even are yet? [`docs/interview-prompt.md`](docs/interview-prompt.md) is a prompt you paste into any chatbot; it interviews you about the job and hands back a brief your orchestrating agent can turn into a manifest. Ready-made skeletons for the patterns that work live in [`templates/`](templates/).
 
 ## `ask` — one bounded question, one clean worker
