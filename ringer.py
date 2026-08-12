@@ -52,6 +52,7 @@ CONFIG_DIR_NAME = TOOL_NAME
 CONFIG_FILE_NAME = "config.toml"
 DEFAULT_ENGINE_NAME = "codex"
 DEFAULT_TIMEOUT_S = 900
+DEFAULT_INTEGRATION_TIMEOUT_S = 600
 CHECK_TIMEOUT_S = 60
 DEFAULT_DASHBOARD_PORT_BASE = 8787
 DEFAULT_HUD_PORT = 8700
@@ -1724,6 +1725,8 @@ class Manifest:
     worktrees: bool
     repo: Path | None
     tasks: tuple[TaskSpec, ...]
+    integration_check: str = ""
+    integration_timeout_s: int = DEFAULT_INTEGRATION_TIMEOUT_S
     source_path: Path | None = None
 
     @classmethod
@@ -1739,6 +1742,8 @@ class Manifest:
             worktrees=manifest.worktrees,
             repo=manifest.repo,
             tasks=manifest.tasks,
+            integration_check=manifest.integration_check,
+            integration_timeout_s=manifest.integration_timeout_s,
             source_path=path,
         )
 
@@ -1762,6 +1767,23 @@ class Manifest:
         if not isinstance(tasks_raw, list) or not tasks_raw:
             raise ValueError("tasks must be a non-empty list")
         tasks = tuple(TaskSpec.from_obj(task) for task in tasks_raw)
+        integration_check = obj.get("integration_check", "")
+        if not isinstance(integration_check, str):
+            raise ValueError("integration_check must be a string")
+        raw_integration_timeout_s = obj.get(
+            "integration_timeout_s", DEFAULT_INTEGRATION_TIMEOUT_S
+        )
+        if (
+            isinstance(raw_integration_timeout_s, bool)
+            or not isinstance(raw_integration_timeout_s, int)
+        ):
+            raise ValueError(
+                "integration_timeout_s must be an integer, "
+                f"got {type(raw_integration_timeout_s).__name__}"
+            )
+        integration_timeout_s = raw_integration_timeout_s
+        if integration_timeout_s <= 0:
+            raise ValueError("integration_timeout_s must be positive")
         keys = [task.key for task in tasks]
         duplicates = sorted({key for key in keys if keys.count(key) > 1})
         if duplicates:
@@ -1786,6 +1808,8 @@ class Manifest:
             worktrees=worktrees,
             repo=repo,
             tasks=tasks,
+            integration_check=integration_check,
+            integration_timeout_s=integration_timeout_s,
         )
 
     def with_max_parallel(self, value: int | None) -> "Manifest":
@@ -1800,6 +1824,8 @@ class Manifest:
             worktrees=self.worktrees,
             repo=self.repo,
             tasks=self.tasks,
+            integration_check=self.integration_check,
+            integration_timeout_s=self.integration_timeout_s,
             source_path=self.source_path,
         )
 
@@ -2125,6 +2151,25 @@ class VerifyResult:
     missing_files: tuple[str, ...] = ()
 
 
+@dataclass(frozen=True)
+class IntegrationResult:
+    status: str
+    returncode: int | None
+    duration_s: float
+    log_path: Path
+    output_excerpt: str = ""
+    cleanup_warning: str = ""
+    timeout_s: int | None = None
+
+    def state_obj(self) -> dict[str, Any]:
+        return {
+            "status": self.status,
+            "returncode": self.returncode,
+            "duration_s": round(self.duration_s, 1),
+            "log_path": str(self.log_path),
+        }
+
+
 class ProcessTree:
     @staticmethod
     def read() -> tuple[dict[int, list[int]], dict[int, str]]:
@@ -2207,6 +2252,7 @@ class StateWriter:
         self.port: int | None = None
         self.finished = False
         self.summary: dict[str, int] | None = None
+        self.integration: IntegrationResult | None = None
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self.artifact = artifact or ArtifactConfig(
@@ -2336,7 +2382,7 @@ class StateWriter:
                 "fail": fail_count,
                 "tokens": sum(int(item["tokens"] or 0) for item in tasks),
             }
-            return {
+            state: dict[str, Any] = {
                 "run_id": self.run_id,
                 "run_name": self.run_name,
                 "identity": self.identity,
@@ -2359,6 +2405,9 @@ class StateWriter:
                 "report_path": str(self.report_path) if self.artifact.enabled else None,
                 "report_ready": self.report_written,
             }
+            if self.integration is not None:
+                state["integration"] = self.integration.state_obj()
+            return state
 
     def build_summary(self) -> dict[str, int]:
         with self.lock:
@@ -8728,8 +8777,13 @@ class RingerRunner:
             if self.dashboard is not None:
                 self.state_writer.set_port(self.dashboard.start())
             await asyncio.gather(*(self._run_task(runtime) for runtime in self.runtimes))
+            integration = await self._run_integration_check()
+            with self.lock:
+                self.state_writer.integration = integration
             final_state = True
-            return 0 if all(runtime.status == "pass" for runtime in self.runtimes) else 1
+            tasks_passed = all(runtime.status == "pass" for runtime in self.runtimes)
+            integration_passed = integration is None or integration.status == "pass"
+            return 0 if tasks_passed and integration_passed else 1
         except asyncio.CancelledError:
             await self.kill_all_workers()
             with self.lock:
@@ -8750,6 +8804,7 @@ class RingerRunner:
                 self.dashboard.stop()
             self.logger.close()
             print_summary(self.run_id, self.runtimes)
+            print_integration_result(self.state_writer.integration, self.runtimes)
             print("Model log updated; run './ringer.py models' for the per-model scoreboard.")
             # The post-run journey: tell a human exactly where the results live.
             with contextlib.suppress(Exception):
@@ -8757,6 +8812,157 @@ class RingerRunner:
                     results_page = artifact_live_path(self.state_writer.state_dir, self.manifest.run_name)
                     print(f"\nYour results: {results_page}")
                     print("Open it in a browser, or run './ringer.py hud' for the full Ringside view (http://127.0.0.1:8700).")
+
+    async def _run_integration_check(self) -> IntegrationResult | None:
+        command = self.manifest.integration_check
+        if not command.strip():
+            return None
+        log_path = (self.manifest.workdir / "logs" / "integration.log").resolve()
+        with contextlib.suppress(FileNotFoundError):
+            log_path.unlink()
+        failed_tasks = sum(1 for runtime in self.runtimes if runtime.status != "pass")
+        if failed_tasks:
+            return IntegrationResult(
+                status="skipped",
+                returncode=None,
+                duration_s=0.0,
+                log_path=log_path,
+            )
+
+        worktrees = self.manifest.worktrees and self.manifest.repo is not None
+        scratch_root: Path | None = None
+        integration_dir = self.manifest.workdir
+        cleanup_warning = ""
+        if worktrees:
+            scratch_root = Path(tempfile.mkdtemp(prefix="ringer-integration-"))
+            integration_dir = scratch_root / "worktree"
+            proc = await asyncio.create_subprocess_exec(
+                "git",
+                "-C",
+                str(self.manifest.repo),
+                "worktree",
+                "add",
+                "--detach",
+                str(integration_dir),
+                "HEAD",
+                stdin=asyncio.subprocess.DEVNULL,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+            stdout, _ = await proc.communicate()
+            if proc.returncode != 0:
+                message = stdout.decode("utf-8", errors="replace")
+                self._write_integration_log(
+                    log_path,
+                    command,
+                    stdout,
+                    returncode=proc.returncode,
+                    setup_error="git worktree add failed",
+                )
+                shutil.rmtree(scratch_root, ignore_errors=True)
+                return IntegrationResult(
+                    status="fail",
+                    returncode=proc.returncode,
+                    duration_s=0.0,
+                    log_path=log_path,
+                    output_excerpt=message,
+                )
+
+        started = time.monotonic()
+        timed_out = False
+        proc = await asyncio.create_subprocess_shell(
+            command,
+            cwd=str(integration_dir),
+            stdin=asyncio.subprocess.DEVNULL,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+            start_new_session=True,
+        )
+        try:
+            try:
+                stdout, _ = await asyncio.wait_for(
+                    proc.communicate(), timeout=self.manifest.integration_timeout_s
+                )
+            except asyncio.TimeoutError:
+                timed_out = True
+                terminate_process_group(proc)
+                try:
+                    stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=5)
+                except asyncio.TimeoutError:
+                    kill_process_group(proc)
+                    stdout, _ = await proc.communicate()
+            duration_s = time.monotonic() - started
+            self._write_integration_log(
+                log_path,
+                command,
+                stdout,
+                returncode=proc.returncode,
+                timed_out=timed_out,
+            )
+        finally:
+            if worktrees and self.manifest.repo is not None:
+                remove_proc = await asyncio.create_subprocess_exec(
+                    "git",
+                    "-C",
+                    str(self.manifest.repo),
+                    "worktree",
+                    "remove",
+                    "--force",
+                    str(integration_dir),
+                    stdin=asyncio.subprocess.DEVNULL,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT,
+                )
+                remove_stdout, _ = await remove_proc.communicate()
+                if remove_proc.returncode != 0:
+                    message = remove_stdout.decode("utf-8", errors="replace").strip()
+                    cleanup_warning = (
+                        "integration worktree remove failed, leaked "
+                        f"{integration_dir}: {message or 'no output'}"
+                    )
+                if scratch_root is not None:
+                    shutil.rmtree(scratch_root, ignore_errors=True)
+
+        output = stdout.decode("utf-8", errors="replace") if stdout else ""
+        status = "timeout" if timed_out else ("pass" if proc.returncode == 0 else "fail")
+        return IntegrationResult(
+            status=status,
+            returncode=proc.returncode,
+            duration_s=duration_s,
+            log_path=log_path,
+            output_excerpt=output,
+            cleanup_warning=cleanup_warning,
+            timeout_s=self.manifest.integration_timeout_s if timed_out else None,
+        )
+
+    def _write_integration_log(
+        self,
+        log_path: Path,
+        command: str,
+        output: bytes,
+        *,
+        returncode: int | None,
+        timed_out: bool = False,
+        setup_error: str = "",
+    ) -> None:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        framing = (
+            f"[ringer.py] integration started {datetime.now(timezone.utc).isoformat()}\n"
+            f"[ringer.py] command: {command} < /dev/null\n"
+        ).encode("utf-8", errors="replace")
+        with log_path.open("wb") as fh:
+            fh.write(framing)
+            fh.write(output)
+            if output and not output.endswith(b"\n"):
+                fh.write(b"\n")
+            if setup_error:
+                fh.write(f"[ringer.py] {setup_error}\n".encode("utf-8"))
+            if timed_out:
+                fh.write(
+                    f"[ringer.py] integration timed out after "
+                    f"{self.manifest.integration_timeout_s}s\n".encode("utf-8")
+                )
+            fh.write(f"[ringer.py] integration exited rc={returncode}\n".encode("utf-8"))
 
     async def kill_all_workers(self) -> None:
         procs = list(self.active_processes.values())
@@ -10411,6 +10617,28 @@ def print_summary(run_id: str, runtimes: list[TaskRuntime]) -> None:
         print("\nsetup failures (no worker was spawned):")
         for runtime in setup_failures:
             print(f"  {runtime.task.key}: {runtime.setup_error}")
+
+
+def print_integration_result(
+    result: IntegrationResult | None,
+    runtimes: list[TaskRuntime],
+) -> None:
+    if result is None:
+        return
+    if result.status == "skipped":
+        failed_tasks = sum(1 for runtime in runtimes if runtime.status != "pass")
+        print(f"integration: skipped ({failed_tasks} task(s) failed)")
+    elif result.status == "pass":
+        print("integration: pass")
+    elif result.status == "timeout":
+        print(f"integration: FAIL (timed out after {result.timeout_s}s)")
+    else:
+        print(f"integration: FAIL (rc={result.returncode})")
+    if result.status in {"fail", "timeout"}:
+        for line in result.output_excerpt.strip().splitlines()[:15]:
+            print(f"    {line}")
+    if result.cleanup_warning:
+        print(f"integration: WARNING ({result.cleanup_warning})")
 
 
 def create_demo_manifest() -> Path:
