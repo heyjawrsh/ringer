@@ -9616,6 +9616,135 @@ def preflight_engine_bins(manifest: Manifest, config: AppConfig) -> None:
             )
 
 
+async def preflight_worktrees(manifest: Manifest, *, reset: bool) -> None:
+    """Report stale task worktrees before any worker or run state starts."""
+    if not manifest.worktrees or manifest.repo is None:
+        return
+    repo = manifest.repo
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "git",
+            "-C",
+            str(repo),
+            "rev-parse",
+            "--short",
+            "HEAD",
+            stdin=asyncio.subprocess.DEVNULL,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+    except OSError as exc:
+        raise ValueError(
+            f"worktree pre-flight could not resolve HEAD for repo {repo}: {exc}"
+        ) from exc
+    stdout, _ = await proc.communicate()
+    base_sha = stdout.decode("utf-8", errors="replace").strip()
+    if proc.returncode != 0 or not base_sha:
+        excerpt = base_sha or "git rev-parse returned no output"
+        raise ValueError(
+            f"worktree pre-flight could not resolve HEAD for repo {repo}: {excerpt[:2000]}"
+        )
+
+    rows: list[tuple[TaskSpec, Path, str]] = []
+    for task in manifest.tasks:
+        taskdir = (manifest.workdir / task.key).resolve()
+        if not taskdir.exists():
+            status = "fresh"
+        elif (taskdir / ".git").is_file():
+            status = "stale worktree"
+        else:
+            status = "stale dir"
+        rows.append((task, taskdir, status))
+
+    failure: str | None = None
+    removed_any = False
+    if reset:
+        for index, (task, taskdir, status) in enumerate(rows):
+            if status != "stale worktree":
+                continue
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    "git",
+                    "-C",
+                    str(repo),
+                    "worktree",
+                    "remove",
+                    "--force",
+                    str(taskdir),
+                    stdin=asyncio.subprocess.DEVNULL,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT,
+                )
+            except OSError as exc:
+                failure = f"could not run git worktree remove for {taskdir}: {exc}"
+                break
+            stdout, _ = await proc.communicate()
+            if proc.returncode != 0:
+                excerpt = stdout.decode("utf-8", errors="replace").strip()
+                failure = (
+                    f"git worktree remove failed for {taskdir}: "
+                    f"{(excerpt or 'no output')[:2000]}"
+                )
+                break
+            rows[index] = (task, taskdir, "reset")
+            removed_any = True
+
+        if removed_any and failure is None:
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    "git",
+                    "-C",
+                    str(repo),
+                    "worktree",
+                    "prune",
+                    stdin=asyncio.subprocess.DEVNULL,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT,
+                )
+            except OSError as exc:
+                failure = f"could not run git worktree prune for {repo}: {exc}"
+            else:
+                stdout, _ = await proc.communicate()
+                if proc.returncode != 0:
+                    excerpt = stdout.decode("utf-8", errors="replace").strip()
+                    failure = (
+                        f"git worktree prune failed for {repo}: "
+                        f"{(excerpt or 'no output')[:2000]}"
+                    )
+
+    print(f"Worktree pre-flight: repo={repo} base={base_sha}")
+    for task, taskdir, status in rows:
+        print(f"{task.key:<24} {status:<14} {taskdir}")
+
+    stale_rows = [row for row in rows if row[2] in {"stale worktree", "stale dir"}]
+    if stale_rows:
+        print()
+        for task, taskdir, status in stale_rows:
+            if status == "stale worktree":
+                remove_cmd = (
+                    f"git -C {shlex.quote(str(repo))} "
+                    f"worktree remove --force {shlex.quote(str(taskdir))}"
+                )
+                print(
+                    f"{task.key:<24} worktree taskdir already exists (left by a previous "
+                    f"failed run?): {taskdir} — remove it with `{remove_cmd}` and re-run"
+                )
+            else:
+                print(
+                    f"{task.key:<24} taskdir already exists but is not a registered git "
+                    f"worktree: {taskdir} — move or delete it, then re-run"
+                )
+        print(
+            "Re-run with --reset-worktrees to remove stale registered worktrees "
+            "automatically."
+        )
+    sys.stdout.flush()
+    if failure is not None:
+        raise ValueError(f"worktree pre-flight failed: {failure}")
+    if stale_rows:
+        raise ValueError("worktree pre-flight found stale task directories")
+
+
 def validate_manifest_engines(manifest: Manifest, config: AppConfig) -> None:
     missing = sorted({task.engine for task in manifest.tasks if task.engine not in config.engines})
     if missing:
@@ -11012,6 +11141,14 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     run_parser.add_argument(
+        "--reset-worktrees",
+        action="store_true",
+        help=(
+            "remove stale registered task worktrees during pre-flight; a stale "
+            "plain directory is never auto-deleted"
+        ),
+    )
+    run_parser.add_argument(
         "--allow-noncanonical-route",
         action="store_true",
         help="allow a registry-marked noncanonical model route for a deliberate bakeoff",
@@ -11320,6 +11457,13 @@ def main(argv: list[str] | None = None) -> int:
             # Deliberately before preflight_engine_bins: prove-fail spawns no
             # workers, so a missing engine binary must not block it.
             return asyncio.run(run_prove_fail(manifest, config=config))
+        if args.command == "run" and manifest.worktrees and manifest.repo is not None:
+            asyncio.run(
+                preflight_worktrees(
+                    manifest,
+                    reset=bool(getattr(args, "reset_worktrees", False)),
+                )
+            )
         preflight_engine_bins(manifest, config)
         if args.command == "run":
             start_catalog_auto_refresh()

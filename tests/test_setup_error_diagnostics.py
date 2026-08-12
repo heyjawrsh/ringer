@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pre-spawn setup failures must say what happened and how to fix it.
+"""Stale worktree pre-flight failures must say what happened and how to fix it.
 
 Observed in the field (2026-07-14): failed tasks keep their worktrees (by
 design, for post-mortems), and a follow-up run with the same run_name then
@@ -8,14 +8,14 @@ message anywhere naming the collision. A full diagnosis cycle later:
 `git worktree list` showed the stale taskdir.
 
 These tests pin the diagnostics: the collision message names the exact
-unblocking command, the reason reaches the worker log and the run-state
-record, and the summary lists setup failures explicitly.
+unblocking command for a registered worktree and never suggests that command
+for a plain directory.
 """
 from __future__ import annotations
 
 import json
 import os
-import re
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -42,13 +42,26 @@ def init_git_repo(path: Path) -> None:
     )
     for args in (
         ["git", "-C", str(path), "init", "--quiet"],
-        ["git", "-C", str(path), "commit", "--allow-empty", "--quiet", "-m", "init"],
+        [
+            "git",
+            "-C",
+            str(path),
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "--allow-empty",
+            "--quiet",
+            "-m",
+            "init",
+        ],
     ):
         subprocess.run(args, check=True, env=env, capture_output=True)
 
 
 class SetupErrorDiagnosticsTests(unittest.TestCase):
-    def run_with_stale_taskdir(self, *, registered_worktree: bool) -> tuple[str, Path, Path, Path, Path]:
+    def run_with_stale_taskdir(
+        self, *, registered_worktree: bool
+    ) -> tuple[int, str, Path, Path, Path, Path]:
         with tempfile.TemporaryDirectory() as temp_root:
             root = Path(temp_root)
             home = root / "home"
@@ -163,57 +176,8 @@ class SetupErrorDiagnosticsTests(unittest.TestCase):
             )
 
             combined_output = proc.stdout + proc.stderr
-            expected_reason = (
-                "worktree taskdir already exists"
-                if registered_worktree
-                else "taskdir already exists but is not a registered git worktree"
-            )
-
-            # Verdict ERROR as before — but no longer naked.
-            self.assertRegex(
-                combined_output,
-                re.compile(r"^stale-task\s+fail\s+ERROR\s+1\s+", re.MULTILINE),
-                combined_output,
-            )
-
-            # The summary lists the setup failure explicitly.
-            self.assertIn(
-                "setup failures (no worker was spawned):", combined_output
-            )
-            self.assertIn(expected_reason, combined_output)
-
-            # The reason reaches the worker log, where post-mortems look first.
-            worker_log_candidates = list(workdir.rglob("*.log"))
-            self.assertTrue(worker_log_candidates, "no worker log written")
-            logged = "".join(
-                p.read_text(encoding="utf-8") for p in worker_log_candidates
-            )
-            self.assertIn(
-                "task setup failed before any worker could spawn", logged
-            )
-
-            # The run-state record carries setup_error for the HUD/post-mortem.
-            state_files = [
-                p
-                for p in state_dir.rglob("*.json")
-                if "stale-task" in p.read_text(encoding="utf-8", errors="replace")
-            ]
-            self.assertTrue(state_files, "no run state file mentions the task")
-            found_setup_error = False
-            for state_file in state_files:
-                data = json.loads(state_file.read_text(encoding="utf-8"))
-                tasks = data.get("tasks") if isinstance(data, dict) else None
-                for task in tasks or []:
-                    if task.get("key") == "stale-task" and expected_reason in (
-                        task.get("setup_error") or ""
-                    ):
-                        found_setup_error = True
-            self.assertTrue(
-                found_setup_error,
-                f"setup_error missing from run state: {state_files}",
-            )
-
             return (
+                proc.returncode,
                 combined_output,
                 stale_taskdir.resolve(),
                 workdir.resolve(),
@@ -222,24 +186,38 @@ class SetupErrorDiagnosticsTests(unittest.TestCase):
             )
 
     def test_stale_registered_worktree_names_the_exact_remove_command(self) -> None:
-        combined_output, stale_taskdir, _, _, repo = self.run_with_stale_taskdir(
-            registered_worktree=True
+        returncode, combined_output, stale_taskdir, _, _, repo = (
+            self.run_with_stale_taskdir(registered_worktree=True)
+        )
+        self.assertNotEqual(returncode, 0, combined_output)
+        self.assertIn(
+            "ringer.py: error: worktree pre-flight found stale task directories",
+            combined_output,
         )
         # The command must be paste-safe from anywhere: repo-qualified and
         # pointing at the resolved taskdir.
         self.assertIn(
-            f"git -C {repo} worktree remove --force {stale_taskdir}",
+            f"`git -C {shlex.quote(str(repo))} worktree remove --force "
+            f"{shlex.quote(str(stale_taskdir))}`",
             combined_output,
         )
+        self.assertIn("--reset-worktrees", combined_output)
 
     def test_plain_directory_collision_does_not_claim_a_worktree_command(self) -> None:
-        combined_output, _, _, _, _ = self.run_with_stale_taskdir(
-            registered_worktree=False
+        returncode, combined_output, stale_taskdir, _, _, _ = (
+            self.run_with_stale_taskdir(registered_worktree=False)
+        )
+        self.assertNotEqual(returncode, 0, combined_output)
+        self.assertIn(
+            "ringer.py: error: worktree pre-flight found stale task directories",
+            combined_output,
         )
         # `git worktree remove` would fail on a plain directory — never
         # print a recovery command that does not work.
-        self.assertNotIn("git worktree remove", combined_output)
-        self.assertIn("move or delete it, then re-run", combined_output)
+        self.assertNotIn("worktree remove", combined_output)
+        self.assertIn(
+            f"{stale_taskdir} — move or delete it, then re-run", combined_output
+        )
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ import asyncio
 import importlib.util
 import json
 import os
+import shlex
 import signal
 import subprocess
 import sys
@@ -470,6 +471,8 @@ class RingerCliTests(unittest.TestCase):
                 "user.name=Ringer Test",
                 "-c",
                 "user.email=ringer-test@example.invalid",
+                "-c",
+                "commit.gpgsign=false",
                 "commit",
                 "-m",
                 "base",
@@ -479,13 +482,10 @@ class RingerCliTests(unittest.TestCase):
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
-        workdir = self.root / "work-prepare"
-        (workdir / "exists").mkdir(parents=True)
-        manifest = self.write_manifest(
-            "prepare-failure",
+        manifest = ringer.Manifest.from_obj(
             {
                 "run_name": "prepare-failure",
-                "workdir": str(workdir),
+                "workdir": str(self.root / "work-prepare"),
                 "max_parallel": 1,
                 "worktrees": True,
                 "repo": str(repo),
@@ -500,13 +500,49 @@ class RingerCliTests(unittest.TestCase):
                 ],
             },
         )
+        asyncio.run(ringer.preflight_worktrees(manifest, reset=False))
+        runner = ringer.RingerRunner(
+            manifest,
+            ringer.AppConfig.load(self.config_path),
+            "test-runner",
+            dashboard_enabled=False,
+        )
+        runtime = runner.runtimes[0]
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repo),
+                "worktree",
+                "add",
+                "--detach",
+                str(runtime.taskdir),
+                "HEAD",
+            ],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
 
-        result = self.run_ringer(manifest)
+        prepared, prepare_error = asyncio.run(runner._prepare_taskdir(runtime))
 
-        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertFalse(prepared)
+        self.assertIsNotNone(prepare_error)
+        expected_command = (
+            f"git -C {shlex.quote(str(repo.resolve()))} worktree remove --force "
+            f"{shlex.quote(str(runtime.taskdir))}"
+        )
+        self.assertIn(f"`{expected_command}`", prepare_error or "")
+
+        asyncio.run(runner._record_prepare_error(runtime, prepare_error or ""))
         rows = self.read_rows()
         self.assertEqual(rows[0]["verdict"], "ERROR")
-        self.assertIn("taskdir already exists but is not a registered git worktree", rows[0]["notes"])
+        self.assertIn(expected_command, rows[0]["notes"])
+        self.assertIn(
+            "task setup failed before any worker could spawn",
+            runtime.log_path.read_text(encoding="utf-8"),
+        )
+        runner.logger.close()
 
     def test_task_key_cannot_escape_workdir(self) -> None:
         manifest = self.write_manifest(
