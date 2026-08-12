@@ -1,0 +1,59 @@
+{
+  "run_name": "{{RUN_SLUG}}-red-team",
+  "workdir": "{{WORKDIR}}",
+  "max_parallel": 4,
+  "tasks": [
+    {
+      "key": "real-data-adversary",
+      "engine": "{{REVIEW_ENGINE}}",
+      "task_type": "code-review",
+      "timeout_s": 1800,
+      "expect_files": [
+        "report.md",
+        "evidence.txt"
+      ],
+      "spec": "You are the real-data adversary for {{PRODUCT_NAME}}. You are read-only with respect to product source: never modify, create, delete, format, install into, or commit product source, tests, fixtures, or configuration. You may run the product against disposable data and may write only ./report.md and ./evidence.txt in your task directory.\n\nREAL OR REALISTIC DATA SOURCE: {{REAL_DATA_SOURCE}}\n\nHOW TO RUN: boot the product with this exact command or command sequence: {{HOW_TO_BOOT_COMMANDS}}\n\nTASK: obtain the named data, boot the running product, and exercise its real ingestion, decode, sync, persistence, and retrieval paths. Hunt silent failures specifically: swallowed decode errors, empty results treated as success, partial writes, and records dropped without an error surfacing. Compare input counts and representative records with visible output and persisted results. Preserve the exact commands, counts, log excerpts, and output in ./evidence.txt; do not claim a finding from inspection alone.\n\nOUTPUT CONTRACT: write ./report.md that either states NO FINDINGS and says exactly what was exercised, or contains one block per finding using these labels: Finding:, Evidence:, Repro:, Impact:, Severity:, Silent:. Severity must be P0, P1, P2, or P3. Silent must be yes or no; use yes only when the failure surfaced nothing to the user. Evidence must point to a captured artifact in ./evidence.txt, such as a log excerpt, command output, count comparison, or screenshot path. A finding without captured evidence is not a finding. Write ./evidence.txt even when there are no findings, recording the actions and observed results.\n\nHARD RULES: do not edit product source, do not fix findings, do not use production credentials or mutate production data, do not invent results, and do not call a path clean unless you exercised it against the named data source.",
+      "check": "python3 '{{KIT_DIR}}/checks/check_redteam_report.py' --file report.md",
+      "verified": "report.md contains an explicit exercised no-findings verdict or evidence-backed real-data findings with valid severity and silent-failure values, and evidence.txt was captured."
+    },
+    {
+      "key": "destructive-path-adversary",
+      "engine": "{{REVIEW_ENGINE}}",
+      "task_type": "code-review",
+      "timeout_s": 1800,
+      "expect_files": [
+        "report.md",
+        "evidence.txt"
+      ],
+      "spec": "You are the destructive-path adversary for {{PRODUCT_NAME}}. You are read-only with respect to product source: never modify, create, delete, format, install into, or commit product source, tests, fixtures, or configuration. Exercise destructive behavior only with disposable data in an authorized test environment. You may write only ./report.md and ./evidence.txt in your task directory.\n\nDESTRUCTIVE SURFACES: {{DESTRUCTIVE_SURFACES}}\n\nHOW TO RUN: boot the product with this exact command or command sequence: {{HOW_TO_BOOT_COMMANDS}}\n\nTASK: boot the running product and actually exercise every named bulk, select-all, delete, overwrite, and other destructive path. Also exercise its empty state and max-cardinality state. For every action, record setup, selection size, exact action, visible response, resulting state, and any log or screenshot path in ./evidence.txt. Confirm cancellation, confirmation, partial-selection, and failure behavior where those controls exist; do not infer behavior by reading code.\n\nOUTPUT CONTRACT: write ./report.md that either states NO FINDINGS and says exactly what was exercised, or contains one block per finding using these labels: Finding:, Evidence:, Repro:, Impact:, Severity:, Silent:. Severity must be P0, P1, P2, or P3. Silent must be yes or no; use yes only when the failure surfaced nothing to the user. Evidence must point to a captured artifact in ./evidence.txt, such as a log excerpt, command output, action record, or screenshot path. A finding without captured evidence is not a finding. Write ./evidence.txt even when there are no findings, with evidence for each destructive, empty-state, and max-cardinality action.\n\nHARD RULES: do not edit product source, do not fix findings, do not touch production data, do not perform actions outside the named surfaces, and do not report an unexecuted destructive path as tested.",
+      "check": "python3 '{{KIT_DIR}}/checks/check_redteam_report.py' --file report.md",
+      "verified": "report.md contains an explicit exercised no-findings verdict or evidence-backed destructive-path findings with valid severity and silent-failure values, and evidence.txt records each action."
+    },
+    {
+      "key": "error-path-adversary",
+      "engine": "{{REVIEW_ENGINE}}",
+      "task_type": "code-review",
+      "timeout_s": 1800,
+      "expect_files": [
+        "report.md",
+        "evidence.txt"
+      ],
+      "spec": "You are the error-path adversary for {{PRODUCT_NAME}}. You are read-only with respect to product source: never modify, create, delete, format, install into, or commit product source, tests, fixtures, or configuration. You may manipulate disposable inputs and test-environment conditions and may write only ./report.md and ./evidence.txt in your task directory.\n\nHOW TO RUN: boot the product with this exact command or command sequence: {{HOW_TO_BOOT_COMMANDS}}\n\nTASK: boot the running product and force its failure branches, including network failure, permission denied, malformed input, and timeout. For each forced failure, verify what the user sees and whether the operation stops, retries, rolls back, or silently no-ops. Capture the failure injection, command output, visible error text or screenshot path, logs, and resulting state in ./evidence.txt. The headline signal is a failed operation that surfaces nothing to the user.\n\nOUTPUT CONTRACT: write ./report.md that either states NO FINDINGS and says exactly what was exercised, or contains one block per finding using these labels: Finding:, Evidence:, Repro:, Impact:, Severity:, Silent:. Severity must be P0, P1, P2, or P3. Silent must be yes or no; use yes only when the failure surfaced nothing to the user. Evidence must point to a captured artifact in ./evidence.txt, such as a log excerpt, command output, visible error capture, or screenshot path. A finding without captured evidence is not a finding. Write ./evidence.txt even when there are no findings, recording every forced branch and its user-visible result.\n\nHARD RULES: do not edit product source, do not fix findings, do not attack systems outside the authorized test environment, do not invent failure injection, and do not count a logged backend error as surfaced unless a user can see it.",
+      "check": "python3 '{{KIT_DIR}}/checks/check_redteam_report.py' --file report.md",
+      "verified": "report.md contains an explicit exercised no-findings verdict or evidence-backed forced-error findings with valid severity and silent-failure values, and evidence.txt captures user-visible outcomes."
+    },
+    {
+      "key": "test-quality-adversary",
+      "engine": "{{REVIEW_ENGINE}}",
+      "task_type": "code-review",
+      "timeout_s": 1800,
+      "expect_files": [
+        "report.md",
+        "evidence.txt"
+      ],
+      "spec": "You are the test-quality adversary for {{PRODUCT_NAME}}. You are read-only with respect to product source: never modify, create, delete, format, install into, or commit product source, tests, fixtures, check scripts, or configuration. You may run the product and existing checks and may write only ./report.md and ./evidence.txt in your task directory.\n\nHOW TO RUN: boot the product with this exact command or command sequence: {{HOW_TO_BOOT_COMMANDS}}\n\nTEST COMMAND: run the existing suite with this exact command: {{TEST_COMMAND}}\n\nTASK: boot the running product, run the existing suite, and audit the tests and check scripts themselves for false greens. Look specifically for naive substring matches, over-broad assertions, assertions that pass when the feature is absent, checks that pass when the target file is missing, swallowed command failures, and mocks that bypass the running behavior. Use read-only inspection plus existing commands to demonstrate each claimed false green, and capture commands, outputs, relevant test/check excerpts, and the running-product comparison in ./evidence.txt.\n\nOUTPUT CONTRACT: write ./report.md that either states NO FINDINGS and says exactly what was exercised, or contains one block per finding using these labels: Finding:, Evidence:, Repro:, Impact:, Severity:, Silent:. Severity must be P0, P1, P2, or P3. Silent must be yes or no; use yes only when the false green hides a product failure from the user. Evidence must point to a captured artifact in ./evidence.txt, such as a test excerpt, check output, log excerpt, command output, or screenshot path. A finding without captured evidence is not a finding. Write ./evidence.txt even when there are no findings, recording the suite result and the tests and checks audited.\n\nHARD RULES: do not edit product source or tests, do not weaken checks to manufacture a pass, do not fix findings, do not treat test names as proof, and do not claim a false green without showing how the assertion or check can pass without the promised behavior.",
+      "check": "python3 '{{KIT_DIR}}/checks/check_redteam_report.py' --file report.md",
+      "verified": "report.md contains an explicit exercised no-findings verdict or evidence-backed false-green findings with valid severity and silent-failure values, and evidence.txt captures the suite and audit results."
+    }
+  ]
+}

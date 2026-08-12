@@ -187,6 +187,7 @@ Reach for a named pattern before inventing one. Skeletons in `templates/`:
 | [launch-kit](../../../templates/launch-kit/) | You need a go-to-market package built across research, persona review, and final assembly rounds. |
 | [asset-swarm](../../../templates/asset-swarm/) | You need media assets produced in parallel with executable checks for renders, batches, diagrams, or captures. |
 | [adversarial-review](../../../templates/adversarial-review/) | You want several models to review the same artifact before the orchestrator synthesizes findings. |
+| [red-team](../../../templates/red-team/) | You need to harden a green build by exercising the running product across four adversary lanes before calling it done. |
 | [repo-feature](../../../templates/repo-feature/) | You know what to build and need sandboxed workers to edit a real repo with build and git checks. |
 | [migration-swarm](../../../templates/migration-swarm/) | You have mechanical codebase transforms that can be partitioned across worktrees. |
 | [doc-swarm](../../../templates/doc-swarm/) | You need module docs with executed examples and checks against invented APIs. |
