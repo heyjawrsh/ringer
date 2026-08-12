@@ -111,6 +111,8 @@ Each task gets its own directory, its own worker, its own log, and its own verdi
 | `worktrees` (run-level) | Give each task an isolated git worktree of `repo` so parallel workers can't collide |
 | `integration_check` (run-level) | Optional shell command run once after ALL tasks pass, against the combined result; nonzero fails the run |
 | `integration_timeout_s` (run-level) | Kill timer for `integration_check` (default 600) |
+| `pilot` (run-level) | Optional key of the one task to run first; the run pauses for review after it passes |
+| `pilot_wait_s` (run-level) | How long the paused run waits for a decision (default 1800) |
 
 > **Worktree footgun:** on PASS the task's worktree is removed — including anything written inside it. In worktrees mode, worker logs live outside task worktrees in `workdir/logs/`; have workers write deliverables outside the worktree too, or have your `check` copy artifacts out before it exits 0.
 
@@ -206,6 +208,19 @@ It never retries — it is the orchestrator's gate, not a worker task. Exit 0 pr
   "integration_check": "git apply patches/*.patch && pytest -q",
   "integration_timeout_s": 600
 }
+```
+
+### Pilot lanes: approve the direction before the fan-out
+
+With `pilot` set, that one task runs first while every other lane is held back unspawned. If the pilot fails, nothing else spawns and the run fails. If it passes, the run pauses in an awaiting-review state — visible in the run state and on the console, which prints the exact approve and reject commands with the run id.
+
+`./ringer.py approve <run_id>` releases the held lanes and the run continues normally: retries and `integration_check` are unchanged. `./ringer.py reject <run_id>` ends the run nonzero; the held lanes never spawn; the pilot's deliverables, logs, and worktree are kept for review. No decision within `pilot_wait_s` (default 1800) counts as a rejection with a timeout reason.
+
+The point: redirect after one lane, not after N — aesthetic and architectural misses cost one pilot instead of a finished build. `--dry-run`, `--baseline`, and `--prove-fail` are unaffected.
+
+```
+./ringer.py approve <run_id>
+./ringer.py reject <run_id>
 ```
 
 ## Make your agent actually use this
