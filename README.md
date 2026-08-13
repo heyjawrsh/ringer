@@ -99,6 +99,7 @@ Each task gets its own directory, its own worker, its own log, and its own verdi
 | `check` | Shell command run after the worker exits; exit 0 = PASS |
 | `expect_files` | Files that must exist and be non-empty before the check runs |
 | `known_bad` | Optional shell command that mutates the task's scratch dir into a known-bad state; used only by `--prove-fail`; absent means the task has no prove-fail coverage |
+| `known_good` | Optional shell command that fabricates a correct deliverable in the task's scratch dir; used only by `--prove-pass`; absent means the task has no prove-pass coverage |
 | `engine` | Which configured engine runs this task (default `codex`) |
 | `model` | Which model a harness engine runs for this task — fills the engine's `{model}` placeholder (e.g. `"openrouter/moonshotai/kimi-k2.7"`); empty uses the engine's `model_default` |
 | `task_type` | Optional free-form string naming the kind of work this task is, so the model-performance log can slice pass rates by task shape rather than only by model. Suggested vocabulary: `code-feature`, `code-fix`, `code-review`, `test-hardening`, `docs`, `research`, `persona-review`, `copywriting`, `site-build`, `motion-design`, `image-gen`, `data-pipeline`, `format-conversion`, `probe`, `bakeoff`. Empty is allowed; the log just reports it under `(none)`. |
@@ -214,6 +215,20 @@ For each task that declares `known_bad`, prove-fail makes a fresh scratch dir (a
 The check FAILING is the good outcome — reported as **proved**, with the check's failure output shown (that output is what a retry prompt would see). A check that PASSES on the known-bad state is **broken**: it cannot be trusted to verify the task. A check that passes while `expect_files` are missing is **inconclusive** — the `known_bad` command must fabricate the deliverables in bad form for the test to mean anything. A `known_bad` command that itself fails or times out is an **error**. Tasks without `known_bad` are **skipped**; coverage is opt-in per task.
 
 The summary reads `prove-fail: P proved, B broken, I inconclusive, E error, S skipped of T task(s).` Exit code is 0 only when broken, inconclusive, and error are all zero — unlike `--baseline` (always 0, judgment left to you), a check that passes on a known-bad state is objectively broken. The two flags cannot be combined in one invocation.
+
+### Prove-pass: prove your checks can accept honest work
+
+`--prove-fail` proves a check rejects broken work. `--prove-pass` proves the opposite end — that it can ever pass at all, on correct work. A check proven all three ways (`--baseline` included) is worth trusting.
+
+For each task that declares `known_good`, prove-pass makes a fresh scratch dir (a detached worktree when the manifest uses worktrees), runs the `known_good` command there to fabricate a correct deliverable, then runs the task's real `check` against that good state. The mode spawns no workers and writes no eval rows:
+
+```bash
+./ringer.py run swarm.json --prove-pass
+```
+
+The check PASSING is the good outcome — reported as **proved**. A check that FAILS on correct work is **broken**: it can never pass, so it would burn every attempt a worker has, and the run reads as a model failure when it is a specification failure. A `known_good` that does not create a declared `expect_files` entry is **broken** too, with the missing file named. A `known_good` command that itself fails or times out is an **error**. Tasks without `known_good` are **skipped**; coverage is opt-in per task.
+
+The summary reads `prove-pass: P proved, B broken, E error, S skipped of T task(s).` Exit code is 0 only when broken and error are both zero. It cannot be combined with `--prove-fail` or `--baseline`.
 
 ### Integration check: verify the merged result
 
