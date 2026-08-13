@@ -266,6 +266,19 @@ Both violation kinds are recorded in the run state.
 }
 ```
 
+## `rerun` — repair the lanes that did not pass
+
+`rerun` reads a manifest and a finished run and writes a new manifest holding only the tasks that did not pass — failed, errored, timed out, or never spawned (held lanes). Without `--run` it picks the most recent run matching the manifest's `run_name`. Tasks are copied verbatim from the original manifest, not rebuilt from run state: run state records no `expect_files`, `task_type`, `known_bad`, `owns`, or `engine_args`, so reconstructing from it would silently drop them. Run-level fields are preserved — `run_name` included — so the repair round lands on the same job and the same artifact page instead of splitting the job in two.
+
+`--with-context` appends the previous attempt's check failure output to each failing task's spec, so the next worker sees why it failed. The repair manifest is written to `<manifest-stem>-repair.json` beside the source unless `-o` says otherwise, and the source manifest is never overwritten. When every task passed, `rerun` exits nonzero with a clear message instead of writing an empty manifest.
+
+It spawns no workers, writes no run state, and writes no eval rows — it writes that one file, which you then read before running.
+
+```bash
+./ringer.py rerun swarm.json --with-context          # most recent run matching run_name, failure notes appended
+./ringer.py rerun swarm.json --run 2026-08-13-swarm -o round2.json
+```
+
 ## Make your agent actually use this
 
 Between swarms, agents drift back to invisible inline work. Reminders decay, so enforcement ships with the product.
