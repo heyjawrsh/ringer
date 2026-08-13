@@ -1636,6 +1636,7 @@ class TaskSpec:
     spec: str
     check: str
     known_bad: str = ""
+    known_good: str = ""
     engine: str = DEFAULT_ENGINE_NAME
     expect_files: tuple[str, ...] = ()
     timeout_s: int = DEFAULT_TIMEOUT_S
@@ -1671,6 +1672,9 @@ class TaskSpec:
         known_bad = obj.get("known_bad", "")
         if not isinstance(known_bad, str):
             raise ValueError(f"task {key}: known_bad must be a string")
+        known_good = obj.get("known_good", "")
+        if not isinstance(known_good, str):
+            raise ValueError(f"task {key}: known_good must be a string")
         expect_files = obj.get("expect_files", [])
         if not isinstance(expect_files, list):
             raise ValueError(f"task {key}: expect_files must be a list")
@@ -1714,6 +1718,7 @@ class TaskSpec:
             spec=spec,
             check=check,
             known_bad=known_bad.strip(),
+            known_good=known_good.strip(),
             engine=engine,
             expect_files=tuple(str(item) for item in expect_files),
             timeout_s=timeout_s,
@@ -11379,6 +11384,185 @@ async def run_prove_fail(manifest: Manifest, *, config: AppConfig) -> int:
     return 0 if broken == inconclusive == errors == 0 else 1
 
 
+async def run_prove_pass(manifest: Manifest, *, config: AppConfig) -> int:
+    """Execute each task's CHECK against its declared known-good tree. Spawn nothing.
+
+    The point: a check that fails after known_good establishes the correct work
+    it claims to require cannot be satisfied at run time. Running that experiment
+    in a fresh scratch taskdir proves the check accepts a correct deliverable
+    before any worker spends an attempt on the task.
+
+    Checks run for real through the same verifier as a live run. Each covered
+    task gets a fresh scratch taskdir (a detached worktree when the manifest
+    uses worktrees), removed afterwards, so no known-good state leaks into a
+    later run.
+    """
+    del config  # engines are irrelevant: prove-pass spawns no workers
+    verifier = Verifier()
+    worktrees = manifest.worktrees and manifest.repo is not None
+    prove_pass_root = Path(tempfile.mkdtemp(prefix="ringer-provepass-"))
+    total = len(manifest.tasks)
+    print(f"Prove-pass: executing {total} known-good check(s) with no workers spawned.")
+    proved = 0
+    broken = 0
+    errors = 0
+    skipped = 0
+    leaked_worktrees: list[str] = []
+    try:
+        for task in manifest.tasks:
+            if not task.known_good:
+                skipped += 1
+                print(f"{task.key:<24} prove-pass: skipped (no known_good)")
+                continue
+            taskdir = (prove_pass_root / task.key).resolve()
+            # Same containment rule as the real run path: a key must not
+            # escape its scratch root.
+            if (
+                not taskdir.is_relative_to(prove_pass_root.resolve())
+                or taskdir == prove_pass_root.resolve()
+            ):
+                errors += 1
+                print(
+                    f"{task.key:<24} prove-pass: ERROR "
+                    "(task key escapes the prove-pass scratch root)"
+                )
+                continue
+            if worktrees:
+                proc = await asyncio.create_subprocess_exec(
+                    "git",
+                    "-C",
+                    str(manifest.repo),
+                    "worktree",
+                    "add",
+                    "--detach",
+                    str(taskdir),
+                    "HEAD",
+                    stdin=asyncio.subprocess.DEVNULL,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT,
+                )
+                stdout, _ = await proc.communicate()
+                if proc.returncode != 0:
+                    errors += 1
+                    print(f"{task.key:<24} prove-pass: ERROR (git worktree add failed)")
+                    message = stdout.decode("utf-8", errors="replace").strip()
+                    for line in message.splitlines()[:4]:
+                        print(f"    {line}")
+                    continue
+            else:
+                taskdir.mkdir(parents=True, exist_ok=True)
+            try:
+                proc = await asyncio.create_subprocess_shell(
+                    task.known_good,
+                    cwd=str(taskdir),
+                    stdin=asyncio.subprocess.DEVNULL,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT,
+                    start_new_session=True,
+                )
+                known_good_timed_out = False
+                try:
+                    stdout, _ = await asyncio.wait_for(
+                        proc.communicate(), timeout=task.timeout_s
+                    )
+                except asyncio.TimeoutError:
+                    known_good_timed_out = True
+                    terminate_process_group(proc)
+                    try:
+                        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=5)
+                    except asyncio.TimeoutError:
+                        kill_process_group(proc)
+                        stdout, _ = await proc.communicate()
+                known_good_output = (
+                    stdout.decode("utf-8", errors="replace") if stdout else ""
+                )
+                if known_good_timed_out:
+                    known_good_output += (
+                        f"\n[ringer.py] known_good timed out after {task.timeout_s}s\n"
+                    )
+                if known_good_timed_out or proc.returncode != 0:
+                    errors += 1
+                    detail = "timed out" if known_good_timed_out else f"rc={proc.returncode}"
+                    print(
+                        f"{task.key:<24} prove-pass: ERROR "
+                        f"(good state could not be established; {detail})"
+                    )
+                    for line in known_good_output.strip().splitlines()[:6]:
+                        print(f"    {line}")
+                    continue
+
+                verify = await verifier.verify(task, taskdir)
+                if verify.ok:
+                    proved += 1
+                    print(
+                        f"{task.key:<24} prove-pass: proved "
+                        f"(rc={verify.check_returncode})"
+                    )
+                else:
+                    broken += 1
+                    timed_out = (
+                        f", timed out after {CHECK_TIMEOUT_S}s"
+                        if verify.check_timed_out
+                        else ""
+                    )
+                    print(
+                        f"{task.key:<24} prove-pass: BROKEN "
+                        f"(rc={verify.check_returncode}{timed_out})"
+                    )
+                    for line in verify.raw_output_excerpt.strip().splitlines()[:6]:
+                        print(f"    {line}")
+                    if verify.missing_files:
+                        print(
+                            "    the known_good command must fabricate every declared "
+                            "deliverable; "
+                            f"missing: {', '.join(verify.missing_files)}"
+                        )
+                    print(
+                        "    This check cannot pass even on a correct deliverable and "
+                        "would burn every attempt."
+                    )
+            finally:
+                if worktrees:
+                    proc = await asyncio.create_subprocess_exec(
+                        "git",
+                        "-C",
+                        str(manifest.repo),
+                        "worktree",
+                        "remove",
+                        "--force",
+                        str(taskdir),
+                        stdin=asyncio.subprocess.DEVNULL,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.STDOUT,
+                    )
+                    stdout, _ = await proc.communicate()
+                    if proc.returncode != 0:
+                        # A clean summary must not hide leaked worktree state.
+                        leaked_worktrees.append(str(taskdir))
+                        message = stdout.decode("utf-8", errors="replace").strip()
+                        print(
+                            f"{task.key:<24} prove-pass: WARNING "
+                            f"(worktree remove failed, leaked {taskdir})"
+                        )
+                        for line in message.splitlines()[:2]:
+                            print(f"    {line}")
+    finally:
+        shutil.rmtree(prove_pass_root, ignore_errors=True)
+    print(
+        f"\nprove-pass: {proved} proved, {broken} broken, {errors} error, "
+        f"{skipped} skipped of {total} task(s)."
+    )
+    if leaked_worktrees:
+        print(
+            f"WARNING: {len(leaked_worktrees)} prove-pass worktree(s) could not be removed; "
+            f"clean up with `git -C {shlex.quote(str(manifest.repo))} worktree prune` after "
+            "removing the directories above."
+        )
+    # There is no judgment to defer: a check that rejects correct work is
+    # objectively broken. Setup errors are also not successful proof.
+    return 0 if broken == errors == 0 else 1
+
+
 def append_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as fh:
@@ -12413,6 +12597,15 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     run_parser.add_argument(
+        "--prove-pass",
+        action="store_true",
+        help=(
+            "execute every task's CHECK against its declared known-good state and "
+            "report, spawning no workers — a check that fails on correct work "
+            "cannot be satisfied"
+        ),
+    )
+    run_parser.add_argument(
         "--reset-worktrees",
         action="store_true",
         help=(
@@ -12652,6 +12845,28 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
             return 2
+        if (
+            args.command == "run"
+            and getattr(args, "baseline", False)
+            and getattr(args, "prove_pass", False)
+        ):
+            print(
+                "ringer.py: error: --baseline and --prove-pass answer different "
+                "questions; run them separately.",
+                file=sys.stderr,
+            )
+            return 2
+        if (
+            args.command == "run"
+            and getattr(args, "prove_fail", False)
+            and getattr(args, "prove_pass", False)
+        ):
+            print(
+                "ringer.py: error: --prove-fail and --prove-pass answer different "
+                "questions; run them separately.",
+                file=sys.stderr,
+            )
+            return 2
         if args.command == "self-update":
             config = AppConfig.load(args.config)
             result = perform_self_update(
@@ -12770,6 +12985,10 @@ def main(argv: list[str] | None = None) -> int:
             # Deliberately before preflight_engine_bins: prove-fail spawns no
             # workers, so a missing engine binary must not block it.
             return asyncio.run(run_prove_fail(manifest, config=config))
+        if getattr(args, "prove_pass", False):
+            # Deliberately before preflight_engine_bins: prove-pass spawns no
+            # workers, so a missing engine binary must not block it.
+            return asyncio.run(run_prove_pass(manifest, config=config))
         if args.command == "run" and manifest.worktrees and manifest.repo is not None:
             asyncio.run(
                 preflight_worktrees(
