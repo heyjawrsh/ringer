@@ -171,9 +171,25 @@ Lint checks a manifest for the mistakes that make swarms hard to trust: checks t
 lint: clean (1 tasks)
 ```
 
+Lint now also reports:
+
+- a check that greps for a bare literal with no word boundary or anchor, because `grep todo` matches `mastodon` — use `grep -w` or anchor the pattern
+- a check or spec containing a command that steals window focus (`open`, `xdg-open`, `osascript ... activate`, `screencapture`, a simulator launch) — use a headless probe and write evidence to a file
+- in worktrees mode, an `expect_files` deliverable under a path ignored by the repo's .gitignore, because `git add -A` cannot stage ignored files, so the patch export silently omits it and the worktree is then deleted — have the check copy the artifact outside the worktree and verify the copy
+
 `run` and `demo` also print any lint findings as non-blocking warnings after the manifest loads. They teach at the moment of use; they do not stop a run.
 
 A check that cannot fail is trusting the worker with extra steps.
+
+`scripts/check_helpers.py` is a standard-library-only module that check scripts import (by putting the scripts directory on sys.path) to stop re-hand-rolling fragile assertions. It offers normalize, assert_section, assert_contains, assert_runs, assert_json_valid and fail. Its house rule is tolerant on format, strict on substance: section matching ignores case, markdown decoration and non-breaking spaces, while every failure prints exactly what broke — because a check's failure text is injected into the worker's retry prompt.
+
+```python
+import sys
+sys.path.insert(0, 'scripts')
+from check_helpers import assert_section
+
+assert_section('python3 --version', '3.12')
+```
 
 ### Baseline: prove your checks before spending tokens
 
