@@ -1360,3 +1360,16 @@ RULES:
   docs lanes WITH a check that asserts each required part separately (mine did,
   which is the only reason the miss was caught). GLM-5.2 remains the default;
   north-mini-code is a viable free backup, now probation→ still auditioning.
+- 2026-08-13 — DEAD-RUN-HONESTY run (2 lanes, both passed on attempt 2).
+  GPT-5.6 Sol high (codex), code-fix: attempt 1 wrote only 2 of the 3 required
+  tests; the check counted them and the retry added the third. GLM-5.2, docs:
+  attempt 1 added too few lines; retry fixed it. Both misses were "did less than
+  the brief asked", caught only because the checks asserted COUNTS (>=3 tests,
+  >=3 added lines) rather than mere presence — cheap assertions worth copying.
+  PROCESS BUG OF MY OWN: the run's integration_check FAILED while both lanes
+  passed, because my integration template still asserted the old
+  "FAILED (failures=1)" baseline from when tests/test_contributors.py always
+  failed locally. Since the contributor credit landed the suite is fully green,
+  so every integration check must now require a clean OK — a stale expectation
+  in a gate reads exactly like a real regression. Check your gates when the
+  repo's baseline changes.
