@@ -57,6 +57,7 @@ DEFAULT_TIMEOUT_S = 900
 DEFAULT_INTEGRATION_TIMEOUT_S = 600
 DEFAULT_PILOT_WAIT_S = 1800
 CHECK_TIMEOUT_S = 60
+RERUN_CONTEXT_LIMIT = 2000
 DEFAULT_DASHBOARD_PORT_BASE = 8787
 DEFAULT_HUD_PORT = 8700
 DEFAULT_CATALOG_SOURCE = "https://openrouter.ai/api/v1/models"
@@ -11412,6 +11413,165 @@ def shell_command_for_display(parts: Iterable[str]) -> str:
     return " ".join(shlex.quote(part) for part in parts)
 
 
+def run_state_recency(path: Path, state: dict[str, Any]) -> float:
+    started_at = state.get("started_at")
+    if isinstance(started_at, str) and started_at:
+        try:
+            parsed = datetime.fromisoformat(started_at)
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            return parsed.timestamp()
+        except (OSError, OverflowError, ValueError):
+            pass
+    try:
+        return path.stat().st_mtime
+    except OSError:
+        return 0.0
+
+
+def load_rerun_state(
+    state_dir: Path,
+    run_name: str,
+    run_id: str | None,
+) -> tuple[dict[str, Any], str]:
+    if run_id is not None:
+        state_path = run_state_path_for_id(state_dir, run_id)
+        if state_path is None or not state_path.is_file():
+            raise ValueError(
+                f"no run state found for run_id {run_id!r} "
+                f"(manifest run_name {run_name!r})"
+            )
+        try:
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise ValueError(f"cannot read run state for {run_id!r}: {exc}") from exc
+        if not isinstance(state, dict):
+            raise ValueError(f"run state for {run_id!r} must be a JSON object")
+        return state, str(state.get("run_id") or run_id)
+
+    candidates: list[tuple[float, float, Path, dict[str, Any]]] = []
+    runs_dir = state_dir / "runs"
+    try:
+        state_paths = list(runs_dir.glob("*.json"))
+    except OSError:
+        state_paths = []
+    for state_path in state_paths:
+        try:
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+            continue
+        if not isinstance(state, dict) or state.get("run_name") != run_name:
+            continue
+        try:
+            mtime = state_path.stat().st_mtime
+        except OSError:
+            mtime = 0.0
+        candidates.append(
+            (run_state_recency(state_path, state), mtime, state_path, state)
+        )
+    if not candidates:
+        raise ValueError(f"no run state found for run_name {run_name!r}")
+    _recency, _mtime, state_path, state = max(
+        candidates,
+        key=lambda candidate: (candidate[0], candidate[1]),
+    )
+    return state, str(state.get("run_id") or state_path.stem)
+
+
+def rerun_manifest(
+    manifest_path: Path,
+    *,
+    config: AppConfig,
+    run_id: str | None,
+    output_path: Path | None,
+    with_context: bool,
+) -> int:
+    manifest = Manifest.from_path(manifest_path)
+    source_path = manifest_path.expanduser().resolve()
+    target_path = output_path or manifest_path.with_name(
+        f"{manifest_path.stem}-repair.json"
+    )
+    if target_path.expanduser().resolve() == source_path:
+        raise ValueError(
+            f"refusing to overwrite source manifest: {manifest_path}"
+        )
+
+    raw_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if not isinstance(raw_manifest, dict):
+        raise ValueError("manifest root must be a JSON object")
+    raw_tasks = raw_manifest.get("tasks")
+    if not isinstance(raw_tasks, list):
+        raise ValueError("tasks must be a non-empty list")
+
+    state, selected_run_id = load_rerun_state(
+        config.state_dir,
+        manifest.run_name,
+        run_id,
+    )
+    state_tasks = state.get("tasks")
+    recorded_tasks: dict[str, dict[str, Any]] = {}
+    if isinstance(state_tasks, list):
+        for state_task in state_tasks:
+            if not isinstance(state_task, dict):
+                continue
+            key = state_task.get("key")
+            if isinstance(key, str):
+                recorded_tasks[key] = state_task
+
+    selected_tasks: list[dict[str, Any]] = []
+    selected_statuses: list[tuple[str, str]] = []
+    for task, raw_task in zip(manifest.tasks, raw_tasks, strict=True):
+        state_task = recorded_tasks.get(task.key)
+        if state_task is None:
+            status = "absent"
+        else:
+            raw_status = state_task.get("status")
+            status = (
+                raw_status
+                if isinstance(raw_status, str) and raw_status
+                else "unknown"
+            )
+        if status == "pass":
+            continue
+
+        task_copy = dict(raw_task)
+        if with_context and status.lower() in {"fail", "error", "timeout"}:
+            check_output = state_task.get("check_output_tail") if state_task else None
+            if isinstance(check_output, str) and check_output.strip():
+                if len(check_output) > RERUN_CONTEXT_LIMIT:
+                    check_output = (
+                        check_output[:RERUN_CONTEXT_LIMIT]
+                        + "\n[previous failure output truncated]"
+                    )
+                task_copy["spec"] = (
+                    f"{raw_task['spec']}\n\n"
+                    "--- PREVIOUS ATTEMPT FAILED ---\n"
+                    f"{check_output}\n"
+                    "--- END PREVIOUS ATTEMPT FAILURE ---"
+                )
+        selected_tasks.append(task_copy)
+        selected_statuses.append((task.key, status))
+
+    if not selected_tasks:
+        print(
+            f"Every task passed in run {selected_run_id}; "
+            "no repair manifest was written."
+        )
+        return 1
+
+    raw_manifest["tasks"] = selected_tasks
+    target_path.write_text(
+        json.dumps(raw_manifest, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    summary = ", ".join(
+        f"{key} ({status})" for key, status in selected_statuses
+    )
+    print(f"Wrote repair manifest: {target_path}")
+    print(f"Selected tasks: {summary}")
+    return 0
+
+
 def dry_run(
     manifest: Manifest,
     config: AppConfig,
@@ -12266,6 +12426,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="allow a registry-marked noncanonical model route for a deliberate bakeoff",
     )
 
+    rerun_parser = subparsers.add_parser(
+        "rerun",
+        help="write a repair manifest containing tasks that did not pass",
+    )
+    rerun_parser.add_argument("manifest", type=Path, help="path to ringer.json")
+    rerun_parser.add_argument(
+        "--config", type=Path, default=argparse.SUPPRESS, help=argparse.SUPPRESS
+    )
+    rerun_parser.add_argument("--run", dest="run_id", help="source run ID")
+    rerun_parser.add_argument(
+        "-o", dest="output", type=Path, help="repair manifest path"
+    )
+    rerun_parser.add_argument(
+        "--with-context",
+        action="store_true",
+        help="append the previous check failure output to failed task specs",
+    )
+
     for decision in ("approve", "reject"):
         decision_parser = subparsers.add_parser(
             decision,
@@ -12523,6 +12701,14 @@ def main(argv: list[str] | None = None) -> int:
             return run_catalog_command(args)
 
         config = AppConfig.load(args.config)
+        if args.command == "rerun":
+            return rerun_manifest(
+                args.manifest,
+                config=config,
+                run_id=args.run_id,
+                output_path=args.output,
+                with_context=args.with_context,
+            )
         if args.command in {"approve", "reject"}:
             return write_pilot_decision(config, args.run_id, args.command)
         if args.command == "db":
