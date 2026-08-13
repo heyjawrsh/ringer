@@ -7,6 +7,7 @@ import base64
 import contextlib
 import fnmatch
 import hashlib
+import ipaddress
 import json
 import mimetypes
 import os
@@ -5470,11 +5471,16 @@ def send_response_body(
     handler.wfile.write(body)
 
 
-def send_json_response(handler: BaseHTTPRequestHandler, data: dict[str, Any]) -> None:
+def send_json_response(
+    handler: BaseHTTPRequestHandler,
+    data: dict[str, Any],
+    *,
+    status: HTTPStatus = HTTPStatus.OK,
+) -> None:
     body = json.dumps(data, sort_keys=True).encode("utf-8")
     send_response_body(
         handler,
-        HTTPStatus.OK,
+        status,
         body,
         content_type="application/json; charset=utf-8",
         no_store=True,
@@ -5559,36 +5565,90 @@ def run_state_path_for_id(state_dir: Path, run_id: str) -> Path | None:
     return candidate
 
 
-def write_pilot_decision(config: AppConfig, run_id: str, decision: str) -> int:
-    state_path = run_state_path_for_id(config.state_dir, run_id)
+class PilotDecisionError(ValueError):
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+
+
+def record_pilot_decision(state_dir: Path, run_id: str, decision: str) -> None:
+    if not isinstance(decision, str) or decision not in {"approve", "reject"}:
+        raise PilotDecisionError("invalid", "decision must be approve or reject")
+    state_path = run_state_path_for_id(state_dir, run_id)
     if state_path is None or not state_path.is_file():
-        print(f"ringer.py: error: unknown run_id: {run_id}", file=sys.stderr)
-        return 1
+        raise PilotDecisionError("unknown", f"unknown run_id: {run_id}")
     try:
         state = json.loads(state_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        print(f"ringer.py: error: cannot read run state for {run_id}: {exc}", file=sys.stderr)
-        return 1
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise PilotDecisionError(
+            "unknown", f"cannot read run state for {run_id}: {exc}"
+        ) from exc
     pilot = state.get("pilot") if isinstance(state, dict) else None
     if not isinstance(pilot, dict) or pilot.get("status") != "awaiting":
-        print(
-            f"ringer.py: error: run {run_id} is not awaiting pilot review",
-            file=sys.stderr,
+        raise PilotDecisionError(
+            "not-awaiting", f"run {run_id} is not awaiting pilot review"
         )
-        return 1
     decision_file = pilot.get("decision_file")
     if not isinstance(decision_file, str) or not decision_file:
-        print(
-            f"ringer.py: error: run {run_id} has no pilot decision-file path",
-            file=sys.stderr,
+        raise PilotDecisionError(
+            "invalid", f"run {run_id} has no pilot decision-file path"
         )
-        return 1
     atomic_write_json(
         Path(decision_file),
         {"decision": decision, "decided_at": utc_now_iso()},
     )
+
+
+def write_pilot_decision(config: AppConfig, run_id: str, decision: str) -> int:
+    try:
+        record_pilot_decision(config.state_dir, run_id, decision)
+    except PilotDecisionError as exc:
+        print(f"ringer.py: error: {exc}", file=sys.stderr)
+        return 1
     print(f"Pilot {decision} recorded for run {run_id}.")
     return 0
+
+
+def loopback_http_authority(value: str | None) -> tuple[str, int] | None:
+    if not value or any(character.isspace() for character in value):
+        return None
+    try:
+        parsed = urllib.parse.urlsplit(f"http://{value}")
+        hostname = (parsed.hostname or "").rstrip(".").lower()
+        parsed_port = parsed.port
+        port = parsed_port if parsed_port is not None else 80
+    except ValueError:
+        return None
+    if not hostname or parsed.username is not None or parsed.password is not None:
+        return None
+    if parsed.path or parsed.query or parsed.fragment:
+        return None
+    if hostname == "localhost":
+        return hostname, port
+    try:
+        address = ipaddress.ip_address(hostname)
+    except ValueError:
+        return None
+    return (hostname, port) if address.is_loopback else None
+
+
+def origin_matches_authority(origin: str, authority: tuple[str, int]) -> bool:
+    try:
+        parsed = urllib.parse.urlsplit(origin)
+        hostname = (parsed.hostname or "").rstrip(".").lower()
+        parsed_port = parsed.port
+        port = parsed_port if parsed_port is not None else 80
+    except ValueError:
+        return False
+    return (
+        parsed.scheme.lower() == "http"
+        and parsed.username is None
+        and parsed.password is None
+        and not parsed.path
+        and not parsed.query
+        and not parsed.fragment
+        and (hostname, port) == authority
+    )
 
 
 def hud_task_log_path(state_dir: Path, run_id: str, task_key: str) -> Path | None:
@@ -5665,6 +5725,9 @@ class PersistentHudServer:
         class Handler(BaseHTTPRequestHandler):
             def do_GET(self) -> None:  # noqa: N802
                 path = urllib.parse.urlparse(self.path).path
+                if path == "/api/pilot/decision":
+                    self.send_error(HTTPStatus.METHOD_NOT_ALLOWED)
+                    return
                 if path == "/":
                     body = read_ringside_html().encode("utf-8")
                     send_response_body(
@@ -5763,6 +5826,79 @@ class PersistentHudServer:
                     )
                     return
                 self.send_error(HTTPStatus.NOT_FOUND)
+
+            def do_POST(self) -> None:  # noqa: N802
+                path = urllib.parse.urlparse(self.path).path
+                if path != "/api/pilot/decision":
+                    self.send_error(HTTPStatus.NOT_FOUND)
+                    return
+
+                authority = loopback_http_authority(self.headers.get("Host"))
+                origin = self.headers.get("Origin")
+                if authority is None or (
+                    origin is not None and not origin_matches_authority(origin, authority)
+                ):
+                    send_json_response(
+                        self,
+                        {"error": "pilot decisions require this Ringside origin"},
+                        status=HTTPStatus.FORBIDDEN,
+                    )
+                    return
+
+                try:
+                    content_length = int(self.headers.get("Content-Length", ""))
+                    if content_length < 0:
+                        raise ValueError
+                    payload = json.loads(self.rfile.read(content_length).decode("utf-8"))
+                except (UnicodeDecodeError, ValueError, json.JSONDecodeError):
+                    send_json_response(
+                        self,
+                        {"error": "malformed JSON"},
+                        status=HTTPStatus.BAD_REQUEST,
+                    )
+                    return
+                if not isinstance(payload, dict):
+                    send_json_response(
+                        self,
+                        {"error": "malformed JSON"},
+                        status=HTTPStatus.BAD_REQUEST,
+                    )
+                    return
+                run_id = payload.get("run_id")
+                decision = payload.get("decision")
+                if (
+                    not isinstance(run_id, str)
+                    or not run_id
+                    or not isinstance(decision, str)
+                    or decision not in {"approve", "reject"}
+                ):
+                    send_json_response(
+                        self,
+                        {"error": "run_id and an approve or reject decision are required"},
+                        status=HTTPStatus.BAD_REQUEST,
+                    )
+                    return
+                try:
+                    record_pilot_decision(state_dir, run_id, decision)
+                except PilotDecisionError as exc:
+                    status = (
+                        HTTPStatus.CONFLICT
+                        if exc.code == "not-awaiting"
+                        else HTTPStatus.BAD_REQUEST
+                    )
+                    send_json_response(self, {"error": str(exc)}, status=status)
+                    return
+                except OSError as exc:
+                    send_json_response(
+                        self,
+                        {"error": f"could not record pilot decision: {exc}"},
+                        status=HTTPStatus.INTERNAL_SERVER_ERROR,
+                    )
+                    return
+                send_json_response(
+                    self,
+                    {"run_id": run_id, "decision": decision},
+                )
 
             def log_message(self, _format: str, *_args: Any) -> None:
                 return

@@ -285,6 +285,48 @@
       font-size: 12px;
       white-space: nowrap;
     }
+    .pilot-review {
+      margin: 0 0 clamp(14px, 2vw, 20px);
+      padding: 14px;
+      border: 1px solid var(--accent);
+      border-left-width: 3px;
+      border-radius: 8px;
+      background: var(--surface);
+    }
+    .pilot-review-head {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+    .pilot-review-title { color: var(--accent); font-size: 14px; font-weight: 700; }
+    .pilot-review-facts { color: var(--muted); font-size: 12px; }
+    .pilot-review-copy { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+    .pilot-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .pilot-actions button {
+      min-width: 92px;
+      padding: 7px 14px;
+      border-radius: 7px;
+      background: transparent;
+      font-weight: 700;
+    }
+    .pilot-actions .approve { border: 1px solid var(--pass); color: var(--pass); }
+    .pilot-actions .reject { border: 1px solid var(--fail); color: var(--fail); }
+    .pilot-actions button:hover:not(:disabled) { background: var(--ground); }
+    .pilot-actions button:disabled { cursor: default; opacity: .55; }
+    .pilot-decision-status { margin: 9px 0 0; color: var(--muted); font-size: 12.5px; }
+    .pilot-decision-status.approve { color: var(--pass); }
+    .pilot-decision-status.reject { color: var(--fail); }
+    .pilot-error {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 12.5px;
+      overflow-wrap: anywhere;
+    }
+    .pilot-error b { color: var(--fail); }
+    .pilot-cli { margin: 10px 0 0; color: var(--muted); font-size: 11.5px; }
+    .pilot-cli code { color: var(--ink); overflow-wrap: anywhere; }
 
     .rounds { display: flex; gap: 5px; margin-bottom: 8px; }
     .rounds span { flex: 1; min-width: 10px; height: 7px; border-radius: 4px; background: var(--waiting); opacity: .45; }
@@ -371,6 +413,19 @@
       color: var(--muted);
       min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
+    .violations {
+      list-style: none;
+      margin: 0 12px 12px;
+      padding: 8px 10px;
+      border-left: 2px solid var(--fail);
+      border-radius: 0 6px 6px 0;
+      background: var(--quote-bg);
+      color: var(--muted);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+    .violations li + li { margin-top: 5px; }
+    .violations b { color: var(--fail); font-weight: 700; }
     .stream {
       padding: 12px;
       border-top: 1px solid var(--hairline);
@@ -645,7 +700,8 @@
       frameRequest: 0,
       rendering: false,
       runOpen: {},
-      focusedRunId: ""
+      focusedRunId: "",
+      pilotDecisions: new Map()
     };
 
     const els = {
@@ -815,11 +871,52 @@
       return kind === "working" || kind === "retry";
     }
 
+    function previewLine(value) {
+      let raw = String(value || "").trim();
+      if (!raw) return "";
+      if (raw.endsWith("...") && raw.length > 24) {
+        const shortened = raw.slice(0, -3).trimEnd();
+        const boundary = shortened.lastIndexOf(" ");
+        if (boundary > 12) raw = `${shortened.slice(0, boundary).trimEnd()}…`;
+      }
+      if (/^(?:[\]}),;]+|[\[{]\s*)$/.test(raw)) return "";
+      if (/^[\[{].*[\]}],?$/.test(raw) || /^"(?:[^"\\]|\\.)+"\s*:/.test(raw)) return "";
+      if (/^(?:\+{1,2}|[$#])\s+\S+/.test(raw)) return "";
+      if (/^(?:exec|command|stdout|stderr|chunk id|wall time|process exited)\b/i.test(raw)) return "";
+      let text = raw
+        .replace(/\x1b\[[0-9;?]*[ -\/]*[@-~]/g, "")
+        .replace(/\\[nrt]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (!text || /^[\[\]{}(),;]+$/.test(text)) return "";
+      const limit = 160;
+      if (text.length <= limit) return text;
+      const boundary = text.slice(0, limit + 1).lastIndexOf(" ");
+      if (boundary < Math.floor(limit * .5)) return "";
+      return `${text.slice(0, boundary).trimEnd()}…`;
+    }
+
     function taskActivity(task) {
       const direct = String(task?.activity || "").trim();
-      if (direct) return direct;
       const tail = Array.isArray(task?.log_tail) ? task.log_tail : [];
-      return tail.map(line => String(line).trim()).filter(Boolean).slice(-1)[0] || "";
+      const candidates = direct ? [...tail, direct] : tail;
+      for (let index = candidates.length - 1; index >= 0; index -= 1) {
+        const preview = previewLine(candidates[index]);
+        if (preview) return preview;
+      }
+      return "";
+    }
+
+    function violationParts(value) {
+      if (value && typeof value === "object") {
+        const kind = String(value.kind || value.type || "recorded").trim().toLowerCase();
+        const detail = String(value.detail || value.message || "No detail recorded.").trim();
+        return {kind, detail};
+      }
+      const text = String(value || "").trim();
+      const match = text.match(/^\[ringer\.py\]\s+(ownership|contract)\s+violation:\s*(.*)$/i);
+      if (match) return {kind: match[1].toLowerCase(), detail: match[2] || "No detail recorded."};
+      return {kind: "recorded", detail: text || "No detail recorded."};
     }
 
     function runIsRunningNow(run) {
@@ -1008,6 +1105,127 @@
       }));
     }
 
+    function renderPilotReview(run) {
+      const pilot = run.pilot;
+      const pilotTask = String(pilot.task || "unknown");
+      const heldCount = run.tasks.filter((task, index) => taskKey(task, index) !== pilotTask).length;
+      const since = parseTime(pilot.since);
+      const waitedSeconds = since ? Math.max(0, (Date.now() - since) / 1000) : 0;
+      const waiting = since ? (waitedSeconds < 1 ? "0s" : formatDuration(waitedSeconds)) : "unknown";
+      const decisionState = state.pilotDecisions.get(run.__id) || {};
+      const inFlight = Boolean(decisionState.inFlight);
+      const recorded = decisionState.result === "approve" || decisionState.result === "reject";
+
+      const block = document.createElement("section");
+      block.className = "pilot-review";
+      block.dataset.key = `pilot-review:${run.__id}`;
+      block.setAttribute("aria-label", "Pilot decision required");
+
+      const head = document.createElement("div");
+      head.className = "pilot-review-head";
+      const title = document.createElement("span");
+      title.className = "pilot-review-title";
+      title.textContent = "Paused for pilot review";
+      const facts = document.createElement("span");
+      facts.className = "pilot-review-facts mono";
+      facts.textContent = `Pilot ${pilotTask} · ${heldCount} lane${heldCount === 1 ? "" : "s"} held · waiting ${waiting}`;
+      head.append(title, facts);
+      block.appendChild(head);
+
+      const copy = document.createElement("p");
+      copy.className = "pilot-review-copy";
+      copy.textContent = "Approve to release the held lanes, or reject to end this run.";
+      block.appendChild(copy);
+
+      const actions = document.createElement("div");
+      actions.className = "pilot-actions";
+      const approve = document.createElement("button");
+      approve.type = "button";
+      approve.className = "approve";
+      approve.textContent = inFlight && decisionState.decision === "approve" ? "Approving…" : "Approve";
+      approve.setAttribute("aria-label", `Approve pilot task ${pilotTask} and release held lanes`);
+      approve.disabled = inFlight || recorded;
+      approve.addEventListener("click", () => submitPilotDecision(run, "approve"));
+      const reject = document.createElement("button");
+      reject.type = "button";
+      reject.className = "reject";
+      reject.textContent = inFlight && decisionState.decision === "reject" ? "Rejecting…" : "Reject";
+      reject.setAttribute("aria-label", `Reject pilot task ${pilotTask} and end the run`);
+      reject.disabled = inFlight || recorded;
+      reject.addEventListener("click", () => submitPilotDecision(run, "reject"));
+      actions.append(approve, reject);
+      block.appendChild(actions);
+
+      const status = document.createElement("p");
+      status.className = "pilot-decision-status";
+      status.setAttribute("role", "status");
+      if (decisionState.result === "approve") {
+        status.classList.add("approve");
+        status.textContent = "Approved. Held lanes will resume.";
+      } else if (decisionState.result === "reject") {
+        status.classList.add("reject");
+        status.textContent = "Rejected. The run will end.";
+      } else if (inFlight) {
+        status.textContent = "Recording decision…";
+      } else {
+        status.textContent = "Awaiting a decision.";
+      }
+      block.appendChild(status);
+
+      if (decisionState.error) {
+        const error = document.createElement("p");
+        error.className = "pilot-error";
+        error.setAttribute("role", "alert");
+        const label = document.createElement("b");
+        label.textContent = "Decision not recorded:";
+        error.append(label, document.createTextNode(` ${decisionState.error}`));
+        block.appendChild(error);
+      }
+
+      const cli = document.createElement("p");
+      cli.className = "pilot-cli mono";
+      cli.append(
+        document.createTextNode("Terminal: "),
+        Object.assign(document.createElement("code"), {textContent: `./ringer.py approve ${run.__id}`}),
+        document.createTextNode(" · "),
+        Object.assign(document.createElement("code"), {textContent: `./ringer.py reject ${run.__id}`})
+      );
+      block.appendChild(cli);
+      return block;
+    }
+
+    async function submitPilotDecision(run, decision) {
+      const current = state.pilotDecisions.get(run.__id);
+      if (current?.inFlight || current?.result) return;
+      if (decision === "reject" && !window.confirm("Reject this pilot and end the run?")) return;
+      state.pilotDecisions.set(run.__id, {inFlight: true, decision, error: "", result: ""});
+      renderLive();
+      try {
+        const response = await fetch("/api/pilot/decision", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({run_id: run.__id, decision})
+        });
+        let payload = {};
+        try { payload = await response.json(); } catch (_error) {}
+        if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+        state.pilotDecisions.set(run.__id, {
+          inFlight: false,
+          decision,
+          error: "",
+          result: String(payload.decision || decision)
+        });
+      } catch (error) {
+        state.pilotDecisions.set(run.__id, {
+          inFlight: false,
+          decision,
+          error: error?.message || "could not reach Ringside",
+          result: ""
+        });
+      }
+      renderLive();
+    }
+
     function renderLive() {
       const staging = document.createElement("div");
       if (!state.runs.length) {
@@ -1037,7 +1255,8 @@
         section.className = `run ${run.state}`;
         section.dataset.key = run.__id;
         const preferred = state.runOpen[run.__id];
-        section.open = preferred !== undefined ? preferred : (run.state === "live" || runIndex === 0);
+        const awaitingPilot = runIsRunningNow(run) && run.pilot?.status === "awaiting";
+        section.open = awaitingPilot || (preferred !== undefined ? preferred : (run.state === "live" || runIndex === 0));
         section.addEventListener("toggle", () => {
           if (!state.rendering) state.runOpen[run.__id] = section.open;
         });
@@ -1064,6 +1283,8 @@
         stats.textContent = `${outcome} · ${formatDuration(run.elapsed_s)}${tok}`;
         head.append(dot, title, identity, stats);
         section.appendChild(head);
+
+        if (awaitingPilot) section.appendChild(renderPilotReview(run));
 
         const rounds = document.createElement("div");
         rounds.className = "rounds";
@@ -1141,6 +1362,26 @@
             toggle.appendChild(activity);
           }
           card.appendChild(toggle);
+
+          const violations = Array.isArray(task.violations)
+            ? task.violations.map(violationParts)
+            : [];
+          if (violations.length) {
+            const list = document.createElement("ul");
+            list.className = "violations";
+            list.setAttribute("aria-label", `${violations.length} task violation${violations.length === 1 ? "" : "s"}`);
+            violations.forEach(violation => {
+              const item = document.createElement("li");
+              const label = document.createElement("b");
+              const kind = violation.kind === "ownership"
+                ? "Ownership"
+                : (violation.kind === "contract" ? "Contract" : "Recorded");
+              label.textContent = `${kind} violation:`;
+              item.append(label, document.createTextNode(` ${violation.detail}`));
+              list.appendChild(item);
+            });
+            card.appendChild(list);
+          }
 
           if (expanded) {
             const stream = renderStream(run, task, taskIndex, expanded, expandedKey);
