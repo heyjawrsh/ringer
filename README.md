@@ -369,6 +369,10 @@ The top of the page is the run's live results document: what the job is, a progr
 
 Two surfaces that used to require the terminal or a look at the run state JSON are now on the page. When a `pilot` run pauses, Ringside shows the awaiting-review state — which task was the pilot, how many lanes are held, how long it has waited — with **Approve** and **Reject** buttons. **Reject** asks for confirmation first, because it ends the run. The buttons POST to a local endpoint, `/api/pilot/decision`, which the server accepts only from the loopback page's own origin and only while that run's pilot is actually awaiting; a cross-origin request is refused, and the endpoint does nothing on GET.
 
+A run paused for pilot review waits in its own process. If that process exits — killed, crashed, a closed terminal — the run state still says the pilot is awaiting, but nobody is listening.
+Ringside shows that honestly: the pause is still displayed, marked **abandoned** because the run's orchestrator exited, with **Approve** and **Reject** disabled — a decision written now would never be read.
+The decision endpoint refuses such a request too, so neither the page nor the CLI can pretend the run can be resumed. Restart the job instead; the pilot task's worktree, logs and deliverables are still on disk for review.
+
 - **The CLI still works.** `./ringer.py approve <run_id>` and `./ringer.py reject <run_id>` still work and remain visible on the page for terminal users.
 - **Violations on the card.** When a task records ownership or contract violations, the kind and its detail now appear on that task's card on the results page — instead of living only in the run state JSON.
 
