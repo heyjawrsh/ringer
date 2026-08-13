@@ -1396,3 +1396,17 @@ RULES:
   DOGFOOD WIN: the worktree pre-flight aborted a doomed re-run at zero token
   cost and named --reset-worktrees, which then cleared it — the exact incident
   that put pre-flight on the backlog now costs one flag.
+- 2026-08-13 — PROVE-PASS run (2 lanes, both first-try, zero repair).
+  GPT-5.6 Sol high (codex), code-feature: first-try, 97k tokens, 6.3m — the
+  "model it CLOSELY on the existing run_prove_fail, this is its mirror" framing
+  is the cheapest reliability trick in these specs: a symmetric feature written
+  against a named existing function lands first-try far more often than one
+  described from scratch. GLM-5.2 docs: first-try, 33k tokens, 72s (9/9).
+  The feature closes the gap that cost three attempts earlier today: --prove-fail
+  proves a check can FAIL, --prove-pass proves it can PASS on correct work.
+  Demonstrated side by side on one manifest: an impossible check (grep for a
+  token honest work will never contain) is reported "proved" by prove-fail —
+  it does fail on bad input, so it looks healthy — and only prove-pass flags it
+  BROKEN. Routing note for future check-writing: declare BOTH known_bad and
+  known_good on every task; the two gates together cost no tokens and catch the
+  two ways a check lies.
