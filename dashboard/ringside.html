@@ -293,6 +293,12 @@
       border-radius: 8px;
       background: var(--surface);
     }
+    .pilot-banner {
+      width: min(100%, 1440px);
+      margin-inline: auto;
+      padding: clamp(14px, 2vw, 20px) clamp(12px, 2vw, 22px) 0;
+    }
+    .pilot-banner:empty { display: none; }
     .pilot-review-head {
       display: flex;
       align-items: baseline;
@@ -345,7 +351,7 @@
     }
     .workers {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       gap: 10px;
       margin-top: clamp(14px, 2vw, 20px);
     }
@@ -507,10 +513,11 @@
       min-height: calc(100vh - 83px);
       display: grid;
       grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr);
     }
     .artifact-main,
     .agents {
-      width: min(100%, 960px);
+      width: min(100%, 1440px);
       margin-inline: auto;
     }
     .artifact-row {
@@ -658,6 +665,7 @@
     <main>
       <section id="artifacts-panel" class="panel">
         <div class="artifact-layout">
+          <div id="pilot-banner" class="pilot-banner"></div>
           <section class="artifact-main" aria-label="Artifact preview">
             <div class="artifact-tools">
               <select id="artifact-picker" class="mono" aria-label="Artifact"></select>
@@ -681,6 +689,9 @@
   (() => {
     const TAB_KEY = "ringside-tab";
     const ARTIFACT_KEY = "ringside-artifact-selection";
+    const query = new URLSearchParams(window.location.search);
+    const queryTab = normalizeTab(query.get("tab"));
+    const queryRun = String(query.get("run") || "").trim();
     const state = {
       runs: [],
       active: {},
@@ -688,7 +699,7 @@
       artifacts: [],
       runError: null,
       libraryError: null,
-      tab: normalizeTab(localStorage.getItem(TAB_KEY)) || "live",
+      tab: queryTab || normalizeTab(localStorage.getItem(TAB_KEY)) || "live",
       hasStoredTab: Boolean(normalizeTab(localStorage.getItem(TAB_KEY))),
       expanded: new Map(),
       logTimer: null,
@@ -700,7 +711,8 @@
       frameRequest: 0,
       rendering: false,
       runOpen: {},
-      focusedRunId: "",
+      focusedRunId: queryRun,
+      restoreRunFromUrl: Boolean(queryRun),
       pilotDecisions: new Map()
     };
 
@@ -712,6 +724,7 @@
       updateBanner: document.getElementById("update-banner"),
       updateMessage: document.getElementById("update-message"),
       dismissUpdate: document.getElementById("dismiss-update"),
+      pilotBanner: document.getElementById("pilot-banner"),
       runs: document.getElementById("runs"),
       artifactPicker: document.getElementById("artifact-picker"),
       artifactStatus: document.getElementById("artifact-status"),
@@ -930,7 +943,24 @@
       return state.runs.filter(runIsRunningNow);
     }
 
-    function setTab(_tab, _persist) { /* unified page — tabs removed */ }
+    function replaceUrlState() {
+      const params = new URLSearchParams(window.location.search);
+      params.set("tab", state.tab);
+      if (state.focusedRunId) {
+        params.set("run", state.focusedRunId);
+      } else {
+        params.delete("run");
+      }
+      const search = params.toString();
+      const url = `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`;
+      window.history.replaceState(window.history.state, "", url);
+    }
+
+    function setTab(tab, persist = true) {
+      state.tab = normalizeTab(tab) || "live";
+      if (persist) localStorage.setItem(TAB_KEY, state.tab);
+      replaceUrlState();
+    }
 
     function preserveScroll(mutate) {
       const scroller = document.scrollingElement || document.documentElement;
@@ -1043,6 +1073,19 @@
       return liveRuns.find(run => run.run_name === state.artifactName)?.__id || "";
     }
 
+    function syncFocusedRunSelection() {
+      if (state.restoreRunFromUrl) return;
+      const current = state.runs.find(run => run.__id === state.focusedRunId);
+      if (current && (!state.artifactName || current.run_name === state.artifactName)) return;
+      const artifact = selectedArtifact();
+      const next = state.runs.find(run => run.__id === artifact?.current_run_id)
+        || state.runs.find(run => run.run_name === state.artifactName);
+      const nextId = next?.__id || "";
+      if (state.focusedRunId === nextId) return;
+      state.focusedRunId = nextId;
+      replaceUrlState();
+    }
+
     function renderRunningNow() {
       const liveRuns = runningNowRuns();
       const staging = document.createElement("div");
@@ -1087,6 +1130,7 @@
       state.frameKey = "";
       state.runOpen[run.__id] = true;
       sessionStorage.setItem(ARTIFACT_KEY, run.run_name);
+      replaceUrlState();
       renderRunningNow();
       renderArtifacts();
       renderArtifactControls();
@@ -1194,6 +1238,19 @@
       return block;
     }
 
+    function renderPilotBanner() {
+      const awaiting = runningNowRuns().filter(run => run.pilot?.status === "awaiting");
+      const staging = document.createElement("div");
+      if (awaiting.length) {
+        const selectedId = effectiveFocusedRunId(awaiting);
+        const run = awaiting.find(item => item.__id === selectedId) || awaiting[0];
+        staging.appendChild(renderPilotReview(run));
+      }
+      state.rendering = true;
+      morphChildren(els.pilotBanner, staging);
+      state.rendering = false;
+    }
+
     async function submitPilotDecision(run, decision) {
       const current = state.pilotDecisions.get(run.__id);
       if (current?.inFlight || current?.result) return;
@@ -1228,6 +1285,7 @@
 
     function renderLive() {
       const staging = document.createElement("div");
+      renderPilotBanner();
       if (!state.runs.length) {
         const empty = document.createElement("div");
         empty.className = "empty";
@@ -1283,8 +1341,6 @@
         stats.textContent = `${outcome} · ${formatDuration(run.elapsed_s)}${tok}`;
         head.append(dot, title, identity, stats);
         section.appendChild(head);
-
-        if (awaitingPilot) section.appendChild(renderPilotReview(run));
 
         const rounds = document.createElement("div");
         rounds.className = "rounds";
@@ -1902,6 +1958,21 @@
         state.active = payload?.active || {};
         state.update = payload?.update || null;
         state.runError = null;
+        if (state.restoreRunFromUrl) {
+          state.restoreRunFromUrl = false;
+          const requested = state.runs.find(run => run.__id === state.focusedRunId);
+          if (requested) {
+            state.artifactName = requested.run_name;
+            state.artifactManual = true;
+            state.artifactVersion = "live";
+            state.runOpen[requested.__id] = true;
+            sessionStorage.setItem(ARTIFACT_KEY, requested.run_name);
+          } else {
+            state.focusedRunId = "";
+          }
+          replaceUrlState();
+        }
+        syncFocusedRunSelection();
       } catch (error) {
         state.runError = error?.message || "runs unavailable";
       }
@@ -1924,6 +1995,7 @@
       renderTop();
       renderArtifacts();
       renderArtifactControls();
+      syncFocusedRunSelection();
       renderRunningNow();
       loadArtifactFrame(false);
     }
@@ -1952,6 +2024,7 @@
       state.frameKey = "";
       sessionStorage.setItem(ARTIFACT_KEY, name);
       state.focusedRunId = "";
+      syncFocusedRunSelection();
       renderArtifacts();
       renderArtifactControls();
       renderRunningNow();
@@ -1963,6 +2036,7 @@
     });
 
     tickClock();
+    setTab(state.tab, false);
     renderTop();
     renderRunningNow();
     renderLive();
