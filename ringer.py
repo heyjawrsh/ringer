@@ -5718,7 +5718,12 @@ def read_json_object(path: Path, default: dict[str, Any]) -> dict[str, Any]:
     return data if isinstance(data, dict) else default
 
 
-def scan_hud_run_states(state_dir: Path, *, limit: int = 12) -> list[dict[str, Any]]:
+def scan_hud_run_states(
+    state_dir: Path,
+    *,
+    active_runs: dict[str, dict[str, Any]],
+    limit: int = 12,
+) -> list[dict[str, Any]]:
     runs_dir = state_dir / "runs"
     try:
         paths = [path for path in runs_dir.glob("*.json") if path.is_file()]
@@ -5736,6 +5741,7 @@ def scan_hud_run_states(state_dir: Path, *, limit: int = 12) -> list[dict[str, A
     for path in paths[:limit]:
         data = read_json_object(path, {})
         if data:
+            data["orchestrator_alive"] = str(data.get("run_id", path.stem)) in active_runs
             runs.append(data)
     return runs
 
@@ -5794,7 +5800,13 @@ class PilotDecisionError(ValueError):
         self.code = code
 
 
-def record_pilot_decision(state_dir: Path, run_id: str, decision: str) -> None:
+def record_pilot_decision(
+    state_dir: Path,
+    run_id: str,
+    decision: str,
+    *,
+    active_runs: dict[str, dict[str, Any]] | None = None,
+) -> None:
     if not isinstance(decision, str) or decision not in {"approve", "reject"}:
         raise PilotDecisionError("invalid", "decision must be approve or reject")
     state_path = run_state_path_for_id(state_dir, run_id)
@@ -5811,6 +5823,13 @@ def record_pilot_decision(state_dir: Path, run_id: str, decision: str) -> None:
         raise PilotDecisionError(
             "not-awaiting", f"run {run_id} is not awaiting pilot review"
         )
+    if active_runs is not None and isinstance(state, dict) and "pid" in state:
+        if run_id not in active_runs:
+            raise PilotDecisionError(
+                "orchestrator-dead",
+                f"run {run_id}'s orchestrator exited; "
+                "the pilot decision can no longer be delivered",
+            )
     decision_file = pilot.get("decision_file")
     if not isinstance(decision_file, str) or not decision_file:
         raise PilotDecisionError(
@@ -5961,11 +5980,15 @@ class PersistentHudServer:
                     )
                     return
                 if path == "/api/runs":
+                    active_runs = read_active_runs()
                     send_json_response(
                         self,
                         {
-                            "runs": scan_hud_run_states(state_dir),
-                            "active": read_active_runs_file(),
+                            "runs": scan_hud_run_states(
+                                state_dir,
+                                active_runs=active_runs,
+                            ),
+                            "active": active_runs,
                             "update": server_ref.update_status,
                         },
                     )
@@ -6102,11 +6125,16 @@ class PersistentHudServer:
                     )
                     return
                 try:
-                    record_pilot_decision(state_dir, run_id, decision)
+                    record_pilot_decision(
+                        state_dir,
+                        run_id,
+                        decision,
+                        active_runs=read_active_runs(),
+                    )
                 except PilotDecisionError as exc:
                     status = (
                         HTTPStatus.CONFLICT
-                        if exc.code == "not-awaiting"
+                        if exc.code in {"not-awaiting", "orchestrator-dead"}
                         else HTTPStatus.BAD_REQUEST
                     )
                     send_json_response(self, {"error": str(exc)}, status=status)

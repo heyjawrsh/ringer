@@ -1159,26 +1159,31 @@
       const decisionState = state.pilotDecisions.get(run.__id) || {};
       const inFlight = Boolean(decisionState.inFlight);
       const recorded = decisionState.result === "approve" || decisionState.result === "reject";
+      const abandoned = run.orchestrator_alive === false;
 
       const block = document.createElement("section");
       block.className = "pilot-review";
       block.dataset.key = `pilot-review:${run.__id}`;
-      block.setAttribute("aria-label", "Pilot decision required");
+      block.setAttribute("aria-label", abandoned ? "Pilot review abandoned" : "Pilot decision required");
 
       const head = document.createElement("div");
       head.className = "pilot-review-head";
       const title = document.createElement("span");
       title.className = "pilot-review-title";
-      title.textContent = "Paused for pilot review";
+      title.textContent = abandoned ? "Pilot review abandoned" : "Paused for pilot review";
       const facts = document.createElement("span");
       facts.className = "pilot-review-facts mono";
-      facts.textContent = `Pilot ${pilotTask} · ${heldCount} lane${heldCount === 1 ? "" : "s"} held · waiting ${waiting}`;
+      facts.textContent = abandoned
+        ? `Pilot ${pilotTask} · ${heldCount} lane${heldCount === 1 ? " was" : "s were"} held · orchestrator exited`
+        : `Pilot ${pilotTask} · ${heldCount} lane${heldCount === 1 ? "" : "s"} held · waiting ${waiting}`;
       head.append(title, facts);
       block.appendChild(head);
 
       const copy = document.createElement("p");
       copy.className = "pilot-review-copy";
-      copy.textContent = "Approve to release the held lanes, or reject to end this run.";
+      copy.textContent = abandoned
+        ? "The run's orchestrator exited and the decision can no longer be delivered."
+        : "Approve to release the held lanes, or reject to end this run.";
       block.appendChild(copy);
 
       const actions = document.createElement("div");
@@ -1188,14 +1193,14 @@
       approve.className = "approve";
       approve.textContent = inFlight && decisionState.decision === "approve" ? "Approving…" : "Approve";
       approve.setAttribute("aria-label", `Approve pilot task ${pilotTask} and release held lanes`);
-      approve.disabled = inFlight || recorded;
+      approve.disabled = abandoned || inFlight || recorded;
       approve.addEventListener("click", () => submitPilotDecision(run, "approve"));
       const reject = document.createElement("button");
       reject.type = "button";
       reject.className = "reject";
       reject.textContent = inFlight && decisionState.decision === "reject" ? "Rejecting…" : "Reject";
       reject.setAttribute("aria-label", `Reject pilot task ${pilotTask} and end the run`);
-      reject.disabled = inFlight || recorded;
+      reject.disabled = abandoned || inFlight || recorded;
       reject.addEventListener("click", () => submitPilotDecision(run, "reject"));
       actions.append(approve, reject);
       block.appendChild(actions);
@@ -1203,7 +1208,9 @@
       const status = document.createElement("p");
       status.className = "pilot-decision-status";
       status.setAttribute("role", "status");
-      if (decisionState.result === "approve") {
+      if (abandoned) {
+        status.textContent = "The orchestrator exited. A decision can no longer be delivered.";
+      } else if (decisionState.result === "approve") {
         status.classList.add("approve");
         status.textContent = "Approved. Held lanes will resume.";
       } else if (decisionState.result === "reject") {
@@ -1228,18 +1235,22 @@
 
       const cli = document.createElement("p");
       cli.className = "pilot-cli mono";
-      cli.append(
-        document.createTextNode("Terminal: "),
-        Object.assign(document.createElement("code"), {textContent: `./ringer.py approve ${run.__id}`}),
-        document.createTextNode(" · "),
-        Object.assign(document.createElement("code"), {textContent: `./ringer.py reject ${run.__id}`})
-      );
+      if (abandoned) {
+        cli.textContent = "Terminal approve or reject commands would not reach the orchestrator either.";
+      } else {
+        cli.append(
+          document.createTextNode("Terminal: "),
+          Object.assign(document.createElement("code"), {textContent: `./ringer.py approve ${run.__id}`}),
+          document.createTextNode(" · "),
+          Object.assign(document.createElement("code"), {textContent: `./ringer.py reject ${run.__id}`})
+        );
+      }
       block.appendChild(cli);
       return block;
     }
 
     function renderPilotBanner() {
-      const awaiting = runningNowRuns().filter(run => run.pilot?.status === "awaiting");
+      const awaiting = state.runs.filter(run => run.pilot?.status === "awaiting");
       const staging = document.createElement("div");
       if (awaiting.length) {
         const selectedId = effectiveFocusedRunId(awaiting);
