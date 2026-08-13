@@ -57,10 +57,13 @@ the orchestrating model — pay tokens only for specs, orchestration, and
 review.
 
 ```bash
-./ringer.py lint manifest.json            # always lint before running
+./ringer.py lint manifest.json              # always lint before running
+./ringer.py run manifest.json --baseline    # checks vs the unmodified tree, no workers
+./ringer.py run manifest.json --prove-fail  # checks vs each task's known_bad state
 ./ringer.py run manifest.json --identity <who-you-are>
-./ringer.py demo                          # 3-worker smoke test
-./ringer.py run manifest.json --dry-run   # print the plan, spawn nothing
+./ringer.py demo                            # 3-worker smoke test
+./ringer.py run manifest.json --dry-run     # print the plan, spawn nothing
+./ringer.py approve <run_id>                # release a pilot-paused run (reject to end it)
 ```
 
 Runs land in `~/.ringer/runs/`. Raw worker logs land in `<workdir>/logs/`.
@@ -172,6 +175,116 @@ the check's failure output.
   case-insensitive and flexible matching for structure, and reserve hard
   failure for substance: missing evidence, fabricated content, code that
   doesn't run.
+- **Assert on the CONTENT of failure messages, not just the exit code.** The
+  check's output is injected into the retry prompt, so "the lane failed" is
+  not enough: if a violation must name the offending path or symbol, assert
+  that the name appears. A worker once implemented enforcement correctly but
+  printed a message no human or retry could act on; the check caught it only
+  because it demanded the path (2026-08-12).
+- **Don't reuse helpers you can't import.** `scripts/check_helpers.py` ships
+  the assertions people keep re-hand-rolling: `normalize` (NBSP and whitespace),
+  `assert_section` (case/decoration tolerant), `assert_contains`, `assert_runs`,
+  `assert_json_valid`, `fail`. A check script puts the scripts dir on
+  `sys.path` and imports it instead of writing another fragile grep.
+- **Greps must survive a repo that already says the words.** When the target
+  file already documents a feature family, a whole-file grep proves nothing —
+  assert on the ADDED lines (`git diff --unified=0` on the owned path). This
+  exact false-PASS shipped a broken check that `--prove-fail` then caught.
+
+## Gate the checks before you spend a worker
+
+Three commands, in this order, before any real run. They cost no model tokens
+and each catches a different class of wasted attempt:
+
+```bash
+./ringer.py lint manifest.json            # static: unverifiable checks, collisions, pointer specs
+./ringer.py run manifest.json --baseline  # executes every check against the UNMODIFIED tree
+./ringer.py run manifest.json --prove-fail  # executes every check against a declared BROKEN tree
+```
+
+- **`--baseline` catches a check that false-FAILS.** An assertion about
+  unchanged behavior that fails here is a bug in the check; at run time it
+  would burn a worker's attempts against something no model can satisfy.
+- **`--prove-fail` catches a check that false-PASSES**, which is the more
+  dangerous direction: give a task a `known_bad` shell command that fabricates
+  the deliverable in broken form, and the mode runs the real check against it.
+  Check FAILS = `proved`. Check PASSES = `BROKEN`, and the run exits nonzero.
+  Declare `known_bad` on every task you write; a check nobody proved can lie.
+- **Its blind spot:** prove-fail only exercises a check's EARLIEST failing
+  gate. Deep check code (the part that runs once a good deliverable exists)
+  stays untested until a real good state exists — smoke the full path yourself
+  when the check is long. A check that crashes mid-verification burns both
+  attempts and reads on Ringside as the worker's failure (2026-08-12).
+- **Clean the patch dir after a BROKEN verdict.** Prove-fail executes checks
+  for real, so a check that wrongly passes also runs its exports — a stale
+  patch file from a known-bad state will otherwise sit there looking like a
+  deliverable.
+
+## Verify the MERGED result, not just each lane
+
+Per-task checks verify lanes in isolation; lanes that each pass can still break
+the combined build. Declare a run-level `integration_check` (with
+`integration_timeout_s`, default 600) and it runs ONCE after every task passes —
+in a fresh detached worktree of `repo` when the manifest uses worktrees, else in
+the workdir. Nonzero fails the whole run even though every lane was green; a
+failed task skips it and says so; it never retries; the raw log lands in
+`<workdir>/logs/integration.log`.
+
+The canonical body for a repo job: apply every lane's exported patch to the
+scratch worktree and run the full suite. Write it once and stop hand-rolling a
+manual suite gate after each round — an early round here shipped two patches
+that were only green *together*, and the manual gate was the only thing that
+noticed.
+
+## Checkpoint before the fan-out
+
+Long autonomous fan-outs drift: by the time a human sees the result, the
+expensive decisions are baked into N lanes. Set run-level `pilot` to one task's
+key (with `pilot_wait_s`, default 1800) and that lane runs FIRST and alone while
+every other lane stays queued and unspawned.
+
+- Pilot fails → nothing else spawns, run exits nonzero.
+- Pilot passes → the run PAUSES in `awaiting-review`, the console prints
+  `./ringer.py approve <run_id>` and `reject <run_id>`, and Ringside shows the
+  decision block at the top of the page with Approve/Reject buttons.
+- Reject (or the wait expiring) ends the run nonzero and KEEPS the pilot's
+  worktree, logs and deliverables for review.
+
+Use it for anything where taste or architecture is at stake — visual work above
+all, where the right first deliverable is one screen you can look at, not a
+finished build you have to reject. `pilot` requires no worktrees but cannot be
+combined with `foundation`.
+
+**Verify a paused run yourself before deciding.** Apply the pilot's exported
+patch to a scratch worktree, serve or run it there, and look at the real
+artifact. For UI, that means a browser at a real width — the checks can assert
+structure, only the running page shows whether it reads right.
+
+**Footgun:** if the orchestrator process dies while paused, run state still
+reads `awaiting` while nothing is listening, and held lanes report ERROR with
+zero attempts. Check the process is alive before waiting on a decision.
+
+## Freeze the shared vocabulary before parallel lanes
+
+Lanes over one repo collide on shared types and files. Three run-level fields
+prevent it, and they are cheap:
+
+- **`foundation`** names one task that runs first and alone; its diff is
+  exported to `<workdir>/foundation.patch` and applied to every other lane's
+  worktree before that lane spawns, so every lane inherits identical
+  vocabulary. Requires worktrees; excludes `pilot`; empty diff is fine.
+- **`owns`** (per task) is a list of paths or globs. Anything the worker
+  changed outside it fails the attempt with the offending paths named in the
+  message the retry sees. Foundation-touched paths are excluded automatically.
+  Opt-in: tasks without `owns` are not checked.
+- **`contracts`** (run level) is a list of symbols no lane may redefine; the
+  foundation task is exempt because it defines them.
+
+Even without these fields, ownership must be disjoint across ALL concurrent
+lanes. When a frozen contract obsoletes tests a lane does not own, either grant
+those files to that lane or plan a repair lane — and always give specs an
+explicit "STOP and report instead of editing files you don't own" escape hatch,
+so a worker reports the collision rather than trespassing or burning an attempt.
 
 ## Pattern playbook
 
@@ -311,11 +424,25 @@ Run-level `"worktrees": true` gives each task an isolated git worktree of
    there pass its checks, export an incomplete patch, and die with the
    worktree. If a task touches any gitignored path, the check must `cp`
    those files to a path outside the worktree explicitly — verify the patch
-   AND the copies before trusting the run.
+   AND the copies before trusting the run. (Lint now flags this when an
+   `expect_files` entry matches the repo's `.gitignore`.)
+5. **Stale worktrees from a previous run block the next one.** Failed tasks
+   keep their worktrees on purpose, so a re-run under the same `run_name`
+   lands on them. Every real worktrees run now opens with a PRE-FLIGHT over
+   all lanes — a fresh/stale table with the base SHA, printed before engines
+   are even checked — and aborts with the exact removal command per lane, so
+   a blocked lane costs zero tokens instead of letting the other lanes spawn.
+   `--reset-worktrees` removes stale REGISTERED worktrees for you and
+   proceeds; a stale plain directory is never auto-deleted, flag or no flag.
 
 And on your own side of the fence: when integrating patches into the real
 repo, stage specific paths — never `git add -A` in a checkout that may hold
 someone's untracked scratch files.
+
+Workers cannot bind localhost sockets inside the sandbox. If a feature needs a
+server test, have the worker WRITE the test and let the check RUN it (checks
+execute unsandboxed) — and say so in the spec, or the worker will thrash
+against a PermissionError it cannot fix.
 
 ## Post-run review ritual
 
@@ -328,6 +455,11 @@ someone's untracked scratch files.
    catches most laziness; you catch the rest.
 4. Failures with useless error messages mean your CHECK needs work, not
    (only) the worker.
+   **A "failed" lane is often a broken check, not a broken worker.** Before
+   blaming a model, confirm the check itself ran to completion — a check that
+   crashed mid-verification (a reused scratch dir, a bad path) burns both
+   attempts and reads on Ringside as the worker's failure. Two of this
+   repo's own rounds looked like model misses and were mine (2026-08-12).
 5. **Update `docs/MODEL-NOTES.md`** (in the ringer repo) when a run taught
    you something about a model: one dated line under the model — task type,
    what happened (attempts, tokens, failure mode), what you'd do
