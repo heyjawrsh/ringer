@@ -60,10 +60,12 @@ review.
 ./ringer.py lint manifest.json              # always lint before running
 ./ringer.py run manifest.json --baseline    # checks vs the unmodified tree, no workers
 ./ringer.py run manifest.json --prove-fail  # checks vs each task's known_bad state
+./ringer.py run manifest.json --prove-pass  # checks vs each task's known_good state
 ./ringer.py run manifest.json --identity <who-you-are>
 ./ringer.py demo                            # 3-worker smoke test
 ./ringer.py run manifest.json --dry-run     # print the plan, spawn nothing
 ./ringer.py approve <run_id>                # release a pilot-paused run (reject to end it)
+./ringer.py rerun manifest.json             # repair manifest of the lanes that did not pass
 ```
 
 Runs land in `~/.ringer/runs/`. Raw worker logs land in `<workdir>/logs/`.
@@ -193,13 +195,14 @@ the check's failure output.
 
 ## Gate the checks before you spend a worker
 
-Three commands, in this order, before any real run. They cost no model tokens
+Four commands, in this order, before any real run. They cost no model tokens
 and each catches a different class of wasted attempt:
 
 ```bash
-./ringer.py lint manifest.json            # static: unverifiable checks, collisions, pointer specs
-./ringer.py run manifest.json --baseline  # executes every check against the UNMODIFIED tree
-./ringer.py run manifest.json --prove-fail  # executes every check against a declared BROKEN tree
+./ringer.py lint manifest.json              # static: unverifiable checks, collisions, pointer specs
+./ringer.py run manifest.json --baseline    # every check against the UNMODIFIED tree
+./ringer.py run manifest.json --prove-fail  # every check against a declared BROKEN state
+./ringer.py run manifest.json --prove-pass  # every check against a declared GOOD state
 ```
 
 - **`--baseline` catches a check that false-FAILS.** An assertion about
@@ -210,11 +213,28 @@ and each catches a different class of wasted attempt:
   the deliverable in broken form, and the mode runs the real check against it.
   Check FAILS = `proved`. Check PASSES = `BROKEN`, and the run exits nonzero.
   Declare `known_bad` on every task you write; a check nobody proved can lie.
-- **Its blind spot:** prove-fail only exercises a check's EARLIEST failing
+- **`--prove-pass` catches a check that can NEVER pass**, which is the failure
+  mode that reads most like a bad model: give a task a `known_good` command
+  that fabricates a CORRECT deliverable, and the mode runs the real check
+  against it. Check PASSES = `proved`. Check FAILS = `BROKEN` — an over-strict
+  assertion, an impossible grep, or a demand your spec forbids satisfying will
+  burn every attempt a worker has while the run reads as the worker's fault.
+  It also catches a `known_good` that forgets a declared `expect_files` entry.
+- **The three modes cover the whole space.** baseline: false-FAIL on a good
+  tree. prove-fail: false-PASS on broken work. prove-pass: cannot pass at all.
+  Declare `known_bad` AND `known_good` on every task you write; between them
+  the gates cost nothing and catch what would otherwise cost two attempts.
+- **An impossible check does not fail loudly — it gets satisfied CREATIVELY.**
+  When a check demands something the spec forbids doing honestly, the worker
+  resolves the contradiction in whichever direction the CHECK measures: it once
+  invented a `verified` sentence and rewrote a `check` command to make an
+  emitted manifest lint clean, passing every gate while breaking the contract
+  (2026-08-13). If a lane keeps failing on the same assertion, suspect the
+  assertion before the model — run `--prove-pass` and find out in seconds.
+- **prove-fail's blind spot:** it only exercises a check's EARLIEST failing
   gate. Deep check code (the part that runs once a good deliverable exists)
-  stays untested until a real good state exists — smoke the full path yourself
-  when the check is long. A check that crashes mid-verification burns both
-  attempts and reads on Ringside as the worker's failure (2026-08-12).
+  stays untested until a good state exists — which is exactly what
+  `--prove-pass` provides, so run both.
 - **Clean the patch dir after a BROKEN verdict.** Prove-fail executes checks
   for real, so a check that wrongly passes also runs its exports — a stale
   patch file from a known-bad state will otherwise sit there looking like a
