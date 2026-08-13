@@ -20,7 +20,7 @@ LONG_SPEC = (
 )
 
 GOOD_CHECK = (
-    "test -s output.txt && grep -q 'ready' output.txt || "
+    "test -s output.txt && grep -qw 'ready' output.txt || "
     "{ echo 'FAIL: output.txt missing or does not contain ready'; exit 1; }"
 )
 
@@ -286,6 +286,63 @@ class LintManifestTests(unittest.TestCase):
         self.assertFalse(
             any("no expect_files" in item for item in findings),
             f"worktrees manifest should not be flagged for expect_files: {findings}",
+        )
+
+    def test_w10_unanchored_substring_grep(self) -> None:
+        manifest = self.manifest(
+            [self.task(check="grep todo notes.txt || { echo 'FAIL: todo missing'; exit 1; }")]
+        )
+        self.assertHasFinding(
+            lint_manifest(manifest),
+            "one: check greps for an unanchored bare literal; use grep -w, anchor the pattern, or match a longer distinctive phrase.",
+        )
+
+        word_manifest = self.manifest(
+            [self.task(check="grep -w todo notes.txt || { echo 'FAIL: todo missing'; exit 1; }")]
+        )
+        self.assertNotIn(
+            "one: check greps for an unanchored bare literal; use grep -w, anchor the pattern, or match a longer distinctive phrase.",
+            lint_manifest(word_manifest),
+        )
+
+    def test_w11_focus_stealing_command(self) -> None:
+        manifest = self.manifest(
+            [self.task(check="open -a Preview output.png || { echo 'FAIL: preview failed'; exit 1; }")]
+        )
+        self.assertHasFinding(
+            lint_manifest(manifest),
+            "one: check or spec opens an application window and can steal focus; use a headless probe and write evidence to a file instead.",
+        )
+
+        filename_manifest = self.manifest(
+            [self.task(check="test -s open-results.txt || { echo 'FAIL: results missing'; exit 1; }")]
+        )
+        self.assertNotIn(
+            "one: check or spec opens an application window and can steal focus; use a headless probe and write evidence to a file instead.",
+            lint_manifest(filename_manifest),
+        )
+
+    def test_w12_gitignored_deliverable(self) -> None:
+        manifest = self.manifest(
+            [self.task(expect_files=["artifacts/report.md"])],
+            worktrees=True,
+        )
+        assert manifest.repo is not None
+        (manifest.repo / ".gitignore").write_text("# generated output\n\nartifacts/\n", encoding="utf-8")
+        self.assertHasFinding(
+            lint_manifest(manifest),
+            "one: deliverable artifacts/report.md is gitignored and will be missing from the exported patch; have the check copy the artifact to a path outside the worktree and verify the copy.",
+        )
+
+        tracked_manifest = self.manifest(
+            [self.task(expect_files=["report.md"])],
+            worktrees=True,
+        )
+        assert tracked_manifest.repo is not None
+        (tracked_manifest.repo / ".gitignore").write_text("artifacts/\n", encoding="utf-8")
+        self.assertNotIn(
+            "one: deliverable report.md is gitignored and will be missing from the exported patch; have the check copy the artifact to a path outside the worktree and verify the copy.",
+            lint_manifest(tracked_manifest),
         )
 
     def test_compliant_manifest_is_clean(self) -> None:

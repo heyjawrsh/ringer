@@ -1911,9 +1911,24 @@ def lint_manifest(
             findings.append(
                 f"{task.key}: check may fail without printing why; retry prompt and eval log depend on failure output."
             )
+        if check_has_unanchored_grep(task.check):
+            findings.append(
+                f"{task.key}: check greps for an unanchored bare literal; use grep -w, "
+                "anchor the pattern, or match a longer distinctive phrase."
+            )
+        if has_focus_stealing_command(task.check) or spec_has_focus_stealing_command(task.spec):
+            findings.append(
+                f"{task.key}: check or spec opens an application window and can steal focus; "
+                "use a headless probe and write evidence to a file instead."
+            )
         if manifest.worktrees and any(is_relative_expect_file(path) for path in task.expect_files):
             findings.append(
                 f"{task.key}: deliverable would be deleted with the worktree; write it outside the worktree or export it in the check."
+            )
+        for path in gitignored_expect_files(manifest, task.expect_files):
+            findings.append(
+                f"{task.key}: deliverable {path} is gitignored and will be missing from the exported patch; "
+                "have the check copy the artifact to a path outside the worktree and verify the copy."
             )
         if manifest.worktrees and instructs_git_commit(task.spec):
             findings.append(
@@ -1972,6 +1987,214 @@ def lint_manifest(
         )
 
     return findings
+
+
+SHELL_COMMAND_PREFIXES = {
+    "!",
+    "{",
+    "}",
+    "command",
+    "do",
+    "elif",
+    "env",
+    "if",
+    "sudo",
+    "then",
+    "time",
+    "while",
+    "xcrun",
+}
+GREP_OPTIONS_WITH_ARGUMENTS = {
+    "-A",
+    "-B",
+    "-C",
+    "-D",
+    "-d",
+    "-e",
+    "-f",
+    "-m",
+    "--after-context",
+    "--before-context",
+    "--binary-files",
+    "--context",
+    "--devices",
+    "--directories",
+    "--exclude",
+    "--exclude-dir",
+    "--exclude-from",
+    "--include",
+    "--label",
+    "--max-count",
+    "--regexp",
+    "--file",
+}
+
+
+def shell_tokens(command: str) -> list[str]:
+    try:
+        lexer = shlex.shlex(command, posix=False, punctuation_chars=";&|\n")
+        lexer.whitespace = " \t\r"
+        lexer.whitespace_split = True
+        return list(lexer)
+    except ValueError:
+        return []
+
+
+def unquote_shell_token(token: str) -> str:
+    if len(token) >= 2 and token[0] == token[-1] and token[0] in {"'", '"'}:
+        return token[1:-1]
+    return token
+
+
+def shell_token_is_operator(token: str) -> bool:
+    return bool(token) and all(char in ";&|\n" for char in token)
+
+
+def grep_pattern_is_unsafe(pattern: str) -> bool:
+    if not pattern or pattern.startswith("-"):
+        return False
+    if "/" in pattern or pattern.startswith((".", "~")):
+        return False
+    if "^" in pattern or "$" in pattern or r"\b" in pattern:
+        return False
+    return re.fullmatch(r"[\w ,'!?=:()+-]+", pattern) is not None
+
+
+def grep_invocation_is_unanchored(tokens: list[str]) -> bool:
+    if any(
+        token in {"-w", "--word-regexp", "-x", "--line-regexp"}
+        or (token.startswith("-") and not token.startswith("--") and set(token[1:]) & {"w", "x"})
+        for token in tokens
+    ):
+        return False
+
+    patterns: list[str] = []
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        if token == "--":
+            if index + 1 < len(tokens):
+                patterns.append(tokens[index + 1])
+            break
+        if token in {"-e", "--regexp"}:
+            if index + 1 < len(tokens):
+                patterns.append(tokens[index + 1])
+            index += 2
+            continue
+        if token.startswith("--regexp="):
+            patterns.append(token.partition("=")[2])
+            index += 1
+            continue
+        if token in {"-f", "--file"} or token.startswith("--file="):
+            return False
+        if token in GREP_OPTIONS_WITH_ARGUMENTS:
+            index += 2
+            continue
+        if token.startswith("--") or (token.startswith("-") and token != "-"):
+            index += 1
+            continue
+        if not patterns:
+            patterns.append(token)
+        break
+
+    return any(grep_pattern_is_unsafe(unquote_shell_token(pattern)) for pattern in patterns)
+
+
+def check_has_unanchored_grep(check: str) -> bool:
+    tokens = shell_tokens(check)
+    start = 0
+    for end in range(len(tokens) + 1):
+        if end < len(tokens) and not shell_token_is_operator(tokens[end]):
+            continue
+        segment = tokens[start:end]
+        start = end + 1
+        command_index = shell_command_index(segment)
+        if command_index is None or Path(unquote_shell_token(segment[command_index])).name != "grep":
+            continue
+        if grep_invocation_is_unanchored(segment[command_index + 1 :]):
+            return True
+    return False
+
+
+def shell_command_index(segment: list[str]) -> int | None:
+    for index, raw_token in enumerate(segment):
+        token = unquote_shell_token(raw_token)
+        if token in SHELL_COMMAND_PREFIXES:
+            continue
+        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*=.*", token):
+            continue
+        return index
+    return None
+
+
+def has_focus_stealing_command(command: str) -> bool:
+    tokens = [unquote_shell_token(token) for token in shell_tokens(command)]
+    start = 0
+    for end in range(len(tokens) + 1):
+        if end < len(tokens) and not shell_token_is_operator(tokens[end]):
+            continue
+        segment = tokens[start:end]
+        start = end + 1
+        command_index = shell_command_index(segment)
+        if command_index is None:
+            continue
+        executable = Path(segment[command_index]).name
+        if executable in {"open", "xdg-open", "screencapture", "simctl"}:
+            return True
+        if executable == "osascript" and any(
+            "activate" in token.lower() for token in segment[command_index + 1 :]
+        ):
+            return True
+    return False
+
+
+def spec_has_focus_stealing_command(spec: str) -> bool:
+    snippets = re.findall(r"`([^`\n]+)`", spec)
+    snippets.extend(
+        match.group(1)
+        for match in re.finditer(
+            r"(?im)^\s*(?:\$\s*)?((?:open|xdg-open|osascript|screencapture|simctl|xcrun\s+simctl)\b[^\n]*)",
+            spec,
+        )
+    )
+    snippets.extend(
+        match.group(1)
+        for match in re.finditer(
+            r"(?i)\b(?:run|execute|launch)\s+(?:the\s+command\s+)?((?:open|xdg-open|osascript|screencapture|simctl|xcrun\s+simctl)\b[^.;\n]*)",
+            spec,
+        )
+    )
+    return any(has_focus_stealing_command(snippet) for snippet in snippets)
+
+
+def gitignored_expect_files(manifest: Manifest, expect_files: tuple[str, ...]) -> list[str]:
+    if not manifest.worktrees or manifest.repo is None:
+        return []
+    try:
+        lines = (manifest.repo / ".gitignore").read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeError):
+        return []
+
+    patterns = [line.strip() for line in lines if line.strip() and not line.lstrip().startswith("#")]
+    ignored: list[str] = []
+    for value in expect_files:
+        path = Path(value).expanduser()
+        if path.is_absolute():
+            try:
+                path = path.relative_to(manifest.repo)
+            except ValueError:
+                continue
+        candidate = path.as_posix().removeprefix("./")
+        for raw_pattern in patterns:
+            pattern = raw_pattern.removeprefix("/")
+            if pattern.endswith("/"):
+                if candidate == pattern[:-1] or candidate.startswith(pattern):
+                    ignored.append(value)
+                    break
+            elif fnmatch.fnmatch(candidate, pattern) or fnmatch.fnmatch(path.name, pattern):
+                ignored.append(value)
+                break
+    return ignored
 
 
 FILE_POINTER_SPEC_RE = re.compile(
