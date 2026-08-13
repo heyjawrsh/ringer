@@ -215,7 +215,7 @@ It never retries — it is the orchestrator's gate, not a worker task. Exit 0 pr
 
 ### Pilot lanes: approve the direction before the fan-out
 
-With `pilot` set, that one task runs first while every other lane is held back unspawned. If the pilot fails, nothing else spawns and the run fails. If it passes, the run pauses in an awaiting-review state — visible in the run state and on the console, which prints the exact approve and reject commands with the run id.
+With `pilot` set, that one task runs first while every other lane is held back unspawned. If the pilot fails, nothing else spawns and the run fails. If it passes, the run pauses in an awaiting-review state — visible in the run state and on the console, which prints the exact approve and reject commands with the run id, and on Ringside, where you can now approve or reject from the page as well as the CLI.
 
 `./ringer.py approve <run_id>` releases the held lanes and the run continues normally: retries and `integration_check` are unchanged. `./ringer.py reject <run_id>` ends the run nonzero; the held lanes never spawn; the pilot's deliverables, logs, and worktree are kept for review. No decision within `pilot_wait_s` (default 1800) counts as a rejection with a timeout reason.
 
@@ -350,6 +350,11 @@ Ringside is a local web page — no install, no account, nothing leaves your mac
 ```
 
 The top of the page is the run's live results document: what the job is, a progress bar of rounds, and "The work" — every deliverable each worker filed, with a plain-English line saying what the check proved and the raw check output one click away. Below it, the agents: expand a worker to see the exact brief it was handed, which engine and model are typing, and its live work stream. Past runs stay in a versioned library, and a swarm whose orchestrator *died* without finishing gets its own unmissable state — the failure mode every dashboard forgets.
+
+Two surfaces that used to require the terminal or a look at the run state JSON are now on the page. When a `pilot` run pauses, Ringside shows the awaiting-review state — which task was the pilot, how many lanes are held, how long it has waited — with **Approve** and **Reject** buttons. **Reject** asks for confirmation first, because it ends the run. The buttons POST to a local endpoint, `/api/pilot/decision`, which the server accepts only from the loopback page's own origin and only while that run's pilot is actually awaiting; a cross-origin request is refused, and the endpoint does nothing on GET.
+
+- **The CLI still works.** `./ringer.py approve <run_id>` and `./ringer.py reject <run_id>` still work and remain visible on the page for terminal users.
+- **Violations on the card.** When a task records ownership or contract violations, the kind and its detail now appear on that task's card on the results page — instead of living only in the run state JSON.
 
 Multiple swarms at once is the designed-for case: run three batches under three identities and Ringside shows all three, live. `--browser` opens a simpler per-run fallback dashboard, and `--no-dashboard` runs headless.
 
