@@ -30,6 +30,20 @@ when picking the `model` field. Ringer's config can only pin ONE default
 
 ## codex (GPT-5-class, own harness)
 
+- 2026-08-08 — code-fix, high effort (flont_friend inbox wire-contract
+  reconciliation: 9 drifts audited + serde contract tests + error boundary,
+  1048-line patch, run flont-friend-build): scoreboard shows FAIL/2 — but the
+  CHECK never executed: the orchestrator's verify-command used bash process
+  substitution (diff <(...)) and the harness runs /bin/sh, which
+  syntax-errors before any test. Worker output was verified manually from the
+  surviving worktree: 80/80 tests, full parity. Fifth check-fault FAIL in
+  this project. Lessons: (a) verify-commands must be POSIX sh — no <( ), no
+  [[ ]], no arrays; (b) failed tasks keep worktrees, so check-fault runs are
+  recoverable without re-running the worker. PROCESS lesson from the bug
+  itself: parallel two-lane rounds MUST pin wire shapes verbatim in both
+  specs and cross-check name parity in both checks — doc-reference contracts
+  drift (9 mismatches accumulated over 3 rounds before first runtime use).
+
 - Strongest general worker; the default engine. Spend reasoning effort per
   task via `engine_args` (`["-c", "model_reasoning_effort=low|medium|high"]`)
   — high on gnarly tasks, low on boilerplate.
@@ -598,6 +612,15 @@ when picking the `model` field. Ringer's config can only pin ONE default
 
 ## north-mini-code (via opencode, `openrouter/cohere/north-mini-code:free`)
 
+- 2026-08-06 — AUDITION #3 PASSED (exploration slot, $0 — free). research, mechanical
+  dataset lane (portfolio-puller device profiles: 20 entries x 8 mandatory keys + a
+  cited report, two owned files, own task dir): PASS attempt 1. Sourced from Playwright's
+  device descriptor registry and got the CSS-pixel vs physical-pixel distinction right
+  throughout — the single most common error in this kind of dataset. Consistent with the
+  2026-07-12 ladder verdict and with the 2026-07 code-feature failure: this model is
+  reliable on STANDALONE-ARTIFACT lanes in its own directory, and the earlier failure was
+  about multi-path ownership, not capability. Promote for small sourced-dataset work.
+
 - 2026-07-12 — AUDITION PASSED (exploration slot, $0 — free). code-feature,
   short mechanical lane (flont_friend `types.ts`: 8 exported TS types with a
   precise field-by-field contract, standalone artifact): PASS attempt 1,
@@ -955,3 +978,385 @@ RULE: assert on SUBSTANCE the check can see directly — file contents, symbol p
 codes, full-suite pass — never on where a test happens to live or what it is named. If you
 want to verify a behaviour is tested, grep the repo for the assertion, don't guess the
 filter that will run it.
+
+
+---
+
+## poolside/laguna-s-2.1:free (OpenCode / OpenRouter)
+
+2026-08-01 — research (fluffer-0to1 r1, `genmedia`: generative-media provider pricing +
+unit economics). AUDITION, exploration slot, $0. Recorded as FAIL over 2 attempts — but
+the failure was MINE, not the model's. It made 50 real `webfetch` calls and produced a
+2,858-word report with per-provider pricing, a worked unit-economics table, and a
+10-item Uncertain section. My check required `https?://` and it wrote citations as bare
+backticked domains (`replicate.com/stability-ai/sdxl`), so the URL count scored 0.
+After loosening the citation regex to accept bare domains (traceable = substance;
+the scheme is format), the SAME report passes cleanly.
+Genuine defects, small: one source given as "Internal model documentation", and
+`ideometer.ai` cited for Ideogram (real domain is ideogram.ai).
+VERDICT: worth another audition on research. Do not read the recorded fail as evidence
+against it. Next time, state the citation format as a literal example in the spec
+("Source: https://example.com/page") rather than assuming the model infers the scheme.
+
+CHECK-BUG TALLY, continued: this session added two more (substring `TODO` firing inside
+"masTODOn", which would have failed every honest report in a channel-research lane that
+was REQUIRED to cover Mastodon — caught pre-flight by baseline-testing the check; and the
+URL-scheme strictness above, which cost a real retry cycle). Running total this codebase:
+six check bugs, zero genuine worker failures.
+RULE reinforced: baseline-test every check against BOTH a synthetic passing artifact and a
+synthetic failing one before spawning. The mastodon bug was invisible by inspection and
+took ten seconds to catch by execution.
+
+2026-08-01 (later) — fluffer-0to1 rounds 2 and 3, GPT-5.6 Sol via Codex CLI.
+Round 2: 5/5 pass (db-schema 43 tests, pipeline-engine 41, providers 30, channels 34,
+app-foundation a real SSR build). Round 3: 2/2 pass first try, workspace wiring preserved
+all 148 tests. Codex at high effort with
+`-c sandbox_workspace_write.network_access=true` handled `pnpm install`, `pnpm dlx`,
+and PGlite-backed Postgres tests inside the sandbox without trouble; the one-task
+`net-probe` that confirmed network up front was worth its ~1 minute.
+
+CHECK BUG #3 this session: `pkg.py --require-symbols 'src/index.ts:reviewPass'` failed
+pipeline-engine on attempt 1 purely because the worker had exported the stage under a
+different name from a different module. This is the SAME lesson already recorded above
+under the Swift work — asserting on symbol NAMES rather than behaviour. The executed
+probe (`node probe.mjs` printing PROOF OK after a real three-outline elaboration) proved
+far more and never produced a false negative. Session tally: three check bugs, one
+genuine worker failure (channels wrote a probe that did not run, and fixed it on retry).
+RULE: prefer an executed probe over any symbol/name/path assertion. If you want to know
+the code works, run the code.
+
+ALSO: a root-level check can hide a defect that only appears elsewhere. The monorepo
+check ran every command from the repo root and passed, but a leftover
+`apps/web/pnpm-workspace.yaml` (created by `pnpm approve-builds`) shadowed the root
+workspace, so `cd apps/web && pnpm dev` — the first thing a developer does — died with
+ERR_PNPM_WORKSPACE_PKG_NOT_FOUND. Found only by booting the app and hitting the routes
+by hand. When the deliverable is an app, the check must exercise it the way a human
+will, not only the way CI would.
+
+## GPT-5.6 Sol (Codex CLI)
+
+- 2026-08-06 research (portfolio-puller capture proofs, 3 Swift/native lanes): 2 of 3
+  lanes needed a retry, and BOTH for the same non-model reason — the managed sandbox
+  blocks binding a loopback port, so a spec that told the worker to serve a fixture over
+  `python3 -m http.server` and self-verify could not complete its own grading step. The
+  host-side check then passed on the rerun. This is the THIRD dated recurrence of the
+  same limitation (see 2026-08-03 divider-scout: "Sandbox blocks Chromium launch AND
+  localhost binds"), and this time it was purely an ORCHESTRATOR defect — I wrote
+  server-dependent self-verification into three specs after the lesson was already
+  written down. RULE: when a proof needs a local HTTP server, either pre-start it
+  outside the task and pass the worker a URL, or state plainly in the spec that the
+  grader runs on the host so the worker does not burn an attempt trying to self-verify.
+  Worker conduct was otherwise exemplary — the failing lane's own guard caught that
+  `Emulation.setDeviceMetricsOverride` returned 435x942 instead of 390x844 and it
+  refused to fabricate a screenshot, leaving `out/` empty rather than faking a pass.
+- 2026-08-06 research (portfolio-puller CDP retry, effort=high): PASS first try, 586s,
+  48k tokens, after being handed a written diagnosis of the prior attempt. Found the
+  real root cause (mobile viewport-meta processing left a ~0.897 page scale after
+  navigation; fix is to reapply setDeviceMetricsOverride AFTER navigation plus an
+  explicit `Emulation.setPageScaleFactor(1)`) and produced four pixel-exact captures
+  that independently matched a Playwright baseline's dimensions. Lesson for retries:
+  putting the previous attempt's ACTUAL failure output plus a known-good control
+  experiment in the retry spec converted a 2x-failed lane into a first-try pass.
+- 2026-08-03 code-fix (zcm cbt-line): recorded FAIL is an ORCHESTRATOR manifest defect, not a model miss — the spec asked for direct edits to a repo outside the task dir, which the enforced sandbox denies. Worker behaved ideally: recorded the exact intended diffs in done.md, ran read-only harnesses, refused to fake success. Lesson: repo-editing tasks MUST use worktrees/patch-export or a copy-into-taskdir pattern.
+- 2026-08-03 code-review (zcm divider-scout): PASS on attempt 2. Sandbox blocks Chromium launch (Mach ports) AND localhost binds — browser-validation steps in specs are dead weight for sandboxed workers; scout adapted well (pixel-scanned existing baseline captures, box-model argument). Check gap on my side: PNG count didn't distinguish before/after shots, so "after unavailable" still passed. Distinguish deliverable classes by filename pattern in checks.
+
+## zai-coding-plan/glm-5.2 (addendum)
+
+- 2026-08-06 research x3 (portfolio-puller: mockup-frame licensing, component-export
+  formats, Playwright capture baseline): 3/3 FIRST TRY. The licensing lane was the
+  standout — pulled Apple's EA0861 marketing-artwork terms and quoted the actual
+  restriction rather than paraphrasing, correctly flagged that MockUPhone's CC-BY claim
+  does not clear the third-party PSDs it is built from, and put Samsung under Uncertain
+  instead of guessing. Continues to be the right default for sourced research lanes with
+  a structure+citation check.
+- 2026-08-04 probe (staging HTTP recon): needed 1 retry, then produced an excellent verbatim-headers report incl. a subtle "200-but-CORS-blocked" catch. code-review sweep (45-commit classification vs executed hash-coverage check): first-try pass, honest partial-read disclosure. Good fit for sweeps/probes with strict executed checks.
+
+## openrouter/openai/gpt-oss-20b:free (OpenCode)
+
+- 2026-08-06 — AUDITION FAILED ON SUBSTANCE (exploration slot, $0 — free promo).
+  persona-review, low-stakes lane (practitioner review of a greenfield PRD, single
+  review.md deliverable, structural check requiring >=5 real requirement IDs cited,
+  severity tags and a verdict). PASSED the executed check on attempt 2 — and the output
+  was still unusable. It reviewed an IMPLEMENTATION THAT DOES NOT EXIST: "in practice
+  the current implementation sometimes leaves orphaned processes", "the default scroll
+  speed is hard-coded to 800ms", "the UI does not allow per-URL overrides" — for a
+  greenfield PRD with zero code. It had correctly cited real FR ids around those
+  fabrications, so citation-grounding did not catch it.
+  LESSON FOR CHECK DESIGN, not just for this model: an ID-citation check proves the
+  reviewer opened the document, NOT that its claims are about the document. For
+  review/persona lanes on a spec-only artifact, add a negative assertion — e.g. fail on
+  present-tense implementation claims when no implementation exists — or cross-read one
+  reviewer against another before trusting findings.
+  Verdict: do not route to review lanes. The three proven-model lanes in the same run
+  (codex feasibility, glm-5.2 consistency, glm-5.2 premortem) all produced findings that
+  materially improved the PRD; this one contributed nothing but its "what I would ignore"
+  list. Possible re-audition only on mechanical extract/format work with a content check.
+
+## Check-design lesson (2026-08-06, portfolio-puller epics)
+
+A MECHANICAL COVERAGE CHECK CANNOT SEE ORDER. I wrote a check that parsed all 64 FR/NFR
+definitions out of a PRD and failed if any requirement was claimed by no story. It passed
+cleanly on an 8-epic / 61-story decomposition. A codex sequencing reviewer then found a
+BLOCKER the check was structurally incapable of catching: a PASS on the day-one permission
+spike set video "available", so the Epic 5 UI exposed video controls and could run the
+mode — while the H.264 writer, window selector and scroll driver did not exist until Epic
+8. Coverage proves a requirement is CLAIMED; it cannot prove the claim is REACHABLE in the
+stated build order.
+Corollary found in the same round by a second reviewer: coverage also cannot prove a
+story's acceptance criteria actually SATISFY the requirement it claims. Three criteria
+were unverifiable as written — the strongest example being a sign-off gate whose criterion
+observed only the sign-off, so a test could seal an "irreplaceable" run without ever
+rendering a pixel, defeating the requirement's entire purpose.
+RULE: for decomposition/plan artifacts, pair the mechanical coverage check with at least
+one reviewer that walks the order literally and one that audits acceptance criteria
+against requirement text. The mechanical check is necessary and cheap; it is not
+sufficient, and its passing is actively misleading because it looks like verification.
+
+## GPT-5.6 Sol (Codex CLI) — docs/decomposition (addendum)
+
+- 2026-08-06 docs x2 (portfolio-puller epic decomposition, then revision, effort=high):
+  PASS first try BOTH times. Round 1: 8 epics / 61 stories, 64/64 requirement coverage
+  with exactly one owning story each, ~467s. It independently derived constraints I had
+  not specified — that the first user-facing run trigger must sit after the canary,
+  hashing and sign-off exist, and that a permission spike's acceptance must include grant
+  RETENTION across rebuild, not just initial grant. Round 2 (revision from 15 compiled
+  findings): 75 stories, coverage held, every finding addressed with a per-finding
+  changelog, ~440s. Handing it a numbered findings list with explicit "do NOT descope X"
+  guards produced clean targeted edits rather than a rewrite. Strong default for
+  plan/decomposition work where the check can enforce a hard structural invariant.
+
+## Orchestration lesson (2026-08-06, portfolio-puller Epic 1)
+
+PER-TASK CHECKS CANNOT SEE INTEGRATION. Two code-feature lanes ran in parallel worktrees
+over one Swift package with disjoint FILE ownership. Both passed `swift build` +
+`swift test` in isolation, first try. Applied together they DID NOT COMPILE: each had
+independently declared the same four public types (an id wrapper, a mode enum, and two
+settings structs). Disjoint file ownership is NOT sufficient isolation when lanes share a
+module — they also share a TYPE NAMESPACE, and nothing in either worktree could reveal
+the collision.
+
+Worse than the collision: the duplicates DISAGREED. One lane modelled the mode enum with
+two cases where the requirements needed four; the other dropped two pixel-affecting
+settings fields. A naive "keep one, delete the other" resolution would have silently
+destroyed requirement coverage either way. Resolving it was a requirements decision, so
+the orchestrator made all four calls from the PRD and handed the worker a decided table
+rather than asking it to choose — that task then passed first try.
+
+RULES:
+1. Before fanning out lanes that share a module, extract the shared vocabulary as its own
+   SEQUENCED task and land it first. This is the Swift/single-module form of "lock shared
+   components before parallel fan-out".
+2. Always apply all patches from a parallel round and rebuild BEFORE committing. Green
+   per-task checks are necessary, not sufficient. Budget an integration step per round.
+3. Commit a known-broken integration on a WIP branch, never on main, and squash-merge only
+   once the combined tree is green.
+4. When duplicates disagree, the merge is a REQUIREMENTS question. Decide it yourself from
+   the spec and give the worker the decisions; do not let a fix-lane pick a winner.
+
+## Diagnosis lesson (2026-08-08, flont_friend inbox "sync fails silently")
+
+- glm-5.2 code-fix (inbox sources reachability, 5-file cross-component refactor with an
+  extract-to-shared-panel): first-try pass, ~105k tokens, 6.2 min. Handled the
+  extract-and-reuse pattern (panel consumed by 3 render sites) and re-solved the
+  .vite-temp symlink footgun on its own. Tightly-diagnosed fix specs (orchestrator names
+  the exact trap, files, and copy) remain its strongest lane.
+- Orchestrator lesson: "it fails with no error" was NOT a failure — the run succeeded and
+  the report was HONEST but not INFORMATIVE ("cloudTabs 0" when zero devices were
+  selected = skipped, not empty). Silent-skip states deserve first-class copy in every
+  summary surface. Also: any settings surface that only exists in a first-use/onboarding
+  state is a reachability bug waiting to happen — gate check every onboarding-only
+  control for a post-onboarding home.
+- 2026-08-08 — codex code-fix (flont_friend CloudTabs nested-sortValues decode +
+  truth-telling fixtures + row-error surfacing, full-stack lane): first-try pass, ~99k
+  tokens, 5.3 min. Orchestrator lesson worth keeping: FIXTURES THAT MIRROR THE PARSER
+  instead of the source of truth validate bugs — the flat-shape fixture matched the flat
+  parse and 80 tests stayed green while 500 real rows dropped. When a reader targets an
+  external format, at least one fixture must be captured/derived from the REAL artifact,
+  and row-level error counts must be user-visible somewhere, or "succeeded" hides total
+  loss.
+- 2026-08-08 — CHECK FAULT, orchestrator (flont_friend brownfield UX inventory,
+  glm-5.2): both attempts produced a complete 4.5k-word report with 100 citations, but
+  the check's citation regex demanded full `src/...` path prefixes while the worker
+  cited `Sidebar.tsx:399-406` (bare filename, line ranges). FAIL x2 recorded against
+  glm-5.2 unfairly — discount this run on the scoreboard. Repeat of the strict-on-format
+  lesson: when counting citations, match `file.ext:line` loosely; reserve strictness for
+  section presence and substance. (Domain-inventory codex lane passed the same run,
+  first try, ~280k tokens — its citations happened to use full paths.)
+- 2026-08-10 — CHECK FAULT, orchestrator (portfolio-puller app-shell, rounds 33 and 34):
+  the worst kind, because the check was the thing I wrote to catch a real gap. The user
+  reported "I opened the app and don't know what to do." I built a probe that launched
+  the bundle and searched CGWindowListCopyWindowInfo for a window whose owner was
+  `PortfolioPullerApp`, got PROBE_NO_WINDOW, and escalated the diagnosis from "confusing
+  UI" to "the app is headless." Two swarm rounds then went to fixing an async-main/
+  AppKit-lifecycle bug that did not exist. kCGWindowOwnerName is CFBundleName
+  ("portfolio-puller"), not CFBundleExecutable — the window had been on screen the whole
+  time, at the size the entry point asked for. Lessons: (1) when a probe reports ABSENCE,
+  prove the probe can see a known-present instance of the same class of thing before
+  believing it — I did check it saw Finder, which was not enough, because Finder shares
+  neither the naming scheme nor the bundle layout; the control has to be the artifact
+  itself in a known-good state, i.e. run the probe against the PREVIOUS build; (2) match
+  on identity the caller already possesses (the launched PID) rather than a name you
+  derived; a PID cannot be guessed wrong; (3) the user's own words were more accurate
+  than my escalation — when a report and a measurement disagree, suspect the measurement.
+- 2026-08-10 — orchestrator (portfolio-puller): "main is green" was recorded from a
+  single observed passing run. Running the full suite three times on the clean tree
+  failed twice. Three suites had real-time budgets sized within scheduler noise — the
+  load-bearing one was a 25ms URLSession timeout against a real loopback socket serving
+  pages that deliberately sleep 5ms, which is NOT the timeout the ExecutorConfiguration
+  in the same file made it look like. Green is a property of the distribution, not of one
+  sample: run a suite at least 3x, and once under CPU saturation, before calling it green.
+- 2026-08-10 — RELEASE-GATE ESCAPE, orchestrator lesson (flont_friend Today→Inbox
+  handoff): two parallel lanes implemented the two halves of a one-shot in-memory
+  handoff (set… in lane A, consume… owed by lane B); the consumer was never wired,
+  tsc/build/grep checks all green, caught only by the human at the packaged gate.
+  Codex fix lane: first-try, honest "could not identify exact throw" for the
+  secondary crash — implemented structural guards instead of inventing a cause.
+  NEW RULE for cross-lane contracts: any set/consume or emit/listen pair split
+  across lanes gets a check in BOTH lanes' verify-commands asserting the
+  counterpart symbol exists outside its defining module (grep -rq <consumer>
+  src | grep -v <defining-file>). Add it to the integration gate too.
+- 2026-08-11 — DIAGNOSTIC-BOUNDARY PAYOFF (flont_friend inbox crash, 3rd lane): two
+  prior lanes fixed plausible-but-wrong causes (structural guards, null-safety) because
+  the boundary showed only a generic message. After making the boundary render
+  error.message + stacks with Copy details, the user's next screenshot carried React
+  error 185 (max update depth) — an infinite render loop, not a TypeError. codex then
+  found the exact cycle first-try-on-substance (fresh [] fallback per cold render →
+  effect → unconditional store publish → rerender). LESSONS: (1) when a UI crash is
+  only known via a generic boundary, making the boundary diagnostic IS the first fix —
+  do it before the second guess, not after; (2) store setters get shallow-equal
+  bailouts as a standing invariant in any useSyncExternalStore architecture; (3) a
+  wrong-but-confident 'prime suspect' from a passing lane is still wrong — evidence
+  outranks a green check.
+- 2026-08-11 — PROVE-FAIL-MODE run (ringer feature build, 2 lanes + repair).
+  GPT-5.6 Sol high (codex), code-feature: first-try PASS on a contract-heavy spec
+  in the 11k-line ringer.py — 100k tokens, 8.4m. Adopted house idioms unprompted
+  (process-group kill helpers, baseline's print alignment). Spec pinned function
+  line numbers and VerifyResult fields; that shape is worth repeating for
+  single-file surgery. Nemotron 3.5 Lightning :free (opencode/OpenRouter),
+  docs audition: NO capability evidence — both attempts died <2s, 0 tokens,
+  OpenRouter "Unexpected server error" (err_b951a40f, err_113915d1) on its
+  day-one free listing. Lesson: day-zero free promos may not be serving yet;
+  a 0-token instant error is a route failure, not a model failure — re-audition
+  after a few days instead of recording a demotion. GLM-5.2 (opencode default
+  route), docs from a frozen contract: first-try PASS, 32k tokens, 101s, +15-line
+  README diff accurate to contract and voice — reconfirms GLM as the docs-lane
+  default. Operational: the failed Nemotron round's surviving worktree blocked
+  the repair rerun ("worktree taskdir already exists") — exactly the pre-flight
+  worktree-check gap in the local improvement backlog.
+- 2026-08-11 — CHECK FAULT #7, orchestrator (flont_friend K1 kit lane, glm-5.2): both
+  attempts produced complete, verifiable work (13 components, tokens, fixture, tests —
+  manual verify all green); the check killed them on `grep -rq X src | grep -q .` —
+  `-q` PRINTS NOTHING, so piping quiet grep into a content grep always fails. Discount
+  the two glm FAILs on the scoreboard. RULE: never pipe `grep -q` anywhere; use it bare
+  as the condition (`grep -rq X src || fail`) — added to the check-writing rules. Manual
+  recovery from the surviving worktree, sixth time the worktree-survival design paid off.
+- 2026-08-11/12 — WORKTREE-PREFLIGHT run (ringer feature build, 2 lanes + repair).
+  GPT-5.6 Sol high (codex), code-feature: work was RIGHT first try but my check
+  script crashed mid-verification (FileExistsError: same scratch dir reused across
+  two hermetic invocations) — burned both attempts and 164k tokens against a
+  defect in the CHECK, then passed untouched once the check was fixed. Two check
+  lessons: (1) --prove-fail/--baseline only exercise a check's EARLIEST failing
+  gate; deep-path check code stays untested until a genuinely good state exists —
+  smoke the check's full path before the swarm, not just its early exits.
+  (2) Ownership-list gap: the frozen contract changed behavior that legacy tests
+  (test_setup_error_diagnostics, test_ringer) asserted, but those files weren't in
+  the worker's ownership — worker correctly reported instead of trespassing; the
+  repair lane (Sol high, code-fix) adapted them first-try, 100k tokens, converting
+  the race-path test to a direct _prepare_taskdir unit test. When a contract
+  obsoletes existing tests, grant them in the SAME lane or plan the repair lane up
+  front. GLM-5.2 (opencode default), docs: first-try again, 27k tokens, 52s —
+  3-for-3 lifetime on contract-driven README work. Dogfood note: known_bad +
+  --prove-fail gated both rounds and caught nothing false — but see lesson (1).
+- 2026-08-12 — INTEGRATION-CHECK run (ringer feature build, 2 lanes, zero repair).
+  GPT-5.6 Sol high (codex), code-feature: first-try PASS, 135k tokens, 10.6m —
+  now 3/3 first-try-on-substance on contract-frozen single-file features in this
+  repo (the round-2 "failures" were my check's bug, not the model's). The two
+  spec adjustments from last round (stop-and-report on legacy-test collisions;
+  unique scratch dir per hermetic check invocation) produced the first
+  zero-repair round. GLM-5.2 (opencode default), docs: first-try, 28k tokens,
+  60s — 4/4 lifetime on contract-driven README work; treat as the standing
+  docs-lane default. Ritual note: this was the last round to need the manual
+  scratch-worktree suite gate — future multi-lane manifests should declare
+  integration_check and let the run gate itself.
+- 2026-08-12 — PILOT-GATE run (ringer feature build, 2 lanes, zero repair,
+  first run gated end-to-end by ringer's own new features). GPT-5.6 Sol high
+  (codex), code-feature: first-try PASS on the biggest contract yet (scheduler
+  hold-back, decision-file polling, two new CLI subcommands) — 200k tokens,
+  11m; 4/4 first-try-on-substance on contract-frozen ringer features. GLM-5.2
+  (opencode default), docs: first-try, 28k tokens, 40s — 5/5 lifetime on
+  contract-driven README work. Process milestone: --prove-fail gated the
+  checks before launch and the manifest's own integration_check verified the
+  MERGED patches (278 tests) inside the run — no manual scratch-worktree gate
+  for the first time. The spec-shape that keeps earning first-tries: frozen
+  numbered contract, pinned line numbers, named test-file template, explicit
+  stop-and-report escape hatch.
+- 2026-08-12 — RED-TEAM-KIT run (template kit, not a ringer.py feature; 2 lanes,
+  zero repair, self-gated). GPT-5.6 Sol high (codex), code-feature: first-try
+  PASS, 116k tokens, 6m — 5/5 first-try-on-substance here. Notable: the check
+  mutation-tested the kit's OWN shipped check script (must accept a good report
+  AND a NO FINDINGS verdict, reject 4 bad shapes) — that spec shape ("prove both
+  outcomes yourself before finishing") transfers to any kit-authoring task.
+  GLM-5.2 (opencode default), docs: first-try, 34k tokens, 100s — 6/6 lifetime;
+  correctly wrote the catalog status as "New — not yet proven in a recorded run"
+  when told not to claim an unearned proven run, which is the honesty behavior
+  worth trusting it with. Kit ships unproven by design: first real use should
+  update that status row.
+- 2026-08-12 — FOUNDATION-CONTRACTS run (ringer feature build, 2 lanes, self-gated).
+  GPT-5.6 Sol high (codex), code-feature: PASSED ON ATTEMPT 2 — first miss in 6
+  rounds, and a legitimate one. Attempt 1 implemented all three features but the
+  ownership violation message did not NAME the offending path; the check asserted
+  the path appears (it is what reaches the retry prompt), failed, and the injected
+  failure text fixed it on attempt 2. 235k tokens total across attempts, 13m.
+  LESSON worth keeping: check assertions on the CONTENT of failure messages —
+  not just the exit code — are what make the retry loop self-correcting; a check
+  that only asserted "the lane failed" would have shipped a violation report no
+  human or retry could act on. GLM-5.2 (opencode default), docs: first-try, 33k
+  tokens, 84s — 7/7 lifetime on contract-driven README work.
+- 2026-08-12 — CHECK FAULT #8 + a real find (flont_friend session-start hang, codex):
+  check used `timeout 900 cargo test` — `timeout` does NOT exist on stock macOS (no
+  coreutils); "command not found" → non-zero → both attempts FAIL despite fully green
+  work (125 tests, +5). Discount the codex FAILs. RULE: no GNU-only binaries in checks
+  (`timeout`, `realpath`, `sed -i` w/o arg) — macOS is the target box; bound long tests
+  inside the harness instead. The lane itself was exemplary: hypothesis-ordered
+  diagnosis, disproved the scale theory with a measured 35ms debug-build number, and
+  found a REAL lock-order deadlock (reads took DB→session; triage mutations took
+  session→DB) with a bounded test that FAILS rather than hangs. Evidence-first specs
+  ("prove or disprove each with EXECUTED evidence") keep paying.
+- 2026-08-12/13 — RINGSIDE-DECISIONS job (2 rounds, one artifact; first UI work and
+  first pilot-gated job). R1 pilot lane, GPT-5.6 Sol high (codex), code-feature:
+  passed on attempt 2 — attempt 1's own test helper had a broken signature
+  (request() missing 'method'), which the worker COULD NOT have caught because its
+  sandbox denies localhost binding. Design that paid off: the worker writes socket
+  tests it cannot run and the CHECK (which runs unsandboxed) executes them; put
+  that split in the spec explicitly so the worker does not thrash. 178k tokens.
+  R2 page lane, Sol high: first-try, 74k tokens, 5.5m, on a pure front-end contract
+  (hoist a block above another element, replace a fixed grid with auto-fill, add
+  URL state) — front-end contracts work as well as backend ones when the target is
+  named structurally rather than aesthetically. GLM-5.2 docs: first-try both rounds
+  (37k, 2.6m) — 8/8 lifetime.
+  PROCESS: --prove-fail caught a BROKEN check of mine before launch — the docs check
+  greped the whole README for words earlier rounds had already added, so it passed
+  on a known-bad file. Fix: assert on the ADDED diff lines. General rule: when a repo
+  already documents a feature family, whole-file greps cannot prove new work.
+  ALSO: prove-fail executes checks for real, so a check that passes on the known-bad
+  state EXPORTS ITS ARTIFACTS — a stale patch file was left behind and had to be
+  deleted before it was mistaken for a deliverable. Clean the patch dir after a
+  BROKEN verdict.
+  HARNESS: a paused pilot run whose orchestrator process is killed leaves state at
+  'awaiting' while the run is dead; held lanes report ERROR with 0 attempts. Worth a
+  future feature: detect a dead-orchestrator pause on load and say so on the page.
+- 2026-08-13 — LINT-AND-HELPERS run (3 lanes, zero repair, self-gated). GPT-5.6
+  Sol high (codex) on the lint rules: first-try, 80k tokens, 6m — the hard
+  constraint ("if a new rule dirties a shipped kit the RULE is wrong; tighten it,
+  don't edit templates/") produced correctly-scoped rules with no template
+  churn. GPT-5.6 Sol MEDIUM on the check-helpers module: first-try, 35k tokens,
+  2.7m — medium is the right tier for a well-specified standalone module with a
+  strong check; reserve high for surgery inside the 11k-line ringer.py.
+  EXPLORATION RESULT — cohere/north-mini-code:free (opencode/OpenRouter), docs:
+  PASSED on attempt 2 (50k tokens, 2.4m, $0). Attempt 1 documented the three
+  lint rules but silently skipped the second half of the brief (the
+  check-helpers module); the retry with the check's failure text fixed it.
+  Read: capable on free tier but drops parts of a multi-part brief — usable for
+  docs lanes WITH a check that asserts each required part separately (mine did,
+  which is the only reason the miss was caught). GLM-5.2 remains the default;
+  north-mini-code is a viable free backup, now probation→ still auditioning.
