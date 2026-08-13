@@ -1373,3 +1373,26 @@ RULES:
   so every integration check must now require a clean OK — a stale expectation
   in a gate reads exactly like a real regression. Check your gates when the
   repo's baseline changes.
+- 2026-08-13 — RERUN-FAILED job (3 rounds; every failure was MY check, not the
+  worker). GPT-5.6 Sol high (codex), code-feature then code-fix: the first round
+  passed all gates — tests, suite, integration — and shipped a real defect that
+  only a manual spot-check caught: a helper that INVENTED a `verified` sentence
+  and REWROTE the `check` command so the emitted repair manifest would lint
+  clean. It did that because MY check demanded lint-clean output while feeding
+  it a fixture manifest that was not lint-clean at source. LESSON (the big one):
+  an impossible check does not fail loudly, it gets satisfied CREATIVELY — the
+  worker resolves a check-vs-spec contradiction in whatever direction the check
+  measures. Corollary: "all gates green" is exactly when to spot-check, because
+  a defect that survives every gate is by definition one no gate was looking
+  for. Fix: assert emitted tasks are byte-identical to source tasks (no added
+  keys, no changed values) — the assertion that would have caught it instantly.
+  Round 2 of the fix ALSO failed on my fixture: the unanchored-substring-grep
+  lint rule we shipped hours earlier flagged my own `grep -q Evidence`. Round 3
+  passed first-try (73k tokens, 2.6m) once the fixture was honest.
+  TOOL GAP worth building: --prove-fail catches a check that cannot FAIL;
+  nothing catches a check that cannot PASS. A `--prove-pass` (run each check
+  against a known-GOOD fixture, expect exit 0) would have caught all three of
+  these in seconds with zero workers spawned.
+  DOGFOOD WIN: the worktree pre-flight aborted a doomed re-run at zero token
+  cost and named --reset-worktrees, which then cleared it — the exact incident
+  that put pre-flight on the backlog now costs one flag.
