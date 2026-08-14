@@ -419,6 +419,13 @@ Click a card to select that run and return to the single-run view. The active vi
 
 When nothing is live the wall shows the most recently updated run's lanes and says so.
 
+Ringside used to turn state it could not read into a confident empty answer. Run records that cannot be decoded are
+counted and shown as **unreadable** rather than silently skipped, so an empty page and an unreadable one are no longer
+the same thing. The newest-first selection counts only records it can actually read, so a few corrupt files can no
+longer crowd your valid history out of the view, and a corrupt artifact library is reported as unreadable instead of
+appearing empty. Nothing is repaired or deleted — the files stay exactly as they are, and the records that did load
+still show.
+
 A native desktop build (Tauri, under `hud/`) exists as a v0.1.1 prototype; the web dashboard is currently ahead of it — start there.
 
 ## Self-update
