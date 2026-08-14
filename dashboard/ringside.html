@@ -176,6 +176,26 @@
     }
     .artifact-tools button:hover { border-color: var(--accent); }
     .artifact-tools button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .view-switch {
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
+    }
+    .artifact-tools .view-switch button {
+      border-radius: 0;
+      padding-inline: 11px;
+    }
+    .artifact-tools .view-switch button:first-child { border-radius: 6px 0 0 6px; }
+    .artifact-tools .view-switch button:last-child {
+      margin-left: -1px;
+      border-radius: 0 6px 6px 0;
+    }
+    .artifact-tools .view-switch button[aria-pressed="true"] {
+      position: relative;
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--ground);
+    }
     select,
     .artifact-tools select {
       appearance: none;
@@ -419,6 +439,38 @@
       color: var(--muted);
       min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
+    .lane-wall {
+      padding: clamp(18px, 3vw, 28px) clamp(12px, 2vw, 22px) clamp(20px, 3vw, 30px);
+    }
+    .lane-wall-head {
+      display: flex;
+      align-items: baseline;
+      gap: 10px 18px;
+      flex-wrap: wrap;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--hairline);
+    }
+    .lane-wall-head h2 {
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+    .lane-census { margin: 0; color: var(--ink); font-size: 13px; }
+    .lane-wall-note { margin: 10px 0 0; color: var(--muted); font-size: 13px; }
+    .wall-card .worker-card-head { align-items: flex-start; }
+    .wall-card .wall-lane {
+      min-width: 0;
+      display: grid;
+      gap: 1px;
+    }
+    .wall-card .run-name {
+      color: var(--muted);
+      font-size: 11.5px;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     .violations {
       list-style: none;
       margin: 0 12px 12px;
@@ -571,7 +623,7 @@
     }
     .artifact-tools {
       display: grid;
-      grid-template-columns: minmax(220px, max-content) minmax(0, 1fr) minmax(180px, max-content) max-content;
+      grid-template-columns: max-content minmax(220px, max-content) minmax(0, 1fr) minmax(180px, max-content) max-content;
       gap: 12px;
       align-items: center;
       padding: 10px clamp(12px, 2vw, 18px);
@@ -668,6 +720,10 @@
           <div id="pilot-banner" class="pilot-banner"></div>
           <section class="artifact-main" aria-label="Artifact preview">
             <div class="artifact-tools">
+              <div id="view-switch" class="view-switch" role="group" aria-label="Runs view">
+                <button type="button" data-view="single" aria-pressed="true">Single run</button>
+                <button type="button" data-view="lanes" aria-pressed="false">Lane wall</button>
+              </div>
               <select id="artifact-picker" class="mono" aria-label="Artifact"></select>
               <div id="artifact-status" class="artifact-status">No artifact selected.</div>
               <select id="artifact-version" class="mono" aria-label="Artifact version"></select>
@@ -692,6 +748,7 @@
     const query = new URLSearchParams(window.location.search);
     const queryTab = normalizeTab(query.get("tab"));
     const queryRun = String(query.get("run") || "").trim();
+    const queryView = normalizeView(query.get("view"));
     const state = {
       runs: [],
       active: {},
@@ -700,6 +757,7 @@
       runError: null,
       libraryError: null,
       tab: queryTab || normalizeTab(localStorage.getItem(TAB_KEY)) || "live",
+      view: queryView || "single",
       hasStoredTab: Boolean(normalizeTab(localStorage.getItem(TAB_KEY))),
       expanded: new Map(),
       logTimer: null,
@@ -726,14 +784,21 @@
       dismissUpdate: document.getElementById("dismiss-update"),
       pilotBanner: document.getElementById("pilot-banner"),
       runs: document.getElementById("runs"),
+      viewSwitch: document.getElementById("view-switch"),
+      artifactMain: document.querySelector(".artifact-main"),
       artifactPicker: document.getElementById("artifact-picker"),
       artifactStatus: document.getElementById("artifact-status"),
       artifactVersion: document.getElementById("artifact-version"),
-      frameWrap: document.getElementById("frame-wrap")
+      frameWrap: document.getElementById("frame-wrap"),
+      openFolder: document.getElementById("open-folder")
     };
 
     function normalizeTab(value) {
       return value === "live" || value === "artifacts" ? value : "";
+    }
+
+    function normalizeView(value) {
+      return value === "single" || value === "lanes" ? value : "";
     }
 
     function updateKey(update) {
@@ -867,7 +932,7 @@
       if (status === "pass" || verdict === "PASS") return "pass";
       if (status === "retrying" || status === "redoing") return "retry";
       if (status === "running" || status === "verifying" || status === "working") return "working";
-      if (status === "fail" || status === "failed" || status === "error" || status === "timeout" || status === "died" || verdict === "FAIL") return "fail";
+      if (status === "fail" || status === "failed" || status === "error" || status === "errored" || status === "timeout" || status === "died" || verdict === "FAIL") return "fail";
       return "waiting";
     }
 
@@ -946,6 +1011,7 @@
     function replaceUrlState() {
       const params = new URLSearchParams(window.location.search);
       params.set("tab", state.tab);
+      params.set("view", state.view);
       if (state.focusedRunId) {
         params.set("run", state.focusedRunId);
       } else {
@@ -960,6 +1026,28 @@
       state.tab = normalizeTab(tab) || "live";
       if (persist) localStorage.setItem(TAB_KEY, state.tab);
       replaceUrlState();
+    }
+
+    function renderViewControls() {
+      els.viewSwitch.querySelectorAll("button[data-view]").forEach(button => {
+        button.setAttribute("aria-pressed", String(button.dataset.view === state.view));
+      });
+      const wall = state.view === "lanes";
+      els.artifactMain.setAttribute("aria-label", wall ? "Lane wall" : "Artifact preview");
+      els.artifactPicker.hidden = wall;
+      els.artifactStatus.hidden = wall;
+      els.artifactVersion.hidden = wall;
+      els.openFolder.hidden = wall;
+      els.frameWrap.hidden = wall;
+    }
+
+    function setView(view) {
+      state.view = normalizeView(view) || "single";
+      if (state.view === "lanes") state.frameRequest += 1;
+      replaceUrlState();
+      renderViewControls();
+      renderLive();
+      if (state.view === "single") loadArtifactFrame(true);
     }
 
     function preserveScroll(mutate) {
@@ -1122,7 +1210,8 @@
 
     function focusRun(runIdValue) {
       const run = state.runs.find(item => item.__id === runIdValue);
-      if (!run || !runIsRunningNow(run)) return;
+      if (!run) return;
+      state.view = "single";
       state.focusedRunId = run.__id;
       state.artifactName = run.run_name;
       state.artifactManual = true;
@@ -1131,6 +1220,7 @@
       state.runOpen[run.__id] = true;
       sessionStorage.setItem(ARTIFACT_KEY, run.run_name);
       replaceUrlState();
+      renderViewControls();
       renderRunningNow();
       renderArtifacts();
       renderArtifactControls();
@@ -1294,9 +1384,132 @@
       renderLive();
     }
 
+    function renderLaneWall(staging) {
+      const liveRuns = runningNowRuns();
+      const fallback = liveRuns.length
+        ? null
+        : [...state.runs].sort((left, right) => left.__index - right.__index)[0] || null;
+      const wallRuns = liveRuns.length ? liveRuns : (fallback ? [fallback] : []);
+      const entries = wallRuns.flatMap(run => run.tasks.map((task, taskIndex) => {
+        const kind = taskKind(task);
+        const review = run.pilot?.status === "awaiting";
+        const reviewText = run.orchestrator_alive === false ? "pilot review abandoned" : "pilot review needed";
+        const attention = kind === "fail" || review;
+        const rank = attention ? 0 : (kind === "pass" ? 2 : 1);
+        return {run, task, taskIndex, key: taskKey(task, taskIndex), kind, review, reviewText, attention, rank};
+      }));
+      entries.sort((left, right) => {
+        if (left.rank !== right.rank) return left.rank - right.rank;
+        const byRun = left.run.run_name.localeCompare(right.run.run_name);
+        if (byRun) return byRun;
+        const byLane = left.key.localeCompare(right.key);
+        if (byLane) return byLane;
+        return left.run.__id.localeCompare(right.run.__id);
+      });
+
+      const censusEntries = liveRuns.length ? entries : [];
+      const working = censusEntries.filter(entry => taskIsRunning(entry.task)).length;
+      const attention = censusEntries.filter(entry => entry.attention).length;
+      const plural = (count, singular, pluralValue = `${singular}s`) => count === 1 ? singular : pluralValue;
+
+      const wall = document.createElement("section");
+      wall.className = "lane-wall";
+      wall.dataset.key = "lane-wall";
+      wall.setAttribute("aria-labelledby", "lane-wall-title");
+      const head = document.createElement("div");
+      head.className = "lane-wall-head";
+      const title = document.createElement("h2");
+      title.id = "lane-wall-title";
+      title.textContent = "Lane wall";
+      const census = document.createElement("p");
+      census.className = "lane-census mono";
+      census.setAttribute("role", "status");
+      census.textContent = `${liveRuns.length} ${plural(liveRuns.length, "swarm")} live · ${working} ${plural(working, "lane")} working · ${attention} ${plural(attention, "lane")} ${attention === 1 ? "needs" : "need"} attention.`;
+      head.append(title, census);
+      wall.appendChild(head);
+
+      if (!liveRuns.length) {
+        const note = document.createElement("p");
+        note.className = "lane-wall-note";
+        note.textContent = fallback
+          ? `Nothing is live. Showing the most recently updated run, ${fallback.run_name}.`
+          : "Nothing is live. No lanes have reported in yet.";
+        wall.appendChild(note);
+      }
+
+      const workers = document.createElement("div");
+      workers.className = "workers";
+      if (!entries.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = wallRuns.length ? "No workers have reported in yet." : "Start something with: ./ringer.py run manifest.json";
+        workers.appendChild(empty);
+      }
+      entries.forEach(entry => {
+        const {run, task, key, kind, review, reviewText} = entry;
+        const card = document.createElement("article");
+        card.className = "worker-card wall-card";
+        card.dataset.key = `wall-worker:${expansionKey(run.__id, key)}`;
+
+        const button = document.createElement("button");
+        button.className = "worker-card-toggle";
+        button.type = "button";
+        button.addEventListener("click", () => focusRun(run.__id));
+
+        const glyph = document.createElement("span");
+        glyph.className = `glyph ${kind}`;
+        glyph.setAttribute("aria-hidden", "true");
+        const lane = document.createElement("span");
+        lane.className = "wall-lane";
+        const name = document.createElement("span");
+        name.className = "name";
+        name.textContent = key;
+        const runName = document.createElement("span");
+        runName.className = "run-name";
+        runName.textContent = review ? `${run.run_name} · ${reviewText}` : run.run_name;
+        lane.append(name, runName);
+        const cardHead = document.createElement("span");
+        cardHead.className = "worker-card-head";
+        cardHead.append(lane, glyph);
+
+        const taskState = document.createElement("span");
+        taskState.className = `state ${kind}`;
+        taskState.textContent = taskStateText(kind);
+        const engine = String(task.engine || "").trim() || "engine not reported";
+        const model = String(task.model || "").trim() || "model not reported";
+        const metaParts = [`${engine} · ${model}`, formatDuration(task.elapsed_s)];
+        const meta = document.createElement("span");
+        meta.className = "meta mono";
+        meta.textContent = metaParts.join(" · ");
+        const reviewLabel = review ? `, ${reviewText}` : "";
+        button.setAttribute("aria-label", `${key} in ${run.run_name}, ${taskStateText(kind)}${reviewLabel}, ${metaParts.join(", ")}. Open single-run view.`);
+        button.append(cardHead, taskState, meta);
+
+        const activityText = taskIsRunning(task) ? (taskActivity(task) || "No activity reported yet.") : "";
+        if (activityText) {
+          const activity = document.createElement("span");
+          activity.className = "activity";
+          activity.textContent = activityText;
+          button.appendChild(activity);
+        }
+        card.appendChild(button);
+        workers.appendChild(card);
+      });
+      wall.appendChild(workers);
+      staging.appendChild(wall);
+    }
+
     function renderLive() {
       const staging = document.createElement("div");
       renderPilotBanner();
+      if (state.view === "lanes") {
+        renderLaneWall(staging);
+        state.rendering = true;
+        preserveScroll(() => { morphChildren(els.runs, staging); });
+        state.rendering = false;
+        syncLogPolling();
+        return;
+      }
       if (!state.runs.length) {
         const empty = document.createElement("div");
         empty.className = "empty";
@@ -1896,6 +2109,7 @@
     }
 
     async function loadArtifactFrame(force) {
+      if (state.view === "lanes") return;
       const target = selectedArtifactTarget();
       if (!target?.src) {
         state.frameKey = "";
@@ -2016,6 +2230,10 @@
       renderArtifactControls();
       loadArtifactFrame(true);
     });
+    els.viewSwitch.addEventListener("click", event => {
+      const button = event.target.closest("button[data-view]");
+      if (button && els.viewSwitch.contains(button)) setView(button.dataset.view);
+    });
     document.getElementById("open-folder").addEventListener("click", () => {
       const artifact = selectedArtifact();
       if (!artifact) return;
@@ -2048,6 +2266,7 @@
 
     tickClock();
     setTab(state.tab, false);
+    renderViewControls();
     renderTop();
     renderRunningNow();
     renderLive();
