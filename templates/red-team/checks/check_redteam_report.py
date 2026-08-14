@@ -27,14 +27,12 @@ EXERCISED_LANGUAGE = re.compile(
     r"\b(exercised|tested|ran|checked|covered|audited|forced|attempted|booted|inspected|verified)\b",
     re.IGNORECASE,
 )
-ARTIFACT_REFERENCE = re.compile(
-    r"(?:"
-    r"(?:^|[\s(])(?:\.{0,2}/)?[\w.-]+(?:/[\w.@+,:=-]+)+"
-    r"|\b[\w.-]+\.(?:txt|log|out|json|jsonl|csv|tsv|xml|html|har|png|jpe?g|gif|webp|pdf)\b"
-    r"|\b(?:log excerpt|command output|terminal output|captured (?:artifact|log|output)|"
-    r"screenshot(?: path)?|screen recording|stdout|stderr|traceback|HTTP response|response body)\b"
-    r")",
-    re.IGNORECASE,
+FILE_REFERENCE = re.compile(
+    r"(?<![\w.-])(?P<path>"
+    r"(?:(?:\.{0,2}/|/)[\w.@+=-]+(?:/[\w.@+=-]+)*)"
+    r"|(?:[\w.@+=-]+(?:/[\w.@+=-]+)+)"
+    r"|(?:[\w.@+=-]+\.[A-Za-z0-9]{1,16})"
+    r")(?![\w-])"
 )
 
 
@@ -143,10 +141,21 @@ def validate_report(path: pathlib.Path) -> tuple[list[str], int, bool]:
         if "Evidence" in fields and fields["Evidence"][1]:
             evidence = fields["Evidence"][1]
             visible_evidence = re.sub(r"\s+", "", evidence)
-            if len(visible_evidence) < 12 or not ARTIFACT_REFERENCE.search(evidence):
+            if len(visible_evidence) < 12:
                 failures.append(
                     f"finding {finding_number}: Evidence must point to a captured artifact such as a log excerpt, screenshot path, or command output"
                 )
+            for match in FILE_REFERENCE.finditer(evidence):
+                evidence_reference = match.group("path")
+                evidence_path = path.parent / evidence_reference
+                if not evidence_path.is_file():
+                    failures.append(
+                        f"finding {finding_number}: Evidence path {evidence_reference!r} not found or is not a file"
+                    )
+                elif evidence_path.stat().st_size == 0:
+                    failures.append(
+                        f"finding {finding_number}: Evidence path {evidence_reference!r} is empty"
+                    )
 
     return failures, finding_count, no_findings
 

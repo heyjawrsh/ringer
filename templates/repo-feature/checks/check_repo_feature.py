@@ -21,8 +21,6 @@ def path_allowed(path: str, allowed: list[str]) -> bool:
             continue
         if normalized == candidate or normalized.startswith(candidate + "/"):
             return True
-        if candidate.startswith(normalized + "/"):
-            return True
     return False
 
 
