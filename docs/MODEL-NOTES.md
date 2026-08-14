@@ -1490,3 +1490,23 @@ RULES:
   WITHOUT --with-context — when the previous failure was the ORCHESTRATOR's
   bug, injecting it points the worker at the wrong thing to fix. New rule:
   --with-context is for worker failures, not for my own.
+- 2026-08-14 — NO-SILENT-LOSS (final red-team actions; both lanes first-try).
+  GPT-5.6 Sol high, code-fix: 129k tokens, 10m, three independent honesty fixes
+  in one lane — cleanup now prints `discarding unharvested file(s): [...];
+  declare them in expect_files to keep them`, --reset-worktrees prints
+  `reset will discard uncommitted path(s): [...]` before removing, and CLI
+  approve/reject now refuse a dead run ("orchestrator exited; the pilot
+  decision can no longer be delivered") using the server's own liveness source.
+  Framing that made three fixes fit one lane cleanly: name the SHARED theme
+  ("the tool acts destructively without saying so") and forbid scope creep
+  explicitly ("do NOT change what is deleted; the fix is to tell the truth").
+  RED-TEAM AUDIT NOW FULLY ACTIONED: 13 findings -> 7 real defects fixed today
+  (repo-feature ownership bypass, red-team evidence false-green, proof-command
+  bypass, vacuous session validators x2, silent deliverable deletion, silent
+  reset loss, CLI/server disagreement). The rest were correct-by-design or
+  unverifiable from the sandbox.
+  ORCHESTRATOR SCORECARD FOR THE DAY: 6 of my checks/fixtures were wrong vs
+  ~1 genuine worker defect. The recurring shapes: demanding something the spec
+  forbids, asserting a phrase instead of a claim, fixtures that violate the
+  validator's own documented contract, and relative paths in fixture setup.
+  Read the thing you are testing before writing the fixture for it.
