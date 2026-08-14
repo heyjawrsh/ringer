@@ -1431,3 +1431,18 @@ RULES:
   alarm worth remembering: ?view=lanes appeared to open the Models tab — that
   was localStorage tab restore from my own earlier browsing, not a bug. Clear
   or name state explicitly when testing URL restore.
+- 2026-08-14 — DESIGN-DIRECTIONS kit (2 lanes, both passed on attempt 2).
+  GPT-5.6 Sol high (codex): attempt 1's check script defaulted to
+  direction-render.png while my check's fixture wrote direction.png — a
+  filename convention I never stated but silently required. GLM-5.2 docs:
+  attempt 1 wrote "Proven in a recorded run" for a kit that has never been
+  used; the check caught the unearned claim and the retry fixed it (worth
+  noting: same model got this RIGHT unprompted on the red-team kit, so the
+  honesty assertion in the check is what makes it reliable, not the model).
+  PROVE-PASS LIMITATION FOUND: both gates passed clean before this run, yet
+  attempt 1 still failed on the filename mismatch — because my known_good
+  fabricated a check script whose defaults agreed with my fixture BY
+  CONSTRUCTION. prove-pass proves a check can accept the good work *I*
+  imagine, not every legitimate alternative a worker might produce. Where a
+  convention matters (filenames, section names, CLI defaults), STATE IT IN
+  THE SPEC; a gate cannot infer what you never wrote down.
