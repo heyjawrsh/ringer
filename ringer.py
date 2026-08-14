@@ -5,6 +5,7 @@ import argparse
 import asyncio
 import base64
 import contextlib
+import errno
 import fnmatch
 import hashlib
 import ipaddress
@@ -3246,30 +3247,49 @@ def append_catalog_events(path: Path, events: list[dict[str, Any]]) -> None:
 
 
 @contextlib.contextmanager
-def catalog_refresh_lock(snapshot_path: Path) -> Iterable[None]:
-    lock_path = snapshot_path.with_name(snapshot_path.name + ".lock")
+def exclusive_file_lock(path: Path, *, blocking: bool = True) -> Iterable[bool]:
+    lock_path = path.with_name(path.name + ".lock")
     try:
         import fcntl
     except Exception:
-        yield
+        yield True
         return
-    fh = None
     try:
         lock_path.parent.mkdir(parents=True, exist_ok=True)
         fh = lock_path.open("a", encoding="utf-8")
-        fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
     except Exception:
-        if fh is not None:
-            with contextlib.suppress(Exception):
-                fh.close()
-        yield
+        yield True
         return
     try:
-        yield
+        operation = fcntl.LOCK_EX
+        if not blocking:
+            operation |= fcntl.LOCK_NB
+        fcntl.flock(fh.fileno(), operation)
+    except OSError as exc:
+        with contextlib.suppress(Exception):
+            fh.close()
+        if not blocking and exc.errno in {errno.EACCES, errno.EAGAIN}:
+            yield False
+        else:
+            yield True
+        return
+    except Exception:
+        with contextlib.suppress(Exception):
+            fh.close()
+        yield True
+        return
+    try:
+        yield True
     finally:
         with contextlib.suppress(Exception):
             fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
         fh.close()
+
+
+@contextlib.contextmanager
+def catalog_refresh_lock(snapshot_path: Path) -> Iterable[None]:
+    with exclusive_file_lock(snapshot_path):
+        yield
 
 
 def refresh_openrouter_catalog(
@@ -3622,7 +3642,14 @@ def read_active_runs() -> dict[str, dict[str, Any]]:
     runs = _read_active_runs_raw(path)
     pruned = _prune_active_runs(runs)
     if pruned != runs:
-        _write_active_runs(pruned)
+        # Ordinary reads stay lock-free. Cleanup takes the lock non-blockingly,
+        # then rereads so it cannot overwrite a concurrent writer's update.
+        with exclusive_file_lock(path, blocking=False) as acquired:
+            if acquired:
+                runs = _read_active_runs_raw(path)
+                pruned = _prune_active_runs(runs)
+                if pruned != runs:
+                    _write_active_runs(pruned)
     return pruned
 
 
@@ -3635,21 +3662,25 @@ def register_active_run(
     pid: int | None = None,
     started_at: datetime | None = None,
 ) -> None:
-    runs = read_active_runs()
-    runs[run_id] = {
-        "pid": int(pid if pid is not None else os.getpid()),
-        "identity": identity,
-        "run_name": run_name,
-        "workdir": str(workdir),
-        "started_at": (started_at or datetime.now(timezone.utc)).isoformat(),
-    }
-    _write_active_runs(runs)
+    path = active_runs_path()
+    with exclusive_file_lock(path):
+        runs = _prune_active_runs(_read_active_runs_raw(path))
+        runs[run_id] = {
+            "pid": int(pid if pid is not None else os.getpid()),
+            "identity": identity,
+            "run_name": run_name,
+            "workdir": str(workdir),
+            "started_at": (started_at or datetime.now(timezone.utc)).isoformat(),
+        }
+        _write_active_runs(runs)
 
 
 def unregister_active_run(run_id: str) -> None:
-    runs = read_active_runs()
-    runs.pop(run_id, None)
-    _write_active_runs(runs)
+    path = active_runs_path()
+    with exclusive_file_lock(path):
+        runs = _prune_active_runs(_read_active_runs_raw(path))
+        runs.pop(run_id, None)
+        _write_active_runs(runs)
 
 
 def artifacts_dir(state_dir: Path) -> Path:
