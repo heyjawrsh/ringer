@@ -22,6 +22,7 @@ A kit is a reusable Ringer starter: a manifest skeleton, check skeletons, and a 
 | `competitive-teardown` | Runs N scouts by competitor with verbatim-citation allowlist checks and a synthesis phase. | You need grounded competitor analysis with traceable source material. | Blueprint |
 | `data-pipeline` | Splits fetch, transform, and validate stages with executed validators and honesty rules. | You need a data workflow that proves each stage produced what it claims. | Blueprint |
 | `probe` | Provides a one-task manifest for smokes, probes, and post-mortems. | You need a visible, logged check before trusting a new engine, model, harness, or diagnosis. | Proven as a practice |
+| `design-directions` | Runs 2-4 isolated lanes, each building ONE screen or component in a different visual direction — never a whole product — each producing a render and notes that state where it diverges from a supplied reference. | You need to compare visual directions side by side before committing the chosen one to a full build. | New — not yet used on a real job |
 
 ## Kit Anatomy
 

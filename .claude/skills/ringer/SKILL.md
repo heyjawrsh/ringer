@@ -328,6 +328,7 @@ Reach for a named pattern before inventing one. Skeletons in `templates/`:
 | [competitive-teardown](../../../templates/competitive-teardown/) | You need competitor research with citation allowlists and a synthesis phase. |
 | [data-pipeline](../../../templates/data-pipeline/) | You need fetch, transform, and validate stages with executed validators and honesty rules. |
 | [probe](../../../templates/probe/) | You need a one-task manifest for a smoke, probe, or post-mortem. |
+| [design-directions](../../../templates/design-directions/) | You need to compare visual directions side by side before committing the chosen one to a full build. |
 
 Pattern-selection judgment:
 
