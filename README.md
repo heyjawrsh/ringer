@@ -118,7 +118,7 @@ Each task gets its own directory, its own worker, its own log, and its own verdi
 | `foundation` (run-level) | Key of the one task that runs FIRST and alone while every other lane is held unspawned; on failure the run fails, on pass its diff is exported to `<workdir>/foundation.patch` and applied to every other lane's worktree before its worker starts (empty diff allowed). Requires worktrees; cannot combine with `pilot`; naming a missing task key is an error |
 | `contracts` (run-level) | List of symbol names no lane may redefine — an added line defining one (`class`, `def`, `struct`, `enum`, `interface`, `type`, `typedef`, `protocol`, `func`, `fn`, `const`, `let`, `var`) fails that lane with the symbol, file, and line named. The foundation task itself is exempt |
 
-> **Worktree footgun:** on PASS the task's worktree is removed — including anything written inside it. In worktrees mode, worker logs live outside task worktrees in `workdir/logs/`; have workers write deliverables outside the worktree too, or have your `check` copy artifacts out before it exits 0.
+> **Worktree footgun:** on PASS the task's worktree is removed — including anything written inside it. In worktrees mode, worker logs live outside task worktrees in `workdir/logs/`; have workers write deliverables outside the worktree too, or have your `check` copy artifacts out before it exits 0. Ringer now names the files it discards on a passing worktree, so you can declare them in `expect_files` next time — it does not change what is deleted.
 
 > **Worktree pre-flight:** every worktrees run begins with a sweep over all lanes, before engines are even checked, so a blocked lane costs zero tokens. It prints a verification table — each lane marked fresh or stale, with the repo's base commit SHA. Failed tasks keep their worktrees for post-mortems, so stale lanes show up by design on re-runs. If any lane is stale the run aborts before anything spawns and prints the exact removal command per lane. Pass `--reset-worktrees` instead and it removes stale registered worktrees for you (`git worktree remove --force`, then a prune) and proceeds:
 
@@ -126,7 +126,7 @@ Each task gets its own directory, its own worker, its own log, and its own verdi
 ./ringer.py run swarm.json --reset-worktrees
 ```
 
-A stale path that is NOT a registered worktree — a plain directory — is never auto-deleted, flag or no flag: move or delete it yourself. `--dry-run`, `--baseline`, and `--prove-fail` are unaffected.
+`--reset-worktrees` lists the uncommitted or untracked paths inside each stale worktree before removing it, so you see what you are about to lose. A stale path that is NOT a registered worktree — a plain directory — is never auto-deleted, flag or no flag: move or delete it yourself. `--dry-run`, `--baseline`, and `--prove-fail` are unaffected.
 
 Not sure what your tasks even are yet? [`docs/interview-prompt.md`](docs/interview-prompt.md) is a prompt you paste into any chatbot; it interviews you about the job and hands back a brief your orchestrating agent can turn into a manifest. Ready-made skeletons for the patterns that work live in [`templates/`](templates/).
 
@@ -248,7 +248,7 @@ It never retries — it is the orchestrator's gate, not a worker task. Exit 0 pr
 
 With `pilot` set, that one task runs first while every other lane is held back unspawned. If the pilot fails, nothing else spawns and the run fails. If it passes, the run pauses in an awaiting-review state — visible in the run state and on the console, which prints the exact approve and reject commands with the run id, and on Ringside, where you can now approve or reject from the page as well as the CLI.
 
-`./ringer.py approve <run_id>` releases the held lanes and the run continues normally: retries and `integration_check` are unchanged. `./ringer.py reject <run_id>` ends the run nonzero; the held lanes never spawn; the pilot's deliverables, logs, and worktree are kept for review. No decision within `pilot_wait_s` (default 1800) counts as a rejection with a timeout reason.
+`./ringer.py approve <run_id>` releases the held lanes and the run continues normally: retries and `integration_check` are unchanged. `./ringer.py reject <run_id>` ends the run nonzero; the held lanes never spawn; the pilot's deliverables, logs, and worktree are kept for review. No decision within `pilot_wait_s` (default 1800) counts as a rejection with a timeout reason. Both refuse a run whose orchestrator has exited — printing that the decision cannot be delivered and writing nothing — matching what the Ringside page and its endpoint already did.
 
 The point: redirect after one lane, not after N — aesthetic and architectural misses cost one pilot instead of a finished build. `--dry-run`, `--baseline`, and `--prove-fail` are unaffected.
 
