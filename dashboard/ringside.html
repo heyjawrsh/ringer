@@ -266,6 +266,14 @@
       font-size: 14px;
       padding: clamp(26px, 6vw, 60px) clamp(12px, 2vw, 22px);
     }
+    .unreadable-notice {
+      grid-column: 1 / -1;
+      margin: 0;
+      padding-top: 8px;
+      border-top: 1px solid var(--hairline);
+      color: var(--muted);
+      font-size: 13px;
+    }
 
     .run {
       padding: clamp(18px, 3vw, 28px) clamp(12px, 2vw, 22px) clamp(20px, 3vw, 30px);
@@ -728,6 +736,7 @@
               <div id="artifact-status" class="artifact-status">No artifact selected.</div>
               <select id="artifact-version" class="mono" aria-label="Artifact version"></select>
               <button id="open-folder" type="button" title="Open this run's files in Finder">Open folder</button>
+              <p id="unreadable-notice" class="unreadable-notice" role="status" hidden></p>
             </div>
             <div id="frame-wrap" class="frame-wrap">
               <div class="artifact-error">No artifacts yet.</div>
@@ -756,6 +765,8 @@
       artifacts: [],
       runError: null,
       libraryError: null,
+      runUnreadable: 0,
+      libraryUnreadable: 0,
       tab: queryTab || normalizeTab(localStorage.getItem(TAB_KEY)) || "live",
       view: queryView || "single",
       hasStoredTab: Boolean(normalizeTab(localStorage.getItem(TAB_KEY))),
@@ -783,6 +794,7 @@
       updateMessage: document.getElementById("update-message"),
       dismissUpdate: document.getElementById("dismiss-update"),
       pilotBanner: document.getElementById("pilot-banner"),
+      unreadableNotice: document.getElementById("unreadable-notice"),
       runs: document.getElementById("runs"),
       viewSwitch: document.getElementById("view-switch"),
       artifactMain: document.querySelector(".artifact-main"),
@@ -816,6 +828,14 @@
       }
       els.updateMessage.textContent = `Ringer update available: ${behind} commit(s) behind — ${reason}`;
       els.updateBanner.hidden = false;
+    }
+
+    function renderUnreadableNotice() {
+      const count = state.runUnreadable + state.libraryUnreadable;
+      els.unreadableNotice.textContent = count === 1
+        ? "1 record could not be read."
+        : `${count} records could not be read.`;
+      els.unreadableNotice.hidden = count === 0;
     }
 
     els.dismissUpdate.addEventListener("click", () => {
@@ -2187,6 +2207,7 @@
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const payload = await response.json();
         state.runs = normalizeRuns(payload);
+        state.runUnreadable = Math.max(0, Math.trunc(numberOrZero(payload?.unreadable)));
         state.active = payload?.active || {};
         state.update = payload?.update || null;
         state.runError = null;
@@ -2210,6 +2231,7 @@
       }
       renderTop();
       renderUpdateBanner();
+      renderUnreadableNotice();
       renderRunningNow();
       renderLive();
     }
@@ -2220,11 +2242,13 @@
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const payload = await response.json();
         state.artifacts = normalizeLibrary(payload);
+        state.libraryUnreadable = Math.max(0, Math.trunc(numberOrZero(payload?.unreadable)));
         state.libraryError = null;
       } catch (error) {
         state.libraryError = error?.message || "library unavailable";
       }
       renderTop();
+      renderUnreadableNotice();
       renderArtifacts();
       renderArtifactControls();
       syncFocusedRunSelection();
@@ -2275,6 +2299,7 @@
     setTab(state.tab, false);
     renderViewControls();
     renderTop();
+    renderUnreadableNotice();
     renderRunningNow();
     renderLive();
     renderArtifacts();

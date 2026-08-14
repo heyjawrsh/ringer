@@ -3717,22 +3717,28 @@ def read_artifact_library(state_dir: Path) -> dict[str, Any]:
     path = artifact_library_path(state_dir)
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-    except (FileNotFoundError, OSError, json.JSONDecodeError, UnicodeDecodeError):
-        return {"artifacts": {}}
+    except FileNotFoundError:
+        return {"artifacts": {}, "unreadable": 0}
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        return {"artifacts": {}, "unreadable": 1}
     if not isinstance(data, dict):
-        return {"artifacts": {}}
+        return {"artifacts": {}, "unreadable": 1}
     artifacts = data.get("artifacts")
     if not isinstance(artifacts, dict):
-        return {"artifacts": {}}
-    clean: dict[str, Any] = {"artifacts": {}}
+        return {"artifacts": {}, "unreadable": 1}
+    clean: dict[str, Any] = {"artifacts": {}, "unreadable": 0}
     for run_name, entry in artifacts.items():
         if isinstance(run_name, str) and isinstance(entry, dict):
             clean["artifacts"][run_name] = entry
+        else:
+            clean["unreadable"] = 1
     return clean
 
 
 def write_artifact_library(state_dir: Path, library: dict[str, Any]) -> None:
-    atomic_write_json(artifact_library_path(state_dir), library)
+    stored = dict(library)
+    stored.pop("unreadable", None)
+    atomic_write_json(artifact_library_path(state_dir), stored)
 
 
 def artifact_outcome_from_state(state: dict[str, Any]) -> str:
@@ -5857,17 +5863,17 @@ def read_json_object(path: Path, default: dict[str, Any]) -> dict[str, Any]:
     return data if isinstance(data, dict) else default
 
 
-def scan_hud_run_states(
+def scan_hud_run_states_with_unreadable(
     state_dir: Path,
     *,
     active_runs: dict[str, dict[str, Any]],
     limit: int = 12,
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], int]:
     runs_dir = state_dir / "runs"
     try:
         paths = [path for path in runs_dir.glob("*.json") if path.is_file()]
     except OSError:
-        return []
+        return [], 0
 
     def path_mtime(path: Path) -> float:
         try:
@@ -5877,11 +5883,36 @@ def scan_hud_run_states(
 
     paths.sort(key=path_mtime, reverse=True)
     runs: list[dict[str, Any]] = []
-    for path in paths[:limit]:
-        data = read_json_object(path, {})
-        if data:
+    unreadable = 0
+    # Four windows bounds a HUD poll at 48 files by default while allowing
+    # newer corrupt records to be skipped without consuming a display slot.
+    max_files_examined = max(0, limit * 4)
+    for path in paths[:max_files_examined]:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+            unreadable += 1
+            continue
+        if not isinstance(data, dict) or not data:
+            unreadable += 1
+            continue
+        if len(runs) < limit:
             data["orchestrator_alive"] = str(data.get("run_id", path.stem)) in active_runs
             runs.append(data)
+    return runs, unreadable
+
+
+def scan_hud_run_states(
+    state_dir: Path,
+    *,
+    active_runs: dict[str, dict[str, Any]],
+    limit: int = 12,
+) -> list[dict[str, Any]]:
+    runs, _unreadable = scan_hud_run_states_with_unreadable(
+        state_dir,
+        active_runs=active_runs,
+        limit=limit,
+    )
     return runs
 
 
@@ -6125,13 +6156,15 @@ class PersistentHudServer:
                     return
                 if path == "/api/runs":
                     active_runs = read_active_runs()
+                    runs, unreadable = scan_hud_run_states_with_unreadable(
+                        state_dir,
+                        active_runs=active_runs,
+                    )
                     send_json_response(
                         self,
                         {
-                            "runs": scan_hud_run_states(
-                                state_dir,
-                                active_runs=active_runs,
-                            ),
+                            "runs": runs,
+                            "unreadable": unreadable,
                             "active": active_runs,
                             "update": server_ref.update_status,
                         },
@@ -6187,7 +6220,7 @@ class PersistentHudServer:
                         reconcile_artifact_library_dead_runs(state_dir)
                     send_json_response(
                         self,
-                        read_json_object(artifact_library_path(state_dir), {"artifacts": {}}),
+                        read_artifact_library(state_dir),
                     )
                     return
                 if path.startswith("/artifacts/"):
