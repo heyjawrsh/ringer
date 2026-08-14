@@ -406,6 +406,14 @@ The decision endpoint refuses such a request too, so neither the page nor the CL
 
 Multiple swarms at once is the designed-for case: run three batches under three identities and Ringside shows all three, live. `--browser` opens a simpler per-run fallback dashboard, and `--no-dashboard` runs headless.
 
+The Runs tab now has two views. The default is unchanged — one run's results document plus that run's lanes. The lane view is a wall of lane cards drawn from every live run at once, each naming its run, its lane, engine and model, elapsed time, and current activity.
+
+The wall sorts so lanes needing a human come first (failed or errored lanes, and lanes in a run paused for pilot review), then working lanes, then finished ones. One line above it counts how many swarms are live, how many lanes are working, and how many need attention.
+
+Click a card to select that run and return to the single-run view. The active view is stored in the URL under `view`, so `?view=lanes` deep-links to the wall and a reload keeps you where you were.
+
+When nothing is live the wall shows the most recently updated run's lanes and says so.
+
 A native desktop build (Tauri, under `hud/`) exists as a v0.1.1 prototype; the web dashboard is currently ahead of it — start there.
 
 ## Self-update
