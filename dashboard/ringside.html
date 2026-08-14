@@ -1424,7 +1424,14 @@
       const census = document.createElement("p");
       census.className = "lane-census mono";
       census.setAttribute("role", "status");
-      census.textContent = `${liveRuns.length} ${plural(liveRuns.length, "swarm")} live · ${working} ${plural(working, "lane")} working · ${attention} ${plural(attention, "lane")} ${attention === 1 ? "needs" : "need"} attention.`;
+      // With nothing live the wall shows a fallback run, so a live-only census
+      // would read "0 lanes need attention" directly above a failed card. Count
+      // what is actually on screen instead.
+      const shown = liveRuns.length ? censusEntries : entries;
+      const shownAttention = shown.filter(entry => entry.attention).length;
+      census.textContent = liveRuns.length
+        ? `${liveRuns.length} ${plural(liveRuns.length, "swarm")} live · ${working} ${plural(working, "lane")} working · ${attention} ${plural(attention, "lane")} ${attention === 1 ? "needs" : "need"} attention.`
+        : `Nothing live · ${shown.length} ${plural(shown.length, "lane")} shown · ${shownAttention} ${plural(shownAttention, "lane")} ${shownAttention === 1 ? "needs" : "need"} attention.`;
       head.append(title, census);
       wall.appendChild(head);
 
