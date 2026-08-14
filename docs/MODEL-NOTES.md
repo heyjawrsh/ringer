@@ -1554,3 +1554,18 @@ RULES:
   reuse ("see catalog_refresh_lock around line 3248 — REUSE THAT SHAPE") and
   state the false-positive rule as a first-class requirement with a "when in
   doubt return False" tiebreaker. Both lanes landed first-try on subtle work.
+- 2026-08-14 — UNREADABLE-RECORDS + QUIET-OMISSIONS (last two audit findings).
+  Sol high on unreadable-records: first-try. Reproduced by hand first — 15 valid
+  runs plus 4 corrupt files with the NEWEST mtimes returned only 8 of 12 slots,
+  hiding 4 valid runs, because the newest-N budget was spent before decoding.
+  After: 12 valid runs surfaced, unreadable=4, corrupt library reported
+  unreadable=1 instead of empty. Sol MEDIUM on quiet-omissions: passed on
+  attempt 2 — attempt 1 added the payload fields but reported "skipped": 0 for
+  a log with 2 malformed lines (counter wired to an already-filtered source).
+  The check asserted the VALUE (==2), not the key's presence, which is the only
+  reason a permanently-zero counter did not ship. Reinforces the standing rule:
+  assert what the number IS, never that a field exists.
+  SPEC TECHNIQUE, now three-for-three: reproduce the defect by hand BEFORE
+  writing the spec and put the measurement in it ("4 corrupt files newest on
+  disk left only 8 of 12 slots filled"). A measured target beats a described
+  theory; the worker can verify against it instead of interpreting it.
