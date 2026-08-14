@@ -230,6 +230,11 @@ The check PASSING is the good outcome — reported as **proved**. A check that F
 
 The summary reads `prove-pass: P proved, B broken, E error, S skipped of T task(s).` Exit code is 0 only when broken and error are both zero. It cannot be combined with `--prove-fail` or `--baseline`.
 
+All three gates tell a **crashed** check apart from a failing one. A check that cannot run — a missing command, a syntax error, an unhandled exception — used to exit nonzero and look exactly like a check that had caught a problem, so `--prove-fail` would call it proved.
+It is now reported as **crashed**, the mode exits nonzero, and the message says the check itself failed to run — the gate proves nothing about it.
+A check that merely fails, printing its reason, is unaffected.
+So is a check that runs a test suite and prints that suite's traceback — a traceback alone is not treated as a crash.
+
 ### Integration check: verify the merged result
 
 Per-task checks verify each lane in isolation; lanes that each pass can still break the combined build. `integration_check` runs exactly once, only when every task passed. In worktrees mode its cwd is a fresh detached worktree of `repo` at HEAD (removed afterwards); otherwise it is the run's `workdir`. If any task failed, it is skipped and reported as skipped.
