@@ -7685,6 +7685,7 @@ class ReadModelSyncResult:
     skipped: int
     offset: int
     rebuilt: bool
+    total_skipped: int | None = None
 
 
 def rebuild_read_model_db(
@@ -7707,12 +7708,12 @@ def rebuild_read_model_db(
             inserted = insert_attempt_rows(conn, rows)
             refresh_catalog_tables(conn, catalog_path)
             refresh_identity_tables(conn, registry_path)
-            write_sync_state_values(conn, {"log_offset": offset})
+            write_sync_state_values(conn, {"log_offset": offset, "log_skipped": skipped})
             conn.commit()
         except Exception:
             conn.rollback()
             raise
-    return ReadModelSyncResult(db_path, log_path, inserted, skipped, offset, True)
+    return ReadModelSyncResult(db_path, log_path, inserted, skipped, offset, True, skipped)
 
 
 def sync_read_model_db(
@@ -7735,6 +7736,16 @@ def sync_read_model_db(
         try:
             create_read_model_schema(conn)
             offset = read_sync_state_int(conn, "log_offset", 0)
+            previous_skipped = read_sync_state_value(conn, "log_skipped")
+            if previous_skipped is None and offset > 0:
+                conn.rollback()
+                return rebuild_read_model_db(
+                    db_path,
+                    log_path,
+                    catalog_path=catalog_path,
+                    registry_path=registry_path,
+                )
+            total_skipped = read_sync_state_int(conn, "log_skipped", 0)
             if log_size < offset:
                 conn.rollback()
                 return rebuild_read_model_db(
@@ -7744,15 +7755,27 @@ def sync_read_model_db(
                     registry_path=registry_path,
                 )
             rows, skipped, new_offset = read_log_rows_from_offset(log_path, offset)
+            total_skipped += skipped
             inserted = insert_attempt_rows(conn, rows)
             refresh_catalog_tables(conn, catalog_path)
             refresh_identity_tables(conn, registry_path)
-            write_sync_state_values(conn, {"log_offset": new_offset})
+            write_sync_state_values(
+                conn,
+                {"log_offset": new_offset, "log_skipped": total_skipped},
+            )
             conn.commit()
         except Exception:
             conn.rollback()
             raise
-    return ReadModelSyncResult(db_path, log_path, inserted, skipped, new_offset, False)
+    return ReadModelSyncResult(
+        db_path,
+        log_path,
+        inserted,
+        skipped,
+        new_offset,
+        False,
+        total_skipped,
+    )
 
 
 def load_identity_registry_from_db(conn: Any) -> ModelIdentityRegistry:
@@ -9157,7 +9180,7 @@ def build_models_api_payload(
     catalog_models: list[dict[str, Any]] = []
     if using_db:
         try:
-            sync_read_model_db(
+            sync_result = sync_read_model_db(
                 resolved_db_path,
                 log_path,
                 catalog_path=catalog_path,
@@ -9170,12 +9193,15 @@ def build_models_api_payload(
                 noncanonical_routes=disk_registry.noncanonical_routes,
             )
             catalog_models = db_catalog_models(resolved_db_path)
+            skipped = sync_result.total_skipped
+            if skipped is None:
+                skipped = sync_result.skipped
         except Exception:
             using_db = False
-            rows, _skipped = read_model_log_rows(log_path)
+            rows, skipped = read_model_log_rows(log_path)
             identity_registry = load_model_identity_registry(registry_path)
     else:
-        rows, _skipped = read_model_log_rows(log_path)
+        rows, skipped = read_model_log_rows(log_path)
         identity_registry = load_model_identity_registry(registry_path)
     if not using_db:
         with contextlib.suppress(Exception):
@@ -9210,6 +9236,8 @@ def build_models_api_payload(
     return {
         "generated_at": utc_now_iso(),
         "columns": list(MODEL_SCOREBOARD_COLUMNS),
+        "rows_read": len(rows),
+        "skipped": skipped,
         "groups": groups,
         "rollup": ordered_rollup,
     }
@@ -9244,7 +9272,9 @@ def run_models_command(config: AppConfig, args: argparse.Namespace) -> int:
                 identity_registry,
                 noncanonical_routes=disk_registry.noncanonical_routes,
             )
-            skipped = sync_result.skipped
+            skipped = sync_result.total_skipped
+            if skipped is None:
+                skipped = sync_result.skipped
             catalog_models_from_db = db_catalog_models(db_path)
             catalog_events = db_catalog_events(db_path, limit=6)
         except Exception as exc:
@@ -11075,10 +11105,13 @@ async def preflight_worktrees(manifest: Manifest, *, reset: bool) -> None:
                     f"{task.key:<24} taskdir already exists but is not a registered git "
                     f"worktree: {taskdir} — move or delete it, then re-run"
                 )
-        print(
-            "Re-run with --reset-worktrees to remove stale registered worktrees "
-            "automatically."
-        )
+        if not reset and any(row[2] == "stale worktree" for row in stale_rows):
+            print(
+                "Re-run with --reset-worktrees to remove stale registered worktrees "
+                "automatically."
+            )
+        elif reset and any(row[2] == "stale dir" for row in stale_rows):
+            print("--reset-worktrees does not remove plain directories.")
     sys.stdout.flush()
     if failure is not None:
         raise ValueError(f"worktree pre-flight failed: {failure}")
