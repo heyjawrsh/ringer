@@ -345,6 +345,93 @@ class LintManifestTests(unittest.TestCase):
             lint_manifest(tracked_manifest),
         )
 
+    def test_w13_brittle_exact_phrase(self) -> None:
+        finding = (
+            "one: check greps for a long exact phrase and asserts the wording rather than the claim; "
+            "assert the claim, not the phrasing — match a distinctive keyword case-insensitively, or use a tolerant regex."
+        )
+        manifest = self.manifest(
+            [
+                self.task(
+                    check=(
+                        "grep -q 'every run writes the final report' output.txt || "
+                        "{ echo 'FAIL: report claim missing'; exit 1; }"
+                    )
+                )
+            ]
+        )
+        self.assertHasFinding(lint_manifest(manifest), finding)
+
+        case_insensitive_manifest = self.manifest(
+            [
+                self.task(
+                    check=(
+                        "grep -qi 'every run writes the final report' output.txt || "
+                        "{ echo 'FAIL: report claim missing'; exit 1; }"
+                    )
+                )
+            ]
+        )
+        self.assertNotIn(finding, lint_manifest(case_insensitive_manifest))
+
+    def test_w14_exotic_whitespace_in_check(self) -> None:
+        finding = (
+            "one: check contains exotic whitespace and may reject honest work; "
+            "normalize whitespace before comparing, and keep exotic characters out of the pattern."
+        )
+        manifest = self.manifest(
+            [
+                self.task(
+                    check=(
+                        "grep -q 'every\u00a0run' output.txt || "
+                        "{ echo 'FAIL: run claim missing'; exit 1; }"
+                    )
+                )
+            ]
+        )
+        self.assertHasFinding(lint_manifest(manifest), finding)
+
+        ascii_manifest = self.manifest(
+            [
+                self.task(
+                    check=(
+                        "grep -q 'every run' output.txt || "
+                        "{ echo 'FAIL: run claim missing'; exit 1; }"
+                    )
+                )
+            ]
+        )
+        self.assertNotIn(finding, lint_manifest(ascii_manifest))
+
+    def test_w15_repo_internals_assumption(self) -> None:
+        finding = (
+            "one: check inspects a path under .git/ and assumes the checkout's internal shape; "
+            "verify the artifact, not the checkout's internals."
+        )
+        manifest = self.manifest(
+            [
+                self.task(
+                    check=(
+                        "test -f .git/config || "
+                        "{ echo 'FAIL: git config missing'; exit 1; }"
+                    )
+                )
+            ]
+        )
+        self.assertHasFinding(lint_manifest(manifest), finding)
+
+        task_path_manifest = self.manifest(
+            [
+                self.task(
+                    check=(
+                        "test -f config/settings.toml || "
+                        "{ echo 'FAIL: settings missing'; exit 1; }"
+                    )
+                )
+            ]
+        )
+        self.assertNotIn(finding, lint_manifest(task_path_manifest))
+
     def test_compliant_manifest_is_clean(self) -> None:
         manifest = self.manifest(
             [

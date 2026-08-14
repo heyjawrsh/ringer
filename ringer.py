@@ -1922,6 +1922,21 @@ def lint_manifest(
                 f"{task.key}: check greps for an unanchored bare literal; use grep -w, "
                 "anchor the pattern, or match a longer distinctive phrase."
             )
+        if check_has_brittle_exact_phrase(task.check):
+            findings.append(
+                f"{task.key}: check greps for a long exact phrase and asserts the wording rather than the claim; "
+                "assert the claim, not the phrasing — match a distinctive keyword case-insensitively, or use a tolerant regex."
+            )
+        if check_has_exotic_whitespace(task.check):
+            findings.append(
+                f"{task.key}: check contains exotic whitespace and may reject honest work; "
+                "normalize whitespace before comparing, and keep exotic characters out of the pattern."
+            )
+        if check_references_git_internals(task.check):
+            findings.append(
+                f"{task.key}: check inspects a path under .git/ and assumes the checkout's internal shape; "
+                "verify the artifact, not the checkout's internals."
+            )
         if has_focus_stealing_command(task.check) or spec_has_focus_stealing_command(task.spec):
             findings.append(
                 f"{task.key}: check or spec opens an application window and can steal focus; "
@@ -2120,6 +2135,92 @@ def check_has_unanchored_grep(check: str) -> bool:
         if grep_invocation_is_unanchored(segment[command_index + 1 :]):
             return True
     return False
+
+
+def grep_invocation_has_brittle_exact_phrase(tokens: list[str]) -> bool:
+    if any(
+        token == "--ignore-case"
+        or (token.startswith("-") and not token.startswith("--") and "i" in token[1:])
+        for token in tokens
+    ):
+        return False
+
+    patterns: list[str] = []
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        if token == "--":
+            if index + 1 < len(tokens):
+                patterns.append(tokens[index + 1])
+            break
+        if token in {"-e", "--regexp"}:
+            if index + 1 < len(tokens):
+                patterns.append(tokens[index + 1])
+            index += 2
+            continue
+        if token.startswith("--regexp="):
+            pattern = token.partition("=")[2]
+            quote = pattern[:1]
+            while (
+                quote in {"'", '"'}
+                and not (len(pattern) >= 2 and pattern.endswith(quote))
+                and index + 1 < len(tokens)
+            ):
+                index += 1
+                pattern += " " + tokens[index]
+            patterns.append(pattern)
+            index += 1
+            continue
+        if token in {"-f", "--file"} or token.startswith("--file="):
+            return False
+        if token in GREP_OPTIONS_WITH_ARGUMENTS:
+            index += 2
+            continue
+        if token.startswith("--") or (token.startswith("-") and token != "-"):
+            index += 1
+            continue
+        if not patterns:
+            patterns.append(token)
+        break
+
+    for raw_pattern in patterns:
+        if (
+            len(raw_pattern) < 2
+            or raw_pattern[0] != raw_pattern[-1]
+            or raw_pattern[0] not in {"'", '"'}
+        ):
+            continue
+        pattern = unquote_shell_token(raw_pattern)
+        if pattern.startswith(("^", "##")) or len(pattern.split()) < 4:
+            continue
+        if re.search(r"\\[AbBdDsSwWZ]|\.\*|\.\+|[\[\]{}|]", pattern):
+            continue
+        return True
+    return False
+
+
+def check_has_brittle_exact_phrase(check: str) -> bool:
+    tokens = shell_tokens(check)
+    start = 0
+    for end in range(len(tokens) + 1):
+        if end < len(tokens) and not shell_token_is_operator(tokens[end]):
+            continue
+        segment = tokens[start:end]
+        start = end + 1
+        command_index = shell_command_index(segment)
+        if command_index is None or Path(unquote_shell_token(segment[command_index])).name != "grep":
+            continue
+        if grep_invocation_has_brittle_exact_phrase(segment[command_index + 1 :]):
+            return True
+    return False
+
+
+def check_has_exotic_whitespace(check: str) -> bool:
+    return any(character in check for character in {"\u00a0", "\u200b", "\u2011"})
+
+
+def check_references_git_internals(check: str) -> bool:
+    return re.search(r"(?:^|[/\s'\"=])\.git/", check) is not None
 
 
 def shell_command_index(segment: list[str]) -> int | None:
