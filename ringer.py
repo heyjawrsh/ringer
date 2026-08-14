@@ -2395,6 +2395,7 @@ class TaskRuntime:
     log_path: Path
     report_paths: dict[str, Path] = field(default_factory=dict)
     deliverables: list[dict[str, Any]] = field(default_factory=list)
+    harvested_paths: set[str] = field(default_factory=set)
     deliverable_notes: list[str] = field(default_factory=list)
     status: str = "queued"
     spec_short: str = ""
@@ -5849,7 +5850,12 @@ def record_pilot_decision(
 
 def write_pilot_decision(config: AppConfig, run_id: str, decision: str) -> int:
     try:
-        record_pilot_decision(config.state_dir, run_id, decision)
+        record_pilot_decision(
+            config.state_dir,
+            run_id,
+            decision,
+            active_runs=read_active_runs(),
+        )
     except PilotDecisionError as exc:
         print(f"ringer.py: error: {exc}", file=sys.stderr)
         return 1
@@ -9251,6 +9257,28 @@ def changed_paths_from_porcelain(output: bytes) -> set[str]:
     return paths
 
 
+async def inspect_worktree_changes(taskdir: Path) -> tuple[set[str], str | None]:
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "git",
+            "status",
+            "--porcelain=v1",
+            "-z",
+            "--untracked-files=all",
+            cwd=str(taskdir),
+            stdin=asyncio.subprocess.DEVNULL,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+    except OSError as exc:
+        return set(), str(exc)
+    stdout, _ = await proc.communicate()
+    if proc.returncode != 0:
+        message = stdout.decode("utf-8", errors="replace").strip()
+        return set(), message or "git status failed"
+    return changed_paths_from_porcelain(stdout), None
+
+
 def contract_violations_from_diff(
     path: str,
     diff: str,
@@ -9805,6 +9833,7 @@ class RingerRunner:
 
     def _harvest_deliverables_on_pass(self, runtime: TaskRuntime) -> None:
         harvested: list[dict[str, Any]] = []
+        harvested_paths: set[str] = set()
         notes: list[str] = []
         target_dir = artifact_deliverables_dir(
             self.config.state_dir,
@@ -9860,9 +9889,18 @@ class RingerRunner:
                 )
                 continue
             harvested.append({"name": source.name, "path": str(target), "bytes": copied_size})
+            try:
+                harvested_paths.add(
+                    Path(os.path.abspath(source))
+                    .relative_to(Path(os.path.abspath(runtime.taskdir)))
+                    .as_posix()
+                )
+            except ValueError:
+                pass
         if harvested or notes:
             with self.lock:
                 runtime.deliverables = harvested
+                runtime.harvested_paths.update(harvested_paths)
                 runtime.deliverable_notes.extend(notes)
 
     async def _task_violations(self, runtime: TaskRuntime) -> list[str]:
@@ -10029,6 +10067,30 @@ class RingerRunner:
         if not (self.manifest.worktrees and self.manifest.repo is not None):
             return
         self._snapshot_worktree_reports(runtime)
+        changed_paths, inspection_error = await inspect_worktree_changes(runtime.taskdir)
+        if inspection_error is not None:
+            print(
+                f"{runtime.task.key:<24} could not inspect files before worktree removal: "
+                f"{inspection_error}"
+            )
+        else:
+            preserved_paths = (
+                runtime.harvested_paths
+                | set(runtime.report_paths)
+                | self.foundation_paths
+            )
+            lost_paths = sorted(
+                path
+                for path in changed_paths - preserved_paths
+                if (runtime.taskdir / path).is_file()
+                or (runtime.taskdir / path).is_symlink()
+            )
+            if lost_paths:
+                print(
+                    f"{runtime.task.key:<24} discarding unharvested file(s): "
+                    f"{json.dumps(lost_paths)}; declare them in expect_files to keep them."
+                )
+        sys.stdout.flush()
         proc = await asyncio.create_subprocess_exec(
             "git",
             "-C",
@@ -10758,6 +10820,24 @@ async def preflight_worktrees(manifest: Manifest, *, reset: bool) -> None:
         for index, (task, taskdir, status) in enumerate(rows):
             if status != "stale worktree":
                 continue
+            changed_paths, inspection_error = await inspect_worktree_changes(taskdir)
+            if inspection_error is not None:
+                print(
+                    f"{task.key:<24} reset could not inspect uncommitted paths: "
+                    f"{inspection_error}; removing the stale worktree anyway.",
+                    flush=True,
+                )
+            elif changed_paths:
+                print(
+                    f"{task.key:<24} reset will discard uncommitted path(s): "
+                    f"{json.dumps(sorted(changed_paths))}",
+                    flush=True,
+                )
+            else:
+                print(
+                    f"{task.key:<24} stale worktree is clean; reset will remove it.",
+                    flush=True,
+                )
             try:
                 proc = await asyncio.create_subprocess_exec(
                     "git",
