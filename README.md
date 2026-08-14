@@ -554,3 +554,7 @@ Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the phi
 ---
 
 Built by [Nate Jones](https://natejones.com) and maintained by [LEJ](https://limitededitionjonathan.com) — a Claude orchestrator wrote the specs and reviewed the diffs, Codex swarms wrote the implementation, and this repo's own eval table caught its first three bugs. The tool is its own proof of concept.
+
+- a check that greps for a long exact phrase (four or more words): that asserts your wording, not the claim, and honest work phrased differently fails; match a keyword case-insensitively instead.
+- a pattern containing a non-breaking space, zero-width space or non-breaking hyphen: normalize whitespace and keep exotic characters out.
+- a check inspecting paths under `.git/`: that asserts the shape of the checkout, not the work, and in worktrees mode .git is a file.
