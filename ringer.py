@@ -11301,6 +11301,41 @@ def shorten(value: str, limit: int) -> str:
     return clean[: max(0, limit - 3)] + "..."
 
 
+def check_crashed(returncode: int | None, output: str) -> bool:
+    """Return whether a nonzero check failed to run instead of failing honestly."""
+    if returncode in {None, 0}:
+        return False
+
+    text = output.strip()
+    intentional_diagnostic = re.search(
+        r"(?m)^\s*(?:(?:CHECK\s+)?FAIL\b|Ran\s+\d+\s+tests?\b|"
+        r"FAILED\s*\(|OK\s*$)",
+        text,
+    )
+    if intentional_diagnostic:
+        return False
+
+    if returncode in {126, 127}:
+        return True
+    if re.search(
+        r"(?im)(?:\bcommand not found\b|can't open file\b|"
+        r"bad interpreter:\s*no such file or directory|:\s*not found\s*$)",
+        text,
+    ):
+        return True
+    if not text or "[ringer] check failed silently" in text:
+        return True
+
+    final_line = text.splitlines()[-1].strip()
+    return bool(
+        re.fullmatch(
+            r"[A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception)(?::.*)?",
+            final_line,
+        )
+        or re.search(r"(?i)(?:^|:\s)syntax error(?:\b|:)", final_line)
+    )
+
+
 async def run_baseline(manifest: Manifest, *, config: AppConfig) -> int:
     """Execute every task's CHECK against the unmodified tree. Spawn nothing.
 
@@ -11361,14 +11396,23 @@ async def run_baseline(manifest: Manifest, *, config: AppConfig) -> int:
                 taskdir.mkdir(parents=True, exist_ok=True)
             try:
                 verify = await verifier.verify(task, taskdir)
-                status = "pass" if verify.ok else "FAIL"
                 timed_out = ", timed out" if verify.check_timed_out else ""
+                crashed = check_crashed(
+                    verify.check_returncode, verify.raw_output_excerpt
+                )
+                status = "pass" if verify.ok else "CRASHED" if crashed else "FAIL"
                 print(
                     f"{task.key:<24} baseline: {status} "
                     f"(rc={verify.check_returncode}{timed_out})"
                 )
-                if not verify.ok:
+                if crashed:
+                    errors += 1
+                    print(
+                        "    The check itself failed to run, so this gate proves nothing."
+                    )
+                elif not verify.ok:
                     failures += 1
+                if not verify.ok:
                     excerpt = verify.raw_output_excerpt.strip()
                     for line in excerpt.splitlines()[:6]:
                         print(f"    {line}")
@@ -11537,6 +11581,19 @@ async def run_prove_fail(manifest: Manifest, *, config: AppConfig) -> int:
                     for line in verify.raw_output_excerpt.strip().splitlines()[:6]:
                         print(f"    {line}")
                     print("    WARNING: a timeout makes useless retry output.")
+                elif check_crashed(
+                    verify.check_returncode, verify.raw_output_excerpt
+                ):
+                    errors += 1
+                    print(
+                        f"{task.key:<24} prove-fail: CRASHED "
+                        f"(rc={verify.check_returncode})"
+                    )
+                    print(
+                        "    The check itself failed to run, so this gate proves nothing."
+                    )
+                    for line in verify.raw_output_excerpt.strip().splitlines()[:6]:
+                        print(f"    {line}")
                 elif verify.check_returncode == 0:
                     inconclusive += 1
                     print(
@@ -11710,6 +11767,19 @@ async def run_prove_pass(manifest: Manifest, *, config: AppConfig) -> int:
                         f"{task.key:<24} prove-pass: proved "
                         f"(rc={verify.check_returncode})"
                     )
+                elif check_crashed(
+                    verify.check_returncode, verify.raw_output_excerpt
+                ):
+                    errors += 1
+                    print(
+                        f"{task.key:<24} prove-pass: CRASHED "
+                        f"(rc={verify.check_returncode})"
+                    )
+                    print(
+                        "    The check itself failed to run, so this gate proves nothing."
+                    )
+                    for line in verify.raw_output_excerpt.strip().splitlines()[:6]:
+                        print(f"    {line}")
                 else:
                     broken += 1
                     timed_out = (
