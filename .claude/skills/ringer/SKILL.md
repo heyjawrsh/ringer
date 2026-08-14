@@ -235,6 +235,17 @@ and each catches a different class of wasted attempt:
   gate. Deep check code (the part that runs once a good deliverable exists)
   stays untested until a good state exists — which is exactly what
   `--prove-pass` provides, so run both.
+- **A CRASHED check is reported as such.** A check that cannot run — missing
+  command, syntax error, unhandled exception — used to exit nonzero and look
+  exactly like an honest failure, so prove-fail called it `proved`. All three
+  modes now print CRASHED and exit nonzero: the check never ran, so the gate
+  proves nothing. A traceback alone is NOT a crash (checks that run test
+  suites print them legitimately).
+- **Still smoke a new check by hand once.** Run it in a throwaway worktree
+  before launching. The gates now catch a crash, but only for tasks that
+  declare `known_bad`/`known_good`; a code lane whose good state cannot be
+  fabricated still has no gate, and a 5-second manual run costs nothing
+  against two burned attempts.
 - **Clean the patch dir after a BROKEN verdict.** Prove-fail executes checks
   for real, so a check that wrongly passes also runs its exports — a stale
   patch file from a known-bad state will otherwise sit there looking like a
