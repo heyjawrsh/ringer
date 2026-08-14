@@ -23,6 +23,21 @@ def has_placeholder(value: str) -> bool:
     return OPEN_PLACEHOLDER in value or CLOSE_PLACEHOLDER in value
 
 
+def validator_cannot_fail(command: str) -> bool:
+    stripped = command.strip()
+    if stripped in {"true", ":", "exit 0"}:
+        return True
+    if not stripped or "||" in stripped or re.search(r"[|<>]", stripped):
+        return False
+    parts = [part.strip() for part in re.split(r"(?:&&|;|\n)+", stripped) if part.strip()]
+    if not parts:
+        return False
+    try:
+        return all(shlex.split(part) and shlex.split(part)[0] == "echo" for part in parts)
+    except ValueError:
+        return False
+
+
 def word_count(text: str) -> int:
     return len(re.findall(r"\S+", text))
 
@@ -38,11 +53,13 @@ def has_heading(text: str, heading: str) -> bool:
     return bool(re.search(rf"^##\s+{re.escape(heading)}\s*$", text, re.IGNORECASE | re.MULTILINE))
 
 
-def run_validator(command: str, session_dir: Path, expected_model: str) -> list[str]:
+def run_validator(command: str, session_dir: Path, expected_model: str = "") -> list[str]:
     if has_placeholder(command):
         return [fail("validator_unfilled", "session-validator still contains an unfilled placeholder")]
     if not command.strip() or command.strip().lower() == "none":
         return [fail("validator_missing", "session-validator must prove the expected model actually ran")]
+    if validator_cannot_fail(command):
+        return [fail("validator_cannot_fail", "session validator cannot fail and so proves nothing")]
     command_to_run = command.replace("{session_dir}", shlex.quote(str(session_dir))).replace(
         "{expected_model}", shlex.quote(expected_model)
     )

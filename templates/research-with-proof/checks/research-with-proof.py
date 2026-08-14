@@ -85,6 +85,14 @@ def validate_proof(args: argparse.Namespace) -> list[str]:
         failures.append(fail("missing_artifact", f"{artifact} does not exist"))
     elif artifact.stat().st_size == 0:
         failures.append(fail("empty_artifact", f"{artifact} is empty"))
+    artifact_reference = rf"(?<![\w.-])(?:{re.escape(str(artifact))}|{re.escape(artifact.name)})(?![\w.-])"
+    if not re.search(artifact_reference, args.proof_command):
+        failures.append(
+            fail(
+                "artifact_not_referenced",
+                f"artifact {str(artifact)!r} is not referenced by proof command {args.proof_command!r}",
+            )
+        )
 
     text = proof_doc.read_text(encoding="utf-8", errors="replace")
     if word_count(text) > MAX_PROOF_WORDS:
