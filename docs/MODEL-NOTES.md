@@ -1510,3 +1510,22 @@ RULES:
   forbids, asserting a phrase instead of a claim, fixtures that violate the
   validator's own documented contract, and relative paths in fixture setup.
   Read the thing you are testing before writing the fixture for it.
+- 2026-08-14 — BRITTLE-CHECK-LINT (three rules distilled from the day's own
+  mistakes: long exact-phrase greps, exotic whitespace in patterns, and checks
+  that inspect .git/). Verified firing on each fault and silent on honest
+  near-misses; suite 327 green.
+  THE LANE "FAILED" AND THE WORKER WAS RIGHT ALL ALONG. My check crashed with
+  TypeError: sh() got an unexpected keyword argument 'timeout' — a kwarg
+  mismatch in MY OWN helper. Both attempts burned; Ringside showed it as the
+  worker's failure. Re-running the same check, fixed, against the worker's
+  UNTOUCHED worktree passed immediately and exported the patch.
+  THE GATE GAP THIS EXPOSES: --prove-fail cannot tell "the check correctly
+  failed" from "the check crashed" — both exit nonzero, and it reported this
+  crashing check as `proved`. Only --prove-pass distinguishes them, and I had
+  skipped known_good on that lane. But known_good is weak for CODE lanes:
+  fabricating good work there means implementing the feature, so a one-liner
+  gets a legitimate BROKEN. PRACTICAL RULE: for code lanes, before launching,
+  run the check ONCE by hand in a throwaway worktree; a crash surfaces in
+  seconds and costs nothing, and no gate currently covers it.
+  ORCHESTRATOR SCORECARD, FINAL: 7 of my checks/fixtures wrong vs ~1 genuine
+  worker defect across the day.
