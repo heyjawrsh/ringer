@@ -1410,3 +1410,24 @@ RULES:
   BROKEN. Routing note for future check-writing: declare BOTH known_bad and
   known_good on every task; the two gates together cost no tokens and catch the
   two ways a check lies.
+- 2026-08-14 — LANE-WALL run (Ringside multi-run density; 2 lanes, page lane
+  first-try, docs on attempt 2). GPT-5.6 Sol high (codex), code-feature:
+  first-try on a 1700-line vanilla-JS page — 92k tokens, 6.5m. What made it
+  work: the spec named the EXISTING mechanisms to extend ("the page already
+  stores tab and run via replaceState — extend that, do not invent a second
+  one") and listed what must not regress by selector (section.pilot-review,
+  orchestrator_alive, focus-visible). Front-end contracts land like backend
+  ones when the target is structural, not aesthetic.
+  PROVE-PASS EARNED ITS KEEP ON FIRST USE, twice, before any worker spawned:
+  (1) my known_good fabricated one long line while the check demanded three —
+  a bad simulation of good work; (2) more valuable, my check demanded the
+  literal phrase "every run" while honest prose says "every LIVE run" — an
+  over-strict assertion that would have burned two attempts and read as a model
+  failure. Both caught in seconds at zero cost. Standing rule confirmed: write
+  known_bad AND known_good for every task.
+  VISUAL VERIFICATION still found what checks could not: the census line read
+  "0 lanes need attention" directly above a failed card when nothing was live
+  (live-only counting vs a fallback run on screen). Fixed inline. Also a false
+  alarm worth remembering: ?view=lanes appeared to open the Models tab — that
+  was localStorage tab restore from my own earlier browsing, not a bug. Clear
+  or name state explicitly when testing URL restore.
