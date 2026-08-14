@@ -1446,3 +1446,29 @@ RULES:
   imagine, not every legitimate alternative a worker might produce. Where a
   convention matters (filenames, section names, CLI defaults), STATE IT IN
   THE SPEC; a gate cannot infer what you never wrote down.
+- 2026-08-14 — RED-TEAM-RINGER: pointed the red-team kit at Ringer itself, its
+  first real job. 4 lanes (2x Sol high, 2x GLM-5.2), 3 passed, 1 failed;
+  13 findings. Two verified and fixed same session: (a) P1 — repo-feature's
+  path_allowed() had a reverse-prefix branch, so a git-collapsed untracked dir
+  ("?? safe/") counted as owned whenever any owned file lived beneath it: a
+  worker could add arbitrary unowned files and PASS; (b) P2 — the red-team
+  kit's OWN check regex-matched an evidence path without opening it, so
+  "Evidence: nonexistent-file.txt" was certified "evidence-backed". The kit
+  found a false-green in itself on its first outing, which is the strongest
+  possible argument for the pattern.
+  UNFIXED, recorded for later: proof/focus-group/bakeoff validators check the
+  VALIDATOR's exit code rather than the declared artifact (a proof that never
+  ran certifies green); PASS cleanup silently force-deletes a passing task's
+  deliverable when expect_files is omitted and the file is not report.md;
+  --reset-worktrees discards uncommitted work without listing it first; CLI
+  approve/reject prints success on a dead run while the server correctly 409s.
+  TRAP WORTH REMEMBERING: the failed lane's findings directory contained my own
+  known_good FIXTURE text, harvested when --prove-pass executed the check for
+  real during gating. A gate's side effects can leave artifacts that look
+  exactly like results. Clear harvest dirs between gating and running, and read
+  every report before believing it.
+  ENGINE READ: Sol high produced the two deepest reports (real-data,
+  test-quality: 220k/215k tokens) with reproducible evidence; GLM-5.2 did well
+  on destructive-path (223k, 42m — slow but thorough) and failed the error-path
+  lane twice, never producing a report. Adversarial audit is a Sol-high task
+  type; GLM is viable on the mechanical surfaces, not the open-ended ones.
