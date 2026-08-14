@@ -1529,3 +1529,28 @@ RULES:
   seconds and costs nothing, and no gate currently covers it.
   ORCHESTRATOR SCORECARD, FINAL: 7 of my checks/fixtures wrong vs ~1 genuine
   worker defect across the day.
+- 2026-08-14 — REGISTRY-RACE + CRASHED-CHECK (the two highest-value items left
+  after the red-team audit; both Sol high, both first-try).
+  REGISTRY RACE: register/unregister_active_run did a read-modify-write on
+  active-runs.json with no cross-process serialisation. Measured before:
+  33 of 36 simultaneous registrations LOST (12 procs x 3 rounds). After:
+  0 of 64 lost under 16-way contention. The worker generalised the repo's own
+  catalog_refresh_lock into exclusive_file_lock(path, blocking=...) and used
+  non-blocking reads / blocking writes so Ringside cannot deadlock behind an
+  orchestrator. Severity note: this was cosmetic until WE shipped the dead-run
+  refusal — after that, a lost entry could block a legitimate approve and
+  strand held lanes. Fixing a display without fixing its data source can
+  upgrade a wrong pixel into a stuck run.
+  CRASHED CHECK: --prove-fail printed a TypeError traceback and reported the
+  task as `proved`, because a crash and an honest failure both exit nonzero.
+  All three gates now classify CRASHED (missing command, syntax error,
+  unhandled exception with no intentional diagnostic) and exit nonzero.
+  The hard part was the FALSE POSITIVE: checks that run unittest legitimately
+  print tracebacks, so a traceback alone must not count — the rule is "no
+  intentional diagnostic" (no test-runner summary, no FAIL:-style line), and
+  when ambiguous it returns False. Verified: crash -> CRASHED, honest failure
+  -> proved, traceback+FAILED(failures=1) -> proved.
+  SPEC TECHNIQUE THAT KEEPS WORKING: name the existing in-repo mechanism to
+  reuse ("see catalog_refresh_lock around line 3248 — REUSE THAT SHAPE") and
+  state the false-positive rule as a first-class requirement with a "when in
+  doubt return False" tiebreaker. Both lanes landed first-try on subtle work.
