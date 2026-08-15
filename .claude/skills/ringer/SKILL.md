@@ -192,6 +192,23 @@ the check's failure output.
   file already documents a feature family, a whole-file grep proves nothing —
   assert on the ADDED lines (`git diff --unified=0` on the owned path). This
   exact false-PASS shipped a broken check that `--prove-fail` then caught.
+- **Reading labels out of model prose? Accept every dress.** A label may arrive
+  plain, as a heading, bulleted, numbered, bolded or quoted. A check that reads
+  `Finding:` but not `### Finding:` will one day reject an honest report for
+  choosing the other form — this cost a real review two attempts and 45k tokens.
+  Use `assert_labeled_blocks` / `LABEL_PREFIX`, and `assert_verbatim_quotes` to
+  gate cited evidence against the source. A kit copied into another project
+  cannot import them; reproduce the pattern locally there.
+- **If the check BUILDS its fixtures, prove the fixture is broken first.** When
+  a gate composes transforms to generate a bad deliverable, assert the defect is
+  actually present before asserting the deliverable is rejected. A gate of mine
+  dressed a report and then tried to delete its `Fix:` line — the mutator did not
+  match `### Fix:`, so it handed the worker a VALID report and demanded rejection.
+  Impossible, twice, 660s. Neither `--baseline` nor `--prove-fail` can see this:
+  the check could fail and did fail, just for a reason no worker could fix.
+- **A competent engine failing twice on a mechanical task is evidence about the
+  CHECK.** Read the worker's complaint before you read it as a model weakness.
+  The note that ended that run said the fixtures were contradictory. They were.
 
 ## Gate the checks before you spend a worker
 
