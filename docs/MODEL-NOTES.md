@@ -1748,3 +1748,46 @@ RULES:
     because Chrome hangs indefinitely when given `--user-data-dir`. Three concurrent
     profile-less renders were then verified to succeed, which is what made max_parallel 3
     safe. A crashing check remains the one failure the gates cannot catch for you.
+- 2026-08-15 — RINGSIDE CONTROL-ROOM BUILD (foundation + 2 fan-out lanes, scaling the
+  owner-approved Direction A comp into the real dashboard). codex high effort. Foundation
+  logged FAIL, fan-out 2/2 PASS first try. The foundation's work was CORRECT — re-running
+  the corrected gate against its untouched worktree printed CHECK PASS with 367 tests.
+  · RINGER DEFECT — `questions_file` and `owns` are mutually incompatible. The spec told
+    the worker to write ./questions.md on a judgment call, which is Ringer's own documented
+    escape hatch; the ownership check runs `git status --untracked-files=all` against the
+    `owns` patterns with NO exemption for the configured questions file, so doing the
+    documented thing failed the lane. README says the questions file "never blocks, never
+    fails a task, and never changes a verdict." It does. Workaround: add `questions.md` to
+    every lane's `owns`. Real fix: exempt the manifest's questions_file from the ownership
+    sweep.
+  · RINGER LIMITATION — `contracts` cannot freeze a CSS vocabulary. It matches
+    `(class|def|struct|enum|interface|type|typedef|protocol|func|fn|const|let|var)\s+SYMBOL`;
+    a custom property declares none of those keywords, so listing token names as contracts
+    enforces NOTHING and fails open. For frontend fan-out the shared vocabulary is almost
+    always custom properties, which is exactly the case the feature advertises. Token
+    parity had to be enforced in the check instead.
+  · RINGER LIMITATION — `CHECK_TIMEOUT_S` is a hard-coded 60s with no per-task override. A
+    gate that renders a surface and runs the suite cannot fit, and it does not fail with a
+    useful assertion, it fails with rc=-15. My first gate timed out on BOTH lanes in
+    --baseline, which tells you nothing. Restructured to render only the surface under test
+    and run only the pinning test: 10s.
+  · BUG FOUND BY THE GATE, unrelated to the restyle: STATUS_COLORS maps running, retrying,
+    verifying and live to var(--running) — defined in neither surface. The four statuses you
+    watch while a run is in flight had no colour at all and fell back to inherited. Found by
+    a dangling-var() assertion written for a different purpose. Now a frozen token, fixed.
+  · ORCHESTRATOR FAILURES (mine, #14-#17): (14) the self-verify command in the spec omitted
+    the required --surface flag, so it exited in argparse; (15) export_patch listed 2 of the
+    foundation lane's 3 owned paths, so the design-reference fixture would have been silently
+    dropped from the patch — THE WORKER caught this in questions.md; (16) I repeated failure
+    #13 verbatim, promising "verify yourself with the exact command that will judge you" for
+    a gate that cannot run in the worker sandbox at all (Chrome exits 134, localhost binds
+    refused) — the fix I had already written down and not applied is now a --worker-preflight
+    mode running only what the sandbox permits; (17) the change-vs-baseline assertion measured
+    against the PRE-foundation render, so the inherited token diff alone scored 23% and a lane
+    could have no-op'd and passed; re-baselined against post-foundation HEAD, 0.0%.
+  · The worker's questions.md was the single most useful artifact of the round: four items,
+    three of them my bugs. RULE: read the questions file even when — especially when — the
+    lane failed. That is what it is for, and it is cheaper than any post-mortem.
+  · Sequencing worked exactly as intended: foundation ran alone, failed, and the fan-out
+    never spawned. Landing the verified foundation first, then fanning out over disjoint
+    files, produced two patches that applied cleanly with no merge work.
