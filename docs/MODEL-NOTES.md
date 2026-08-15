@@ -1822,3 +1822,22 @@ RULES:
   · Worker quality: it rendered waiting lanes as "Waiting its turn." with 0s and NO
     deliverable links, exactly as the spec's honesty rule demanded — it did not invent a
     deliverable to fill the column. Attempt 1 failed, attempt 2 passed.
+- 2026-08-15 — LANE LABEL OVERLAP (fixed inline, no worker: one CSS rule, root-caused).
+  The control-room shell restyle gave the lane status a FIXED 90px grid track, while
+  `.state` inherits white-space:nowrap from the base rule and the restyle added uppercase
+  + .08em letter-spacing. "finished & checked" measures ~155px. A grid item defaults to
+  min-width:auto, so instead of shrinking it overflowed its track and painted over the meta
+  column, on both the lane wall and the single-run lane list.
+  · WHY THE GATE MISSED IT: my shell check proved the page was a real, non-blank, changed
+    image. A pixel-diff cannot see two text nodes occupying the same pixels — the render
+    was "real" and "changed" and also broken. RULE: image-level assertions verify that a
+    surface EXISTS, never that it is CORRECT. For layout, assert geometry.
+  · WHAT VERIFIED IT PROPERLY: a real browser measuring the DOM. For every status label,
+    including the longest ("sent back — redoing"), assert (a) scrollWidth <= clientWidth and
+    (b) the element's bounding rect does not intersect any sibling cell's rect. The second
+    is the one that matters — it is a direct, mechanical statement of "does not collide",
+    which is exactly the defect. Stress-test the LONGEST possible label, not whatever
+    string the live data happens to contain: the run on screen said "working" (7 chars) and
+    looked fine.
+  · Fix: track widened to minmax(155px, auto); .state gains min-width:0, overflow:hidden,
+    text-overflow:ellipsis so a future longer label clips rather than collides.

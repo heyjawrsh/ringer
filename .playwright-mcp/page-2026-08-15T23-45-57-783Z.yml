@@ -1,0 +1,25 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e5]: Ringside
+    - time [ref=e7]: 06:45:57 PM
+  - navigation "Ringside views" [ref=e8]:
+    - button "Runs" [ref=e9] [cursor=pointer]
+    - button "Models" [ref=e10] [cursor=pointer]
+  - main [ref=e11]:
+    - region "Lane wall" [ref=e14]:
+      - group "Runs view" [ref=e16]:
+        - button "Single run" [ref=e17] [cursor=pointer]
+        - button "Lane wall" [pressed] [ref=e18] [cursor=pointer]
+      - region "Agents" [ref=e19]:
+        - region [ref=e21]:
+          - generic [ref=e22]:
+            - heading "Lane wall" [level=2] [ref=e23]
+            - status [ref=e24]: 1 swarm live · 1 lane working · 0 lanes need attention.
+          - article [ref=e26]:
+            - button "round3 in flont-friend-build, working, codex · model not reported, 5m 24s. Open single-run view." [ref=e27] [cursor=pointer]:
+              - generic [ref=e29]:
+                - generic [ref=e30]: round3
+                - generic [ref=e31]: flont-friend-build
+              - generic [ref=e32]: working
+              - generic [ref=e33]: codex · model not reported · 5m 24s
+              - generic [ref=e34]: I’m now implementing the proposal-bound review layer as a separate…
