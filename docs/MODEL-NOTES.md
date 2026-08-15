@@ -1569,3 +1569,18 @@ RULES:
   writing the spec and put the measurement in it ("4 corrupt files newest on
   disk left only 8 of 12 slots filled"). A measured target beats a described
   theory; the worker can verify against it instead of interpreting it.
+- 2026-08-15 — UNATTENDED primitives (last item from the 2026-08-11 insights
+  report). Sol high, code-feature: passed on attempt 2 — attempt 1 implemented
+  the wall-clock budget and report but let all 5 lanes run despite
+  failure_breaker=2. The check counted lanes STARTED, not just the report text,
+  which is why a half-implemented brake did not ship. GLM-5.2 docs: first-try.
+  Scope decision (Josh, 2026-08-15): Ringer gains PRIMITIVES, not a scheduler —
+  budget_wall_clock_s, failure_breaker, questions_file, RUN_REPORT.md. It still
+  runs one manifest; an orchestrating agent decides what runs next, so an
+  unattended night needs the session to stay alive. The "commit to a dedicated
+  branch, never main, never push" rule is orchestrator POLICY and lives in
+  SKILL.md, deliberately not in ringer.py — a second write path nobody watches
+  is exactly what we spent the day removing.
+  DESIGN NOTE worth keeping: unstarted tasks are reported as "not started",
+  never as failures. A morning report that calls unstarted work a failure would
+  send the human debugging something that never ran.
