@@ -1652,3 +1652,26 @@ RULES:
     verified 72 verbatim spans; no lane fabricated a citation.
   · Pilot gate earned its wall-clock: the pilot report was read before 4 more lanes spawned.
     Had the brief been wrong, it would have cost one lane instead of five.
+- 2026-08-15 — FLONT-FRIEND ARCH REVISION (1 task: repair a P0 + 3 provenance defects in a
+  714-line design doc; worktrees, owns = the one document). codex high effort, FIRST TRY,
+  296s. Task PASS, integration FAIL — and the integration failure was MINE.
+  · The lane's output was better than my own known_good skeleton in a way worth recording:
+    my fixture bound Accept to a single request-level `expectedProposalId`, which is WRONG
+    for a batch accept over many targets. The worker introduced
+    `ClassificationProposalTarget {target, proposalId}` so each target carries the proposal
+    the owner actually reviewed. Writing a known_good taught me the check was satisfiable;
+    it did NOT teach me the right design, and I should not have assumed my skeleton was it.
+  · ORCHESTRATOR FAILURE (mine, #11) — over-strict INTEGRATION gate. I reused the review
+    lane's `proof.sh` verbatim as a regression gate, but that script pins an exact schema
+    inventory ("9 CREATE TABLEs, 16 named objects"). The task's whole mandate was to ADD a
+    table, so the gate demanded the revision not do the thing I asked it to do. 20/21
+    assertions passed; the 1 failure printed `apply_ok=1`, i.e. the SQL applied fine and only
+    the count differed. FIX: assert the SUPERSET property (every originally-verified object
+    still exists, new objects reported not forbidden) instead of byte-identical inventory.
+    RULE: a regression gate built from a proof of the OLD artifact encodes the old artifact's
+    shape. Before reusing one across a change, ask which of its assertions the change is
+    supposed to invalidate — and re-express those as properties, not counts.
+  · What worked: telling the worker the exact self-verification command in the spec
+    (`python3 .../revision_check.py --repo . --baseline-doc ...`). It ran the check itself,
+    iterated to OK, and passed on attempt 1. A check that executes the artifact (applies the
+    SQL to a real sqlite) doubles as the worker's own feedback loop when you hand it over.
