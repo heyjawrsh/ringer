@@ -189,6 +189,11 @@ A check that cannot fail is trusting the worker with extra steps.
 
 `scripts/check_helpers.py` is a standard-library-only module that check scripts import (by putting the scripts directory on sys.path) to stop re-hand-rolling fragile assertions. It offers normalize, assert_section, assert_contains, assert_runs, assert_json_valid and fail. Its house rule is tolerant on format, strict on substance: section matching ignores case, markdown decoration and non-breaking spaces, while every failure prints exactly what broke — because a check's failure text is injected into the worker's retry prompt.
 
+Two more helpers exist for checks that read free-form model prose, the hardest deliverable to verify mechanically:
+
+- `assert_labeled_blocks(text, labels, values=...)` counts parallel `Label:` blocks and returns how many, so three `Finding:` lines must carry three of every other label. It reads a label written plain, as a heading, bulleted, numbered, bolded or quoted — via the `LABEL_PREFIX` pattern, which exists because a check that accepts `Finding:` but not `### Finding:` will one day reject an honest report for choosing the other dress, and you will pay for that in worker attempts.
+- `assert_verbatim_quotes(text, source_text)` is the anti-hallucination gate: every quoted span of evidence must actually appear in the document under review, whitespace- and case-normalized, with an ellipsis inside a quote matched piecewise. A model invents a plausible quotation far more easily than one that survives a verbatim lookup. Spans that match nothing are returned rather than rejected, since reports also quote proposed fixes and new code.
+
 ```python
 import sys
 sys.path.insert(0, 'scripts')
