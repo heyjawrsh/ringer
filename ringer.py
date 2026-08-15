@@ -1749,6 +1749,9 @@ class Manifest:
     pilot_wait_s: int = DEFAULT_PILOT_WAIT_S
     foundation: str = ""
     contracts: tuple[str, ...] = ()
+    budget_wall_clock_s: int | None = None
+    failure_breaker: int | None = None
+    questions_file: str = ""
 
     @classmethod
     def from_path(cls, path: Path) -> "Manifest":
@@ -1769,6 +1772,9 @@ class Manifest:
             pilot_wait_s=manifest.pilot_wait_s,
             foundation=manifest.foundation,
             contracts=manifest.contracts,
+            budget_wall_clock_s=manifest.budget_wall_clock_s,
+            failure_breaker=manifest.failure_breaker,
+            questions_file=manifest.questions_file,
             source_path=path,
         )
 
@@ -1833,6 +1839,31 @@ class Manifest:
         if not all(isinstance(item, str) for item in contracts_raw):
             raise ValueError("contracts must be a list of strings")
         contracts = tuple(contracts_raw)
+        raw_budget_wall_clock_s = obj.get("budget_wall_clock_s")
+        if raw_budget_wall_clock_s is not None and (
+            isinstance(raw_budget_wall_clock_s, bool)
+            or not isinstance(raw_budget_wall_clock_s, int)
+        ):
+            raise ValueError(
+                "budget_wall_clock_s must be an integer, "
+                f"got {type(raw_budget_wall_clock_s).__name__}"
+            )
+        if raw_budget_wall_clock_s is not None and raw_budget_wall_clock_s <= 0:
+            raise ValueError("budget_wall_clock_s must be positive")
+        raw_failure_breaker = obj.get("failure_breaker")
+        if raw_failure_breaker is not None and (
+            isinstance(raw_failure_breaker, bool)
+            or not isinstance(raw_failure_breaker, int)
+        ):
+            raise ValueError(
+                "failure_breaker must be an integer, "
+                f"got {type(raw_failure_breaker).__name__}"
+            )
+        if raw_failure_breaker is not None and raw_failure_breaker <= 0:
+            raise ValueError("failure_breaker must be positive")
+        questions_file = obj.get("questions_file", "")
+        if not isinstance(questions_file, str):
+            raise ValueError("questions_file must be a string")
         raw_pilot_wait_s = obj.get("pilot_wait_s", DEFAULT_PILOT_WAIT_S)
         if isinstance(raw_pilot_wait_s, bool) or not isinstance(raw_pilot_wait_s, int):
             raise ValueError(
@@ -1872,6 +1903,9 @@ class Manifest:
             pilot_wait_s=pilot_wait_s,
             foundation=foundation,
             contracts=contracts,
+            budget_wall_clock_s=raw_budget_wall_clock_s,
+            failure_breaker=raw_failure_breaker,
+            questions_file=questions_file,
         )
 
     def with_max_parallel(self, value: int | None) -> "Manifest":
@@ -1892,6 +1926,9 @@ class Manifest:
             pilot_wait_s=self.pilot_wait_s,
             foundation=self.foundation,
             contracts=self.contracts,
+            budget_wall_clock_s=self.budget_wall_clock_s,
+            failure_breaker=self.failure_breaker,
+            questions_file=self.questions_file,
             source_path=self.source_path,
         )
 
@@ -2517,6 +2554,7 @@ class TaskRuntime:
     last_worker_command: list[str] = field(default_factory=list)
     steering: dict[str, Any] | None = None
     violations: list[str] = field(default_factory=list)
+    questions: str | None = None
 
     def elapsed_s(self, now: float) -> float:
         if self.started_at_monotonic is None:
@@ -9530,6 +9568,7 @@ class RingerRunner:
         self.dashboard_enabled = dashboard_enabled
         self.run_id = build_run_id(manifest.run_name)
         self.started_at = datetime.now(timezone.utc)
+        self.started_at_monotonic = time.monotonic()
         self.lock = threading.RLock()
         self.runtimes = [self._task_runtime(task) for task in manifest.tasks]
         self.state_writer = StateWriter(
@@ -9558,6 +9597,8 @@ class RingerRunner:
         self.verifier = Verifier()
         self.semaphore = asyncio.Semaphore(manifest.max_parallel)
         self.active_processes: dict[int, asyncio.subprocess.Process] = {}
+        self.consecutive_failed_attempts = 0
+        self.stop_reason: str | None = None
         self.foundation_patch_path = (
             self.manifest.workdir / "foundation.patch"
         ).resolve()
@@ -9590,8 +9631,18 @@ class RingerRunner:
             with self.lock:
                 self.state_writer.integration = integration
             final_state = True
-            tasks_passed = all(runtime.status == "pass" for runtime in self.runtimes)
-            integration_passed = integration is None or integration.status == "pass"
+            tasks_passed = all(
+                runtime.status in {"pass", "not started"}
+                for runtime in self.runtimes
+            )
+            integration_passed = (
+                integration is None
+                or integration.status == "pass"
+                or (
+                    integration.status == "skipped"
+                    and not any(runtime.status == "fail" for runtime in self.runtimes)
+                )
+            )
             return 0 if tasks_passed and integration_passed else 1
         except asyncio.CancelledError:
             await self.kill_all_workers()
@@ -9606,6 +9657,8 @@ class RingerRunner:
             final_state = True
             raise
         finally:
+            if self._run_report_enabled():
+                self._write_run_report()
             if final_state:
                 self.state_writer.finish()
             self.state_writer.stop()
@@ -9621,6 +9674,152 @@ class RingerRunner:
                     results_page = artifact_live_path(self.state_writer.state_dir, self.manifest.run_name)
                     print(f"\nYour results: {results_page}")
                     print("Open it in a browser, or run './ringer.py hud' for the full Ringside view (http://127.0.0.1:8700).")
+
+    def _run_report_enabled(self) -> bool:
+        return bool(
+            self.manifest.budget_wall_clock_s is not None
+            or self.manifest.failure_breaker is not None
+            or self.manifest.questions_file
+        )
+
+    def _begin_task(self, runtime: TaskRuntime) -> bool:
+        with self.lock:
+            if self.stop_reason is not None:
+                return False
+            budget = self.manifest.budget_wall_clock_s
+            if (
+                budget is not None
+                and time.monotonic() - self.started_at_monotonic > budget
+            ):
+                self._fire_stop_locked("budget_wall_clock_s")
+                return False
+            runtime.started_at_monotonic = time.monotonic()
+            return True
+
+    def _record_attempt_outcome(self, verdict: str) -> None:
+        with self.lock:
+            if verdict == "PASS":
+                self.consecutive_failed_attempts = 0
+                return
+            self.consecutive_failed_attempts += 1
+            breaker = self.manifest.failure_breaker
+            if (
+                breaker is not None
+                and self.consecutive_failed_attempts >= breaker
+                and self.stop_reason is None
+            ):
+                self._fire_stop_locked("failure_breaker")
+
+    def _fire_stop_locked(self, reason: str) -> None:
+        self.stop_reason = reason
+        not_started = 0
+        for runtime in self.runtimes:
+            if runtime.started_at_monotonic is None and runtime.status == "queued":
+                runtime.status = "not started"
+                not_started += 1
+        print(
+            f"Stop condition fired: {reason}; "
+            f"{not_started} task(s) will not be started.",
+            flush=True,
+        )
+
+    def _harvest_questions(self, runtime: TaskRuntime) -> None:
+        if not self.manifest.questions_file:
+            return
+        path = runtime.taskdir / self.manifest.questions_file
+        try:
+            if path.is_file():
+                questions = path.read_text(encoding="utf-8", errors="replace")
+                with self.lock:
+                    runtime.questions = questions
+                    with contextlib.suppress(ValueError):
+                        runtime.harvested_paths.add(
+                            path.resolve().relative_to(runtime.taskdir.resolve()).as_posix()
+                        )
+        except Exception as exc:
+            with contextlib.suppress(Exception):
+                append_text(
+                    runtime.log_path,
+                    f"[ringer.py] questions harvest failed for {path}: {exc}\n",
+                )
+
+    def _write_run_report(self) -> None:
+        elapsed_s = max(0.0, time.monotonic() - self.started_at_monotonic)
+        passed = sum(runtime.status == "pass" for runtime in self.runtimes)
+        failed = sum(runtime.status == "fail" for runtime in self.runtimes)
+        not_started = len(self.runtimes) - passed - failed
+        known_tokens = [
+            runtime.tokens for runtime in self.runtimes if runtime.tokens is not None
+        ]
+        if self.stop_reason == "budget_wall_clock_s":
+            ended = (
+                "wall-clock budget "
+                f"(`budget_wall_clock_s={self.manifest.budget_wall_clock_s}`)"
+            )
+        elif self.stop_reason == "failure_breaker":
+            ended = (
+                "failure breaker "
+                f"(`failure_breaker={self.manifest.failure_breaker}`)"
+            )
+        else:
+            ended = "finished normally"
+        lines = [
+            "# Run report",
+            "",
+            f"- Run: `{self.manifest.run_name}`",
+            f"- Ended: {ended}",
+            "",
+            "## Totals",
+            "",
+            f"- Passed: {passed}",
+            f"- Failed: {failed}",
+            f"- Not started: {not_started}",
+            f"- Elapsed: {elapsed_s:.1f}s",
+            (
+                f"- Tokens reported: {sum(known_tokens)}"
+                if known_tokens
+                else "- Tokens reported: unknown"
+            ),
+            "",
+            "## Tasks",
+            "",
+        ]
+        for runtime in self.runtimes:
+            if runtime.status == "pass":
+                outcome = "passed"
+            elif runtime.status == "fail":
+                outcome = "failed"
+            else:
+                outcome = "not started"
+            details: list[str] = []
+            if runtime.attempts:
+                noun = "attempt" if runtime.attempts == 1 else "attempts"
+                details.append(f"{runtime.attempts} {noun}")
+            if runtime.tokens is not None:
+                details.append(f"{runtime.tokens} tokens")
+            suffix = f" ({', '.join(details)})" if details else ""
+            lines.append(f"- `{runtime.task.key}`: {outcome}{suffix}")
+        lines.extend(["", "## Questions", ""])
+        questioned = [
+            runtime for runtime in self.runtimes if runtime.questions is not None
+        ]
+        if not questioned:
+            lines.append("None.")
+        else:
+            for index, runtime in enumerate(questioned):
+                if index:
+                    lines.append("")
+                lines.extend(
+                    [
+                        f"### `{runtime.task.key}`",
+                        "",
+                        runtime.questions.rstrip() or "(empty file)",
+                    ]
+                )
+        (self.manifest.workdir / "RUN_REPORT.md").write_text(
+            "\n".join(lines) + "\n",
+            encoding="utf-8",
+        )
 
     async def _run_foundation_gate(self) -> bool:
         foundation_runtime = next(
@@ -9958,11 +10157,12 @@ class RingerRunner:
 
     async def _run_task(self, runtime: TaskRuntime) -> None:
         async with self.semaphore:
-            with self.lock:
-                runtime.started_at_monotonic = time.monotonic()
+            if not self._begin_task(runtime):
+                return
             prepared, prepare_error = await self._prepare_taskdir(runtime)
             if not prepared:
                 await self._record_prepare_error(runtime, prepare_error or "taskdir preparation failed")
+                self._harvest_questions(runtime)
                 return
             current_spec = runtime.task.spec
             max_attempts = runtime.task.max_attempts
@@ -10001,12 +10201,14 @@ class RingerRunner:
                     runtime.last_check_output = verify.raw_output_excerpt
                 duration_ms = int((time.monotonic() - attempt_started) * 1000)
                 self._log_attempt(runtime, current_spec, retrying, worker, verify, verdict, duration_ms)
+                self._record_attempt_outcome(verdict)
                 if verdict == "PASS":
                     self._harvest_deliverables_on_pass(runtime)
                     with self.lock:
                         runtime.status = "pass"
                         runtime.final_verdict = verdict
                         runtime.ended_at_monotonic = time.monotonic()
+                    self._harvest_questions(runtime)
                     if runtime.task.key not in {
                         self.manifest.pilot,
                         self.manifest.foundation,
@@ -10024,6 +10226,7 @@ class RingerRunner:
                     runtime.status = "fail"
                     runtime.final_verdict = verdict
                     runtime.ended_at_monotonic = time.monotonic()
+                self._harvest_questions(runtime)
                 return
 
     def _harvest_deliverables_on_pass(self, runtime: TaskRuntime) -> None:
@@ -10348,6 +10551,7 @@ class RingerRunner:
         )
         worker = WorkerResult(returncode=None, timed_out=False, tokens=None, error=error)
         self._log_attempt(runtime, runtime.task.spec, False, worker, verify, "ERROR", 0)
+        self._record_attempt_outcome("ERROR")
 
     async def _run_worker(self, runtime: TaskRuntime, spec: str, attempt: int) -> WorkerResult:
         log_path = runtime.log_path
@@ -12182,12 +12386,19 @@ def print_summary(run_id: str, runtimes: list[TaskRuntime]) -> None:
     print("-" * len(header))
     now = time.monotonic()
     for runtime in runtimes:
+        if runtime.status == "not started":
+            continue
         tokens = "" if runtime.tokens is None else str(runtime.tokens)
         print(
             f"{runtime.task.key:<24} {runtime.status:<8} "
             f"{(runtime.final_verdict or ''):<8} {runtime.attempts:>8} "
             f"{tokens:>10} {runtime.elapsed_s(now):>10.1f}"
         )
+    not_started = [
+        runtime.task.key for runtime in runtimes if runtime.status == "not started"
+    ]
+    if not_started:
+        print(f"not started: {', '.join(not_started)}")
     setup_failures = [r for r in runtimes if r.setup_error]
     if setup_failures:
         print("\nsetup failures (no worker was spawned):")
