@@ -2,16 +2,19 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
+import io
 import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from ringer import Manifest, TaskSpec, Verifier, lint_manifest  # noqa: E402
+from ringer import Manifest, TaskSpec, Verifier, lint_manifest, main  # noqa: E402
 
 
 LONG_SPEC = (
@@ -53,14 +56,18 @@ class LintManifestTests(unittest.TestCase):
         spec: str = LONG_SPEC,
         check: str = GOOD_CHECK,
         expect_files: list[str] | None = None,
+        known_bad: str | None = "printf 'broken\\n' > output.txt",
     ) -> dict[str, object]:
-        return {
+        task: dict[str, object] = {
             "key": key,
             "spec": spec,
             "check": check,
             "expect_files": ["output.txt"] if expect_files is None else expect_files,
             "verified": "the output file exists and contains the expected content",
         }
+        if known_bad is not None:
+            task["known_bad"] = known_bad
+        return task
 
     def assertHasFinding(self, findings: list[str], expected: str) -> None:
         self.assertIn(expected, findings, f"expected lint finding not found: {expected}\nfindings: {findings}")
@@ -431,6 +438,31 @@ class LintManifestTests(unittest.TestCase):
             ]
         )
         self.assertNotIn(finding, lint_manifest(task_path_manifest))
+
+    def test_w16_missing_known_bad(self) -> None:
+        finding = (
+            "one: no known_bad; run --prove-fail cannot cover this task, so a "
+            "broken deliverable may slip through — add a command that fabricates one."
+        )
+        manifest = self.manifest([self.task(known_bad=None)])
+        self.assertHasFinding(lint_manifest(manifest), finding)
+
+        covered_manifest = self.manifest([self.task(known_bad="rm -f output.txt")])
+        self.assertNotIn(finding, lint_manifest(covered_manifest))
+
+    def test_missing_known_bad_nudge_reports_like_every_other_finding(self) -> None:
+        # The nudge is an ordinary finding: `lint` exits 1 for ANY finding and
+        # only prints "clean" when there are none. `run` still treats findings
+        # as non-blocking warnings, which is where the teaching happens.
+        manifest = self.manifest([self.task(known_bad=None)])
+        output = io.StringIO()
+        with mock.patch.object(Manifest, "from_path", return_value=manifest):
+            with contextlib.redirect_stdout(output):
+                exit_code = main(["--no-self-update", "lint", "ringer.json"])
+
+        self.assertEqual(1, exit_code)
+        self.assertIn("lint: one: no known_bad", output.getvalue())
+        self.assertNotIn("lint: clean", output.getvalue())
 
     def test_compliant_manifest_is_clean(self) -> None:
         manifest = self.manifest(

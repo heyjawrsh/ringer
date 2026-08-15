@@ -2012,6 +2012,11 @@ def lint_manifest(
                 f"{task.key}: no 'verified' description; a reader of the results page sees "
                 "'checked' but not what the check proves — add one plain-English sentence."
             )
+        if not task.known_bad:
+            findings.append(
+                f"{task.key}: no known_bad; run --prove-fail cannot cover this task, so a "
+                "broken deliverable may slip through — add a command that fabricates one."
+            )
         if include_model_log_nudges and not task.task_type:
             findings.append(
                 f"{task.key}: no task_type; the model log buckets this as (untyped) — "

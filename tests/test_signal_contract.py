@@ -230,6 +230,7 @@ source = "fixture"
                         "model": "openrouter/x-ai/grok-4.5",
                         "spec": "Create the requested output with enough detail to satisfy the route fixture contract.",
                         "check": "test -s output.txt || { echo missing; exit 1; }",
+                        "known_bad": "printf 'broken\\n' > output.txt",
                         "expect_files": ["output.txt"],
                         "verified": "output.txt exists",
                     }
@@ -293,6 +294,7 @@ source = "fixture"
                             "model": "openrouter/x-ai/grok-4.5",
                             "spec": "Create the requested output with enough detail to satisfy the route fixture contract.",
                             "check": "test -s output.txt || { echo missing; exit 1; }",
+                            "known_bad": "printf 'broken\\n' > output.txt",
                             "expect_files": ["output.txt"],
                             "verified": "output.txt exists",
                         }
