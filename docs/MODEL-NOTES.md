@@ -1841,3 +1841,23 @@ RULES:
     looked fine.
   · Fix: track widened to minmax(155px, auto); .state gains min-width:0, overflow:hidden,
     text-overflow:ellipsis so a future longer label clips rather than collides.
+- 2026-08-15 — MODELS TAB DENSITY (fixed inline, root-caused). The scoreboard set
+  `min-width: 1500px` on a 12-column table inside an `overflow:auto` wrapper, so a 1440px
+  window ALWAYS carried a horizontal scrollbar and every column read cramped. Now under
+  1200px at control-room density; measured in a real browser as scrollWidth == clientWidth
+  (1381px) with all 21 rows present.
+  · WHY THE RESTYLE MISSED IT: the Models tab's markup AND css are injected by
+    `inject_models_tab_into_ringside_html` in ringer.py — they are not in
+    dashboard/ringside.html at all. The shell lane owned ringside.html and restyled it
+    faithfully; the tab it never saw kept the old look. RULE: before scoping a restyle by
+    FILE, find every place the surface's CSS actually lives. "The shell is one file" was an
+    assumption, and a third style block was hiding in the Python that serves it.
+  · CONFIRMED BUG, not yet fixed: the Runs/Models tab is absent from URL state. Clicking
+    Models leaves `?tab=live&view=single` in the address bar — `tab` tracks live-vs-single,
+    not runs-vs-models — so `?tab=models` can never work and the Models tab cannot be linked
+    or restored on reload.
+  · TOOLING NOTE: Playwright MCP's browser_take_screenshot writes into the MCP server's own
+    sandbox, which is not readable from the shell here. For a surface that needs interaction
+    (the Models tab requires a click, since it has no URL), geometry assertions via
+    browser_evaluate are the verification; headless-Chrome --screenshot only works for
+    surfaces reachable by URL.

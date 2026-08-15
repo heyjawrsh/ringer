@@ -1,0 +1,203 @@
+- generic [ref=f1e2]:
+  - banner [ref=f1e3]:
+    - generic [ref=f1e5]: Ringside
+    - time [ref=f1e7]: 06:53:37 PM
+  - navigation "Ringside views" [ref=f1e8]:
+    - button "Runs" [ref=f1e9] [cursor=pointer]
+    - button "Models" [ref=f1e10] [cursor=pointer]
+  - main [ref=f1e11]:
+    - region "Artifact preview" [ref=f1e14]:
+      - generic [ref=f1e15]:
+        - group "Runs view" [ref=f1e16]:
+          - button "Single run" [pressed] [ref=f1e17] [cursor=pointer]
+          - button "Lane wall" [ref=f1e18] [cursor=pointer]
+        - combobox "Artifact" [ref=f1e19]:
+          - option "● flont-friend-build — live · updated 5s ago" [selected]
+          - option "brittle-check-lint — fail · updated 1d ago"
+          - option "control-room — fail · updated 2h ago"
+          - option "control-room-live — pass · updated 1h ago"
+          - option "control-room-surfaces — pass · updated 1h ago"
+          - option "crashed-check — pass · updated 1d ago"
+          - option "dead-run-honesty — pass · updated 2d ago"
+          - option "design-directions — pass · updated 1d ago"
+          - option "dithertone-web-port — pass · updated 24d ago"
+          - option "flont_fuse-kaleidoscope-viability — pass · updated 34d ago"
+          - option "flont_fuse-milestone-1 — pass · updated 34d ago"
+          - option "flont_fuse-milestone-10 — fail · updated 34d ago"
+          - option "flont_fuse-milestone-11 — fail · updated 34d ago"
+          - option "flont_fuse-milestone-12 — pass · updated 33d ago"
+          - option "flont_fuse-milestone-13 — fail · updated 33d ago"
+          - option "flont_fuse-milestone-14 — pass · updated 33d ago"
+          - option "flont_fuse-milestone-15 — fail · updated 33d ago"
+          - option "flont_fuse-milestone-16 — pass · updated 33d ago"
+          - option "flont_fuse-milestone-17 — pass · updated 33d ago"
+          - option "flont_fuse-milestone-18 — pass · updated 33d ago"
+          - option "flont_fuse-milestone-19 — fail · updated 33d ago"
+          - option "flont_fuse-milestone-2 — pass · updated 34d ago"
+          - option "flont_fuse-milestone-20 — pass · updated 33d ago"
+          - option "flont_fuse-milestone-21 — fail · updated 33d ago"
+          - option "flont_fuse-milestone-22 — pass · updated 33d ago"
+          - option "flont_fuse-milestone-23 — fail · updated 33d ago"
+          - option "flont_fuse-milestone-3 — fail · updated 34d ago"
+          - option "flont_fuse-milestone-4 — pass · updated 34d ago"
+          - option "flont_fuse-milestone-5-ui-gate — pass · updated 34d ago"
+          - option "flont_fuse-milestone-6 — fail · updated 34d ago"
+          - option "flont_fuse-milestone-7 — pass · updated 34d ago"
+          - option "flont_fuse-milestone-8 — pass · updated 34d ago"
+          - option "flont_fuse-milestone-9 — pass · updated 34d ago"
+          - option "flont-ai — fail · updated 19d ago"
+          - option "fluffer-0to1 — pass · updated 14d ago"
+          - option "foundation-contracts — pass · updated 3d ago"
+          - option "fume-model-quotas — fail · updated 20d ago"
+          - option "fume-notch-r22 — pass · updated 19d ago"
+          - option "fume-sources-research — pass · updated 30d ago"
+          - option "fume-v1 — pass · updated 34d ago"
+          - option "fume-v2 — pass · updated 33d ago"
+          - option "fume-v3 — pass · updated 31d ago"
+          - option "fume-v5 — fail · updated 31d ago"
+          - option "fume-v5-1 — pass · updated 31d ago"
+          - option "fume-v6 — pass · updated 30d ago"
+          - option "fume-v7 — pass · updated 29d ago"
+          - option "fume-v8 — pass · updated 27d ago"
+          - option "fume-v9 — pass · updated 14d ago"
+          - option "fume-v9-prd — fail · updated 17d ago"
+          - option "gate-nudge — pass · updated 16h ago"
+          - option "headroom-ab — pass · updated 28d ago"
+          - option "headroom-integration — pass · updated 29d ago"
+          - option "integration-check — pass · updated 3d ago"
+          - option "john-0803-fixes — fail · updated 12d ago"
+          - option "kaleidoscope-deep-dive — pass · updated 33d ago"
+          - option "kimi-lanes — pass · updated 29d ago"
+          - option "label-tolerance — fail · updated 14h ago"
+          - option "lane-wall — pass · updated 1d ago"
+          - option "lint-and-helpers — pass · updated 2d ago"
+          - option "local-stack-integration — pass · updated 19d ago"
+          - option "mirror-agent-docs — pass · updated 34d ago"
+          - option "model-scoreboard — pass · updated 34d ago"
+          - option "no-silent-loss — pass · updated 1d ago"
+          - option "opencode-lanes-proof — pass · updated 34d ago"
+          - option "opencode-zai-proof — pass · updated 34d ago"
+          - option "pilot-gate — pass · updated 3d ago"
+          - option "pilot-ui-demo — died · updated 2d ago"
+          - option "portfolio-puller — fail · updated 5d ago"
+          - option "pp-cdp-message-too-long — pass · updated 2d ago"
+          - option "pr9-sanity-check — pass · updated 9d ago"
+          - option "prove-fail-mode — pass · updated 4d ago"
+          - option "prove-pass — pass · updated 2d ago"
+          - option "provenance-check — pass · updated 28d ago"
+          - option "quiet-omissions — pass · updated 1d ago"
+          - option "red-team-fixes — pass · updated 1d ago"
+          - option "red-team-kit — pass · updated 3d ago"
+          - option "red-team-ringer — fail · updated 1d ago"
+          - option "registry-race — pass · updated 1d ago"
+          - option "rerun-failed — pass · updated 2d ago"
+          - option "ringer-demo — pass · updated 34d ago"
+          - option "ringside-decisions — pass · updated 2d ago"
+          - option "ringside-design-directions — pass · updated 14h ago"
+          - option "seamless-login-port — pass · updated 11d ago"
+          - option "tool-scout — pass · updated 28d ago"
+          - option "unattended — pass · updated 17h ago"
+          - option "unified-header — fail · updated 23d ago"
+          - option "unreadable-records — pass · updated 1d ago"
+          - option "validator-guards — pass · updated 1d ago"
+          - option "wall-demo-alpha — died · updated 1d ago"
+          - option "wall-demo-bravo — fail · updated 1d ago"
+          - option "worktree-preflight — pass · updated 4d ago"
+          - option "zcm-componentization — fail · updated 24d ago"
+          - option "zcm-v4-reconciliation — pass · updated 17d ago"
+        - generic [ref=f1e20]: live — updating
+        - combobox "Artifact version" [ref=f1e21]:
+          - option "Now — live, updating" [selected]
+          - option "Round 20 — 0 passed, 1 failed · Aug 15, 05:20 PM"
+          - option "Round 19 — all 1 passed · Aug 15, 04:17 PM"
+          - option "Round 18 — all 1 passed · Aug 15, 05:08 AM"
+          - option "Round 17 — all 1 passed · Aug 15, 04:34 AM"
+          - option "Round 16 — all 1 passed · Aug 15, 04:14 AM"
+          - option "Round 15 — all 1 passed · Aug 15, 04:00 AM"
+          - option "Round 14 — all 1 passed · Aug 15, 03:33 AM"
+          - option "Round 13 — 4 passed, 1 failed · Aug 15, 03:05 AM"
+          - option "Round 12 — all 1 passed · Aug 15, 02:14 AM"
+          - option "Round 11 — 1 passed, 1 failed · Aug 12, 10:11 PM"
+          - option "Round 10 — all 1 passed · Aug 12, 08:47 PM"
+          - option "Round 9 — all 1 passed · Aug 12, 08:16 PM"
+          - option "Round 8 — all 1 passed · Aug 12, 07:59 PM"
+          - option "Round 7 — all 1 passed · Aug 12, 07:17 PM"
+          - option "Round 6 — 0 passed, 1 failed · Aug 12, 07:15 PM"
+          - option "Round 5 — all 1 passed · Aug 12, 06:53 PM"
+          - option "Round 4 — all 1 passed · Aug 12, 04:32 PM"
+          - option "Round 3 — 0 passed, 1 failed · Aug 11, 04:09 PM"
+          - option "Round 2 — all 1 passed · Aug 11, 01:00 PM"
+          - option "Round 1 — all 1 passed · Aug 10, 07:27 PM"
+        - button "Open folder" [ref=f1e22] [cursor=pointer]
+      - iframe [ref=f1e24]:
+        - generic [ref=f2e2]:
+          - banner [ref=f2e3]:
+            - generic [ref=f2e5]: Ringer · flont-friend-build · claude-opus-5-orchestrator
+            - generic [ref=f2e6]: 13m 3s elapsed
+          - heading "Ringer is working on 1 task — 1 working, started 13 minutes 3 seconds ago." [level=1] [ref=f2e7]
+          - 'img "1 tasks: 0 passed, 1 working, 0 retrying, 0 waiting, 0 failed" [ref=f2e8]':
+            - 'generic "round3: working" [ref=f2e9]'
+          - paragraph [ref=f2e10]: 1 working
+          - region [ref=f2e11]:
+            - heading "Lane key The work Status Elapsed Latest activity" [level=2] [ref=f2e12]
+            - generic "Lane status and activity. Deliverables appear here as workers finish." [ref=f2e13]:
+              - generic [ref=f2e16]:
+                - generic [ref=f2e18]: round3
+                - generic [ref=f2e19]: workingRUN
+                - generic [ref=f2e20]: 13m 3s
+                - 'generic "ran: return useMutation({" [ref=f2e21]'
+          - contentinfo [ref=f2e22]:
+            - generic [ref=f2e23]: Updated 18:53:36 CDT
+            - generic [ref=f2e24]: ·
+            - generic [ref=f2e25]: This page updates itself while the work runs.
+      - region "Agents" [ref=f1e25]:
+        - generic [ref=f1e26]:
+          - group "flont-friend-build" [ref=f1e27]:
+            - generic "▸ flont-friend-build Round 7 · claude-opus-5-orchestrator 0/1 done · 13m 04s" [ref=f1e28] [cursor=pointer]:
+              - text: ▸
+              - generic [ref=f1e30]: flont-friend-build
+              - generic [ref=f1e31]: Round 7 · claude-opus-5-orchestrator
+              - generic [ref=f1e32]: 0/1 done · 13m 04s
+            - 'img "1 workers: 0 finished, 1 working, 0 sent back, 0 waiting, 0 failed" [ref=f1e33]'
+            - article [ref=f1e36]:
+              - button "round3, working, codex, 13m 03s" [ref=f1e37] [cursor=pointer]:
+                - generic [ref=f1e38]: round3
+                - generic [ref=f1e40]: working
+                - generic [ref=f1e41]: codex · 13m 03s
+                - generic [ref=f1e42]: "ran: return useMutation({"
+          - group "flont-friend-build" [ref=f1e43]:
+            - generic "▸ flont-friend-build Round 6 · claude-opus-5-orchestrator 0 passed · 1 failed · 28m 54s" [ref=f1e44] [cursor=pointer]:
+              - text: ▸
+              - generic [ref=f1e46]: flont-friend-build
+              - generic [ref=f1e47]: Round 6 · claude-opus-5-orchestrator
+              - generic [ref=f1e48]: 0 passed · 1 failed · 28m 54s
+          - group "flont-friend-build" [ref=f1e49]:
+            - generic "▸ flont-friend-build Round 5 · claude-opus-5-orchestrator all 1 passed · 22m 47s" [ref=f1e50] [cursor=pointer]:
+              - text: ▸
+              - generic [ref=f1e52]: flont-friend-build
+              - generic [ref=f1e53]: Round 5 · claude-opus-5-orchestrator
+              - generic [ref=f1e54]: all 1 passed · 22m 47s
+          - group "flont-friend-build" [ref=f1e55]:
+            - generic "▸ flont-friend-build Round 4 · claude-opus-5-orchestrator all 1 passed · 21m 10s" [ref=f1e56] [cursor=pointer]:
+              - text: ▸
+              - generic [ref=f1e58]: flont-friend-build
+              - generic [ref=f1e59]: Round 4 · claude-opus-5-orchestrator
+              - generic [ref=f1e60]: all 1 passed · 21m 10s
+          - group "flont-friend-build" [ref=f1e61]:
+            - generic "▸ flont-friend-build Round 3 · claude-opus-5-orchestrator all 1 passed · 6m 28s" [ref=f1e62] [cursor=pointer]:
+              - text: ▸
+              - generic [ref=f1e64]: flont-friend-build
+              - generic [ref=f1e65]: Round 3 · claude-opus-5-orchestrator
+              - generic [ref=f1e66]: all 1 passed · 6m 28s
+          - group "flont-friend-build" [ref=f1e67]:
+            - generic "▸ flont-friend-build Round 2 · claude-opus-5-orchestrator all 1 passed · 5m 26s" [ref=f1e68] [cursor=pointer]:
+              - text: ▸
+              - generic [ref=f1e70]: flont-friend-build
+              - generic [ref=f1e71]: Round 2 · claude-opus-5-orchestrator
+              - generic [ref=f1e72]: all 1 passed · 5m 26s
+          - group "flont-friend-build" [ref=f1e73]:
+            - generic "▸ flont-friend-build Round 1 · claude-opus-5-orchestrator all 1 passed · 8m 01s" [ref=f1e74] [cursor=pointer]:
+              - text: ▸
+              - generic [ref=f1e76]: flont-friend-build
+              - generic [ref=f1e77]: Round 1 · claude-opus-5-orchestrator
+              - generic [ref=f1e78]: all 1 passed · 8m 01s
