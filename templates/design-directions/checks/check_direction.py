@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import pathlib
 import re
+import struct
 import sys
 
 
@@ -79,6 +80,64 @@ def divergence_is_stated(text: str) -> bool:
     return False
 
 
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+# A blank 1440x900 page renders to roughly 0.005 compressed bytes per pixel; a
+# built screen lands near 0.1. Anything under this floor is a flat image.
+MIN_IMAGE_BYTES_PER_PIXEL = 0.01
+
+
+def describe_png(path: pathlib.Path) -> tuple[int, int, int] | None:
+    """Return (width, height, compressed image bytes), or None if not a PNG."""
+    raw = path.read_bytes()
+    if not raw.startswith(PNG_SIGNATURE):
+        return None
+
+    position = len(PNG_SIGNATURE)
+    width = height = image_bytes = 0
+    while position + 8 <= len(raw):
+        (length,) = struct.unpack(">I", raw[position : position + 4])
+        kind = raw[position + 4 : position + 8]
+        if kind == b"IHDR":
+            width, height = struct.unpack(">II", raw[position + 8 : position + 16])
+        elif kind == b"IDAT":
+            image_bytes += length
+        elif kind == b"IEND":
+            break
+        position += 12 + length
+    return width, height, image_bytes
+
+
+def render_failures(path: pathlib.Path, min_width: int, min_height: int) -> list[str]:
+    """Check the render is a real image of a built screen, not a placeholder.
+
+    The deliverable of a directions round IS the image, so "the file exists and
+    is non-empty" is not a check — `echo x > direction.png` satisfies it.
+    """
+    described = describe_png(path)
+    if described is None:
+        return [
+            f"render is not a PNG file: {path}. It must be a real screenshot or exported "
+            "image of the built surface, not a placeholder or a text file named .png"
+        ]
+
+    width, height, image_bytes = described
+    failures: list[str] = []
+    if not width or not height:
+        return [f"render has no readable PNG header, so it is not a usable image: {path}"]
+    if width < min_width or height < min_height:
+        failures.append(
+            f"render is {width}x{height}, below the required {min_width}x{min_height}: {path}"
+        )
+    density = image_bytes / (width * height)
+    if density < MIN_IMAGE_BYTES_PER_PIXEL:
+        failures.append(
+            f"render looks blank: {width}x{height} compressing to {image_bytes} bytes of "
+            f"image data ({density:.4f} per pixel, floor {MIN_IMAGE_BYTES_PER_PIXEL}). A "
+            f"render of a built screen is not a flat image: {path}"
+        )
+    return failures
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -91,6 +150,12 @@ def main() -> int:
         default="notes.md",
         help="Path to notes comparing the direction with the supplied reference",
     )
+    parser.add_argument(
+        "--min-width", type=int, default=200, help="minimum render width in pixels"
+    )
+    parser.add_argument(
+        "--min-height", type=int, default=200, help="minimum render height in pixels"
+    )
     args = parser.parse_args()
 
     failures: list[str] = []
@@ -101,6 +166,8 @@ def main() -> int:
         failures.append(f"render is missing or not a file: {render_path}")
     elif render_path.stat().st_size == 0:
         failures.append(f"render is zero bytes: {render_path}")
+    else:
+        failures.extend(render_failures(render_path, args.min_width, args.min_height))
 
     notes_text = ""
     if not notes_path.is_file():

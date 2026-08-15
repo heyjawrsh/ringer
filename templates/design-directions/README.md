@@ -29,7 +29,7 @@ Use this before a visual rewrite — when a direction is still undecided and the
 
 ## Checks
 
-The kit invokes `checks/check_direction.py` per lane. It fails a missing or zero-byte render, missing or empty notes, and notes that carry no divergence statement. It is tolerant about wording and headings — strict on the two deliverables and the divergence, loose on how they are phrased.
+The kit invokes `checks/check_direction.py` per lane. It fails a missing, zero-byte, non-PNG or blank render, missing or empty notes, and notes that carry no divergence statement. The render gate reads the PNG header and compares compressed image bytes against the pixel count, so a text file named `.png` and a screenshot of an empty page are both rejected — the deliverable of this round IS the image, and "the file exists" is not a check. Use `--min-width` and `--min-height` when the surface has a size floor. It stays tolerant about wording and headings — strict on the two deliverables and the divergence, loose on how they are phrased.
 
 ## Mix with
 
