@@ -1584,3 +1584,25 @@ RULES:
   DESIGN NOTE worth keeping: unstarted tasks are reported as "not started",
   never as failures. A morning report that calls unstarted work a failure would
   send the human debugging something that never ran.
+- 2026-08-15 — GATE-NUDGE (lint nudge for tasks missing known_bad; 4 rounds).
+  FIRST REAL USE OF `foundation`: a lane added known_bad to all 38 tasks in 19
+  kits, its patch propagated to the held lanes, then the lint rule landed. That
+  worked — and taught two check rules for foundation runs:
+  (1) a lane check must stage/export ONLY its owned paths; `git add -A` in a
+  foundation run sweeps up the inherited foundation diff and would re-apply it
+  at commit time; (2) diff-based checks must use `git diff HEAD` — a previous
+  attempt's `git add -A` stages the worker's edit, so attempt 2 sees an empty
+  `git diff` and fails a CORRECT worker.
+  NEAR-MISS WORTH REMEMBERING: my repair spec said "make the nudge non-blocking
+  like its neighbours". The neighbours were NOT non-blocking — on HEAD any lint
+  finding exits 1. The worker implemented the instruction faithfully by making
+  only ERROR findings block, silently downgrading EVERY rule (silent checks,
+  write collisions, focus-stealing commands) to exit 0 while printing
+  "lint: clean" beside their own findings. Caught by testing HEAD's real
+  behaviour rather than trusting memory of it; reverted, and the worker's test
+  was retargeted to assert the true contract. LESSON: verify the premise of a
+  spec against the code before asserting it — a faithful worker will implement
+  a false premise perfectly.
+  Also: the integration_check caught both regressions the lane checks missed
+  (test_signal_contract), which is exactly the case it was built for.
+  Day tally: 9 orchestrator-side failures vs 2 genuine worker defects.
