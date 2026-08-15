@@ -1675,3 +1675,37 @@ RULES:
     (`python3 .../revision_check.py --repo . --baseline-doc ...`). It ran the check itself,
     iterated to OK, and passed on attempt 1. A check that executes the artifact (applies the
     SQL to a real sqlite) doubles as the worker's own feedback loop when you hand it over.
+- 2026-08-15 — KIT LABEL TOLERANCE (1 task: teach two shipped prose-review kits to read a
+  finding label in any Markdown dress). codex high effort, task logged FAIL after 2
+  attempts — and BOTH failures were mine. The worker's implementation was correct from
+  attempt 1; re-running my corrected check against its untouched worktree printed CHECK
+  PASS immediately.
+  · ORCHESTRATOR FAILURE (mine, #12) — dress-unaware negative fixtures. The gate renders
+    one valid report in five label dresses (plain / heading / bulleted / numbered / bolded)
+    and demands a PASS each time, then injects five defects and demands a FAIL each time.
+    I wrote `transform(dress(base, style))` — dress FIRST, then mutate. But the mutators
+    matched `^Fix\s*:`, which does not match `### Fix:`, so in four of the five dresses the
+    "defective" report was never actually damaged. The gate handed the worker a VALID
+    report and demanded it be rejected. Impossible, twice, for 660s.
+    FIX: `dress(transform(base), style)` — injure the plain text, then dress the wound.
+    RULE: when a check generates fixtures by composing transforms, assert the fixture
+    really carries the defect before asserting anything about the deliverable. One
+    3-line loop (`assert "Fix:" not in out`) would have caught this before any worker ran.
+    This is the same family as the demo-night and nemotron lessons: I keep writing checks
+    that are strict about a shape I invented rather than the substance I care about.
+  · What the gates did and did not catch: `--baseline` and `--prove-fail` both behaved
+    correctly and both PASSED their own contract, because the bug was not "the check
+    cannot fail" — it was "the check fails for a reason no worker can fix." Neither gate
+    can see that. The only thing that caught it was reading the worker's failure note,
+    which said the fixtures were contradictory. LESSON: when a competent engine fails
+    twice on a mechanical task, read its complaint as evidence about the CHECK before
+    treating it as evidence about the model.
+  · The worker beat my own mental model on an edge case: `## Finding:` is a legitimate
+    label dress, but in review-swarm it also looks like the start of the next `##` report
+    section, so extracting the Findings body would truncate. It normalises level-two
+    label headings to `###` before slicing. My fixtures only ever emitted `###` and would
+    never have found this.
+  · Field evidence that started the round: the two kits accepted MUTUALLY EXCLUSIVE label
+    forms — adversarial-review only `Finding:`, review-swarm only `### Finding:` — and
+    neither accepted bulleted, numbered or bolded. A user copying both kits into one
+    project had no single report format that satisfied them.
