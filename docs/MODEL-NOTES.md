@@ -1606,3 +1606,49 @@ RULES:
   Also: the integration_check caught both regressions the lane checks missed
   (test_signal_contract), which is exactly the case it was built for.
   Day tally: 9 orchestrator-side failures vs 2 genuine worker defects.
+
+- 2026-08-15 — FLONT-FRIEND AI-ARCHITECTURE REVIEW (5 read-only lanes over one 714-line
+  architecture doc, pilot-gated; 4/5 first-try PASS). Task type code-review.
+  · codex (GPT-5.6 Sol, `model_reasoning_effort=high` ×2, `medium` ×1) — 3/3 first try,
+    ~450–605s each. High effort earned its cost: both high lanes read the REAL existing
+    Rust (bookmarks.rs merge, inbox.rs promotion) rather than reasoning from the document,
+    and one shell-tested a UNIQUE-constraint question in sqlite3 mid-review. The medium
+    lane found the run's only P0. Notable honesty: the lifecycle lane explicitly CLEARED
+    the lock-order suspicion its own brief planted ("Tauri's injected State<'_,T> are
+    managed references, not held guards"), i.e. it reported a negative finding instead of
+    manufacturing agreement with the spec author.
+  · zai-coding-plan/glm-5.2 (opencode) — proof-carrying SQL lane, first try, 84.6k tokens,
+    740s. Best GLM showing recorded here. Asked to EXECUTE rather than reason, it wrote a
+    21-assertion POSIX proof script, hit 5 FAILs that were bugs in its OWN fixtures, fixed
+    them, re-ran to 21/21, then verified its report against a fresh re-run by diffing, and
+    independently cross-checked the key finding on a second SQLite engine (Python's 3.50.4)
+    unprompted. LESSON: GLM is materially stronger when the deliverable is an executable
+    artifact whose output it must echo, than when the deliverable is prose judgment — the
+    check "re-run the script and diff its output against the report" is what made this work.
+  · openrouter/nvidia/nemotron-3-ultra-550b-a55b:free — logged FAIL, but ZERO model fault.
+    It produced a substantive 10-finding review (14.8k chars) on an operational-reality
+    brief that the codex lanes did not cover, including a real gap the others missed: the
+    error taxonomy has no way to express a Claude subscription rate limit, so mid-run quota
+    exhaustion becomes an undiagnosable `processFailed` and the retry path re-hits the limit
+    immediately. Its weaker findings were speculative (invented token arithmetic, an
+    "auto-update" mechanism Claude Code does not use). This is the third consecutive
+    confirmation of its standing verdict: strong on read-and-compare with an explicit output
+    contract, worth its free slot. Do NOT record this FAIL as a demotion.
+  · ORCHESTRATOR FAILURE (mine, #10) — the nemotron lane failed only because my check's
+    label regex accepted `Finding:`, `- Finding:` and `**Finding:**` but not `### Finding:`.
+    The model chose a markdown heading; the check called an honest 10-finding report
+    "neither NO FINDINGS nor any Finding block". This is the SAME class as the demo-night
+    lesson already in this file — strict on format, not substance — and it cost 2 attempts
+    and 45k tokens. The gates did not catch it because my own known_good fixture wrote the
+    label form my regex already accepted. FIX APPLIED: the prefix now tolerates an optional
+    `#{1,6}` heading marker. RULE: when a check parses labels out of free-form model prose,
+    the known_good fixture must exercise EVERY plausible formatting of that label, not the
+    one you happened to write.
+  · Check design that paid off: requiring each finding's evidence to be a span appearing
+    VERBATIM in the reviewed document (whitespace-normalised, ellipsis-tolerant) — a
+    mechanical anti-hallucination gate for prose review, which is otherwise the weakest
+    thing in the tool to verify. Smoke-tested by mutating a good report's quotes into
+    plausible paraphrase: check failed and named the offending spans. Across 5 lanes it
+    verified 72 verbatim spans; no lane fabricated a citation.
+  · Pilot gate earned its wall-clock: the pilot report was read before 4 more lanes spawned.
+    Had the brief been wrong, it would have cost one lane instead of five.
