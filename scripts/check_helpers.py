@@ -93,6 +93,141 @@ def assert_contains(text: str, needle: str, *, why: str | None = None) -> None:
     )
 
 
+# A label written by a model may be plain, quoted, bulleted, numbered, bolded,
+# or promoted to a Markdown heading. Checks that hand-roll this prefix tend to
+# accept the forms their own fixture happened to use and reject the rest.
+LABEL_PREFIX = (
+    r"^[ \t]*(?:>[ \t]*)?(?:#{1,6}[ \t]*)?(?:[-*+][ \t]*)?"
+    r"(?:\d+[.)][ \t]*)?(?:\*\*|__)?"
+)
+
+
+def label_pattern(label: str) -> re.Pattern[str]:
+    """Return a pattern matching ``label:`` in any ordinary Markdown dress."""
+    return re.compile(
+        LABEL_PREFIX + rf"{re.escape(label)}(?:\*\*|__)?[ \t]*:",
+        re.I | re.M,
+    )
+
+
+def count_labels(text: str, label: str) -> int:
+    """Count tolerantly formatted ``label:`` lines in ``text``."""
+    return len(label_pattern(label).findall(text))
+
+
+def assert_labeled_blocks(
+    text: str,
+    labels: Sequence[str],
+    *,
+    min_blocks: int = 1,
+    values: dict[str, str] | None = None,
+) -> int:
+    """Assert ``text`` holds parallel ``label:`` blocks and return how many.
+
+    The first label anchors the count: if a report carries three ``Finding:``
+    lines it must carry three of every other label too. ``values`` maps a label
+    to a regex its value must match (e.g. ``{"Priority": r"P[0-3]"}``), which
+    is checked once per block.
+    """
+    if not labels:
+        fail("assert_labeled_blocks needs at least one label (check misconfigured)")
+
+    anchor = labels[0]
+    blocks = count_labels(text, anchor)
+    if blocks < min_blocks:
+        fail(
+            f"found {blocks} {anchor!r} block(s); at least {min_blocks} required. "
+            f"Every block needs all of: {', '.join(labels)}"
+        )
+
+    for label in labels[1:]:
+        found = count_labels(text, label)
+        if found < blocks:
+            fail(
+                f"{blocks} {anchor!r} block(s) but only {found} {label!r} label(s). "
+                f"Every block needs all of: {', '.join(labels)}"
+            )
+
+    for label, pattern in (values or {}).items():
+        matcher = re.compile(
+            LABEL_PREFIX + rf"{re.escape(label)}(?:\*\*|__)?[ \t]*:[ \t]*\**[ \t]*(?:{pattern})\b",
+            re.I | re.M,
+        )
+        found = len(matcher.findall(text))
+        if found < blocks:
+            fail(
+                f"{blocks} block(s) but only {found} valid {label!r} value(s); "
+                f"{label} must match {pattern}"
+            )
+
+    return blocks
+
+
+_FENCED_QUOTE_RE = re.compile(r"```[a-zA-Z0-9_+-]*\n(.*?)```", re.S)
+_INLINE_QUOTE_RE = re.compile(r"`([^`\n]+)`")
+_DOUBLE_QUOTE_RE = re.compile(r"[\"“]([^\"“”\n]+)[\"”]")
+
+
+def extract_quoted_spans(text: str, *, min_chars: int = 30) -> list[str]:
+    """Return fenced, backticked and double-quoted spans of real length."""
+    spans: list[str] = []
+    for pattern in (_FENCED_QUOTE_RE, _INLINE_QUOTE_RE, _DOUBLE_QUOTE_RE):
+        for match in pattern.finditer(text):
+            span = match.group(1).strip()
+            if len(normalize(span)) >= min_chars:
+                spans.append(span)
+    return spans
+
+
+def _span_is_verbatim(span: str, source_norm: str, min_part_chars: int) -> bool:
+    """True when the span, or every ellipsis-separated part, is in the source."""
+    parts = [part for part in re.split(r"\.\.\.|…", span) if normalize(part)]
+    if not parts:
+        return False
+    for part in parts:
+        needle = normalize(part)
+        if len(needle) < min_part_chars or needle.casefold() not in source_norm:
+            return False
+    return True
+
+
+def assert_verbatim_quotes(
+    text: str,
+    source_text: str,
+    *,
+    min_quotes: int = 3,
+    min_chars: int = 30,
+    min_part_chars: int = 20,
+) -> tuple[list[str], list[str]]:
+    """Assert quoted evidence really appears in ``source_text``.
+
+    This is the anti-hallucination gate for prose deliverables: a review can
+    invent a plausible quotation far more easily than it can invent one that
+    survives a verbatim lookup. Whitespace and letter case are normalized and
+    an ellipsis inside a quote is matched piecewise, so honest citation styles
+    still pass.
+    Returns ``(matched, unmatched)`` — unmatched spans are not a failure on
+    their own, since reports also quote proposed fixes and new code.
+    """
+    source_norm = normalize(source_text).casefold()
+    spans = extract_quoted_spans(text, min_chars=min_chars)
+    matched = [s for s in spans if _span_is_verbatim(s, source_norm, min_part_chars)]
+    unmatched = [s for s in spans if s not in matched]
+
+    if len(matched) < min_quotes:
+        detail = ""
+        if unmatched:
+            shown = "; ".join(_excerpt(span, 120) for span in unmatched[:3])
+            detail = f" Spans that were not source text: {shown}"
+        fail(
+            f"only {len(matched)} of {len(spans)} quoted span(s) appear verbatim in "
+            f"the source; at least {min_quotes} required. Evidence must quote the "
+            f"document under review, not paraphrase it or cite text that is not "
+            f"there.{detail}"
+        )
+    return matched, unmatched
+
+
 def _command_text(cmd: Sequence[str | os.PathLike[str]]) -> str:
     """Render a command safely for a diagnostic."""
     return shlex.join(os.fspath(argument) for argument in cmd)
