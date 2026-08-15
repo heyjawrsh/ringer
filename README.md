@@ -180,6 +180,8 @@ Lint now also reports:
 - a check that greps for a bare literal with no word boundary or anchor, because `grep todo` matches `mastodon` — use `grep -w` or anchor the pattern
 - a check or spec containing a command that steals window focus (`open`, `xdg-open`, `osascript ... activate`, `screencapture`, a simulator launch) — use a headless probe and write evidence to a file
 - in worktrees mode, an `expect_files` deliverable under a path ignored by the repo's .gitignore, because `git add -A` cannot stage ignored files, so the patch export silently omits it and the worktree is then deleted — have the check copy the artifact outside the worktree and verify the copy
+- a task that declares no `known_bad`, because such a task cannot be covered by `run --prove-fail` — the gate that proves a check can actually fail against a deliberately broken deliverable
+  — it is a nudge, not a refusal, and there is deliberately no matching nudge for `known_good`, because fabricating a correct deliverable is impossible for many task shapes
 
 `run` and `demo` also print any lint findings as non-blocking warnings after the manifest loads. They teach at the moment of use; they do not stop a run.
 
