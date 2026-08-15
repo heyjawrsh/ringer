@@ -9,9 +9,39 @@ from pathlib import Path
 
 MAX_WORDS = 1200
 REQUIRED_HEADINGS = ("Summary", "Findings", "Clean", "Assumptions")
-FINDING_FIELDS = ("Evidence:", "Impact:", "Fix:", "Priority:", "Confidence:")
+FINDING_FIELDS = ("Evidence", "Impact", "Fix", "Priority", "Confidence")
 OPEN_PLACEHOLDER = "{" * 2
 CLOSE_PLACEHOLDER = "}" * 2
+LABEL_PREFIX = (
+    r"^[ \t]*(?:>[ \t]*)?(?:#{1,6}[ \t]*)?(?:[-*+][ \t]*)?"
+    r"(?:\d+[.)][ \t]*)?(?:\*\*|__)?"
+)
+VALUE_DECORATION = r"[ \t]*(?:(?:\*{1,2}|_{1,2})[ \t]*)*"
+
+
+def label_pattern(label: str) -> re.Pattern[str]:
+    """Match a line-start label in ordinary Markdown dress."""
+    return re.compile(
+        LABEL_PREFIX + rf"{re.escape(label)}(?:\*\*|__)?[ \t]*:",
+        re.IGNORECASE | re.MULTILINE,
+    )
+
+
+def label_value_pattern(label: str, value: str) -> re.Pattern[str]:
+    """Match a labeled value, allowing emphasis to close after the colon."""
+    return re.compile(
+        label_pattern(label).pattern + VALUE_DECORATION + rf"(?:{value})\b",
+        re.IGNORECASE | re.MULTILINE,
+    )
+
+
+FINDING_PATTERN = label_pattern("Finding")
+ALL_LABELS = ("Finding", *FINDING_FIELDS)
+LEVEL_TWO_LABEL_PATTERN = re.compile(
+    r"^([ \t]*)##(?=[ \t]*(?:[-*+][ \t]*)?(?:\d+[.)][ \t]*)?"
+    rf"(?:\*\*|__)?(?:{'|'.join(ALL_LABELS)})(?:\*\*|__)?[ \t]*:)",
+    re.IGNORECASE | re.MULTILINE,
+)
 
 
 def fail(name: str, detail: str) -> str:
@@ -56,23 +86,37 @@ def validate_report(path: Path, surface: str) -> list[str]:
     if len(summary_lines) > 3:
         failures.append(fail("summary_too_long", "Summary must be no more than 3 non-empty lines"))
 
-    findings = section(text, "Findings")
+    # A level-two label is valid Markdown dress, but must not be mistaken for
+    # the next report section while extracting the Findings body.
+    findings_text = LEVEL_TWO_LABEL_PATTERN.sub(r"\1###", text)
+    findings = section(findings_text, "Findings")
     if not findings:
         failures.append(fail("missing_findings_body", "Findings section has no content"))
-    elif re.search(r"^###\s+Finding:", findings, re.IGNORECASE | re.MULTILINE):
-        blocks = re.split(r"(?=^###\s+Finding:)", findings, flags=re.IGNORECASE | re.MULTILINE)
-        for index, block in enumerate([item for item in blocks if item.strip()], start=1):
+    else:
+        finding_matches = list(FINDING_PATTERN.finditer(findings))
+        blocks = [
+            findings[match.start() : finding_matches[index + 1].start()]
+            if index + 1 < len(finding_matches)
+            else findings[match.start() :]
+            for index, match in enumerate(finding_matches)
+        ]
+        for index, block in enumerate(blocks, start=1):
             for field in FINDING_FIELDS:
-                if field.lower() not in block.lower():
-                    failures.append(fail("finding_missing_field", f"finding {index} is missing {field}"))
-            if "Evidence:" in block and not re.search(r"\b[\w./-]+:\d+\b", block):
+                if not label_pattern(field).search(block):
+                    failures.append(fail("finding_missing_field", f"finding {index} is missing {field}:"))
+            if label_pattern("Evidence").search(block) and not re.search(r"\b[\w./-]+:\d+\b", block):
                 failures.append(fail("finding_missing_line", f"finding {index} evidence should cite file:line"))
-            if not re.search(r"Priority:\s*P[0-3]\b", block, re.IGNORECASE):
+            if not label_value_pattern("Priority", r"P[0-3]").search(block):
                 failures.append(fail("finding_bad_priority", f"finding {index} priority must be P0, P1, P2, or P3"))
-            if not re.search(r"Confidence:\s*(high|medium|low)\b", block, re.IGNORECASE):
+            if not label_value_pattern("Confidence", r"high|medium|low").search(block):
                 failures.append(fail("finding_bad_confidence", f"finding {index} confidence must be high, medium, or low"))
-    elif "no findings" not in findings.lower():
-        failures.append(fail("findings_not_explicit", "Findings must contain at least one '### Finding:' block or say 'No findings'"))
+        if not blocks and "no findings" not in findings.lower():
+            failures.append(
+                fail(
+                    "findings_not_explicit",
+                    "Findings must contain at least one 'Finding:' block or say 'No findings'",
+                )
+            )
 
     clean = section(text, "Clean")
     if clean and len([line for line in clean.splitlines() if line.strip()]) < 1:
