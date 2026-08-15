@@ -4230,7 +4230,7 @@ ARTIFACT_BASE_CSS = """
     border: 1px solid var(--rule);
     border-top: 0;
   }
-  .work-item {
+  .work-deliverable {
     display: flex;
     align-items: center;
     gap: 7px;
@@ -4275,15 +4275,15 @@ ARTIFACT_BASE_CSS = """
   .work-group {
     position: relative;
     display: grid;
-    grid-template-columns: minmax(150px, 1.3fr) minmax(110px, .55fr) minmax(72px, .35fr) minmax(260px, 2.5fr);
+    grid-template-columns: minmax(150px, 16%) minmax(120px, 12%) minmax(96px, 9%) minmax(260px, 1fr);
     min-height: 88px;
     padding-left: var(--gutter-w);
     border-bottom: 1px solid var(--rule);
     background: var(--surface);
     counter-increment: lane-count;
   }
-  .work-group:nth-child(even) { background: var(--surface-alt); }
-  .work-group:last-child { border-bottom: 0; }
+  .work-item:nth-child(even) > .work-group { background: var(--surface-alt); }
+  .work-item:last-child > .work-group { border-bottom: 0; }
   .work-group:has(.glyph.pass) { counter-increment: lane-count pass-count; }
   .work-group:has(.glyph.fail) { counter-increment: lane-count fail-count; }
   .work-group .worker { display: contents; }
@@ -4298,7 +4298,7 @@ ARTIFACT_BASE_CSS = """
     border-left: 1px solid var(--hairline);
   }
   .work-group:has(.activity) .work-group-body { display: none; }
-  .work-group-body .work-item:not(:first-of-type) { display: none; }
+  .work-group-body .work-deliverable:not(:first-of-type) { display: none; }
   .work-group-body .empty-note { margin: 0 0 4px; }
   .work-group-body .verified {
     display: block;
@@ -4358,7 +4358,7 @@ ARTIFACT_BASE_CSS = """
     border-left: 0;
     border-radius: 0;
   }
-  .work.is-primary .work-group:last-child { border-bottom: 0; }
+  .work.is-primary .work-item:last-child > .work-group { border-bottom: 0; }
   .work.is-primary::after {
     content: "LANES " counter(lane-count, decimal-leading-zero) "  /  PASS " counter(pass-count, decimal-leading-zero) "  /  FAIL " counter(fail-count, decimal-leading-zero);
     position: absolute;
@@ -4372,7 +4372,7 @@ ARTIFACT_BASE_CSS = """
   }
   section h2 {
     display: grid;
-    grid-template-columns: minmax(150px, 1.3fr) minmax(110px, .55fr) minmax(72px, .35fr) minmax(260px, 2.5fr);
+    grid-template-columns: minmax(150px, 16%) minmax(120px, 12%) minmax(96px, 9%) minmax(260px, 1fr);
     margin: 0;
     padding: 9px 14px 9px calc(var(--gutter-w) + 14px);
     border: 1px solid var(--rule);
@@ -4703,8 +4703,8 @@ ARTIFACT_BASE_CSS = """
     .worker .proof {
       grid-column: 1 / -1;
     }
-    .work-item,
-    .work.is-primary .work-item {
+    .work-deliverable,
+    .work.is-primary .work-deliverable {
       align-items: flex-start;
       padding: 6px 0;
       border-width: 0 0 1px;
@@ -5197,6 +5197,7 @@ def render_work_section(
     force_wrappers: bool = False,
     primary: bool = False,
     finished_only: bool = False,
+    include_unfinished_details: bool = True,
 ) -> str:
     # One section carries the whole story: each worker, what it delivered,
     # how the delivery was checked, and where the raw log lives. The old
@@ -5222,10 +5223,18 @@ def render_work_section(
                 renderer=renderer,
                 page_path=page_path,
                 force_wrappers=force_wrappers,
+                include_unfinished_details=include_unfinished_details,
             )
             for task in tasks
         )
-        body = f'<div class="work-list">{groups}</div>'
+        if include_unfinished_details:
+            body = f'<div class="work-list">{groups}</div>'
+        else:
+            body = (
+                '<div class="work-list" '
+                'aria-label="Lane status and activity. Deliverables appear here as workers finish.">'
+                f"{groups}</div>"
+            )
     return f"""<section class="{section_class}" aria-labelledby="the-work-heading">
     <h2 id="the-work-heading">The work</h2>
     {body}
@@ -5239,6 +5248,7 @@ def render_work_group(
     renderer: ArtifactRenderer | None,
     page_path: Path | None,
     force_wrappers: bool = False,
+    include_unfinished_details: bool = True,
 ) -> str:
     task_key = str(task.get("key", "task"))
     key = html_escape(task_key)
@@ -5248,14 +5258,22 @@ def render_work_group(
     state_word = html_escape(task_state_word(status))
     elapsed = html_escape(fmt_compact_duration(task.get("elapsed_s")))
 
+    is_finished = bucket in {"pass", "fail"}
+    show_details = is_finished or include_unfinished_details
+    group_class = "work-group" if show_details else "work-group is-unfinished"
+    name_title = f' title="{key}"' if show_details else ""
     activity = task_activity_line(task, bucket)
+    activity_class = "activity" if show_details else "activity is-live"
     activity_html = (
-        f'<span class="activity" title="{html_escape(activity)}">{html_escape(activity)}</span>'
+        f'<span class="{activity_class}" title="{html_escape(activity)}">{html_escape(activity)}</span>'
         if activity
         else ""
     )
-
-    deliverables = [item for item in (task.get("deliverables") or []) if isinstance(item, dict)]
+    deliverables = (
+        [item for item in (task.get("deliverables") or []) if isinstance(item, dict)]
+        if show_details
+        else []
+    )
     rows = [
         render_work_item(
             item,
@@ -5296,18 +5314,22 @@ def render_work_group(
                 f"<pre>{html_escape(shorten(proof_tail, 1200))}</pre></details>"
             )
 
-    links_html = render_task_links(
-        task,
-        state=state,
-        renderer=renderer,
-        force_wrappers=force_wrappers,
-        page_path=page_path,
-    )
+    links_html = ""
+    if show_details:
+        links_html = render_task_links(
+            task,
+            state=state,
+            renderer=renderer,
+            force_wrappers=force_wrappers,
+            page_path=page_path,
+        )
+    links_block = f'<span class="links">{links_html}</span>' if show_details else ""
 
-    return f"""<div class="work-group">
+    return f"""<div class="work-item">
+    <div class="{group_class}">
       <div class="worker">
         <span class="glyph {css_bucket}" aria-hidden="true"></span>
-        <span class="name" title="{key}">{key}</span>
+        <span class="name"{name_title}>{key}</span>
         <span class="state {css_bucket}">{state_word}</span>
         <span class="time mono">{elapsed}</span>
         {activity_html}
@@ -5315,8 +5337,9 @@ def render_work_group(
       <div class="work-group-body">
         {items_html}
         {verified_html}
-        <span class="links">{links_html}</span>
+        {links_block}
       </div>
+    </div>
     </div>"""
 
 
@@ -5348,7 +5371,7 @@ def render_work_item(
                 f'<a class="work-thumb-link" href="{html_escape(href)}">'
                 f'<img class="work-thumb" src="{html_escape(thumb_src)}" alt=""></a>'
             )
-    return f"""<div class="work-item">
+    return f"""<div class="work-deliverable">
       {thumb}
       <div class="work-main">
         <a class="work-link" href="{html_escape(href)}">{html_escape(label)}</a>
@@ -5485,7 +5508,7 @@ def render_status_html(
   {render_corner_header(state, live=True)}
   <h1 id="right-now-heading" class="briefing">{briefing}</h1>
   {render_progress_bar(tasks, counts)}
-  {render_work_section(state, renderer=renderer, page_path=page_path, force_wrappers=force_wrappers, finished_only=True)}
+  {render_work_section(state, renderer=renderer, page_path=page_path, force_wrappers=force_wrappers, include_unfinished_details=False)}
   <footer>
     <span class="mono">Updated {html_escape(local_time_label())}</span>
     <span>·</span>
