@@ -1791,3 +1791,34 @@ RULES:
   · Sequencing worked exactly as intended: foundation ran alone, failed, and the fan-out
     never spawned. Landing the verified foundation first, then fanning out over disjoint
     files, produced two patches that applied cleanly with no merge work.
+- 2026-08-15 — RINGSIDE LIVE LANES + COLUMN RETUNE (1 lane, follow-up to the control-room
+  build). codex high effort, PASS on attempt 2, 832s. Two defects fixed; the gate work
+  found the real one.
+  · THE DEFECT I ALMOST MISSED BY EYEBALLING: I reported to the owner that the live view
+    "still uses the roomy sans hero". That was WRONG — the live page shares
+    ARTIFACT_BASE_CSS and had been restyled correctly. I had been looking at a screenshot
+    of a DIFFERENT run (single-task) and generalised from it. Rendering the live page from
+    a purpose-built 5-lane in-flight state showed the actual bug: render_status_html calls
+    render_work_section(finished_only=True), so the matrix listed 2 finished lanes while the
+    header and progress bar both said 5. The running lane had no row.
+    RULE: when judging a surface, render it from a state you CONSTRUCTED to exercise the
+    case, not from whatever happened to be on screen. An incidental screenshot is a sample
+    of one, and I described its accident as the surface's behaviour.
+  · CHROME HANGS ON SELF-REFRESHING PAGES. The live artifact carries
+    <meta http-equiv="refresh" content="2">, so --virtual-time-budget never drains and
+    headless Chrome never reaches the screenshot — it sat until the 200s timeout with no
+    error. Dropping the flag renders it in 3s. Any check that screenshots a live/polling
+    page must omit --virtual-time-budget.
+  · ORCHESTRATOR FAILURE (mine, #18) — a FALSE-PASS assertion, caught by --baseline. My
+    first lane-coverage assertion was `every task key appears in the live HTML`. That passes
+    on unmodified HEAD, because lane keys also appear in the progress bar's labels even when
+    the lane has no row; a no-op would have satisfied it. Re-anchored to counting the
+    `class="work-item"` row marker, HEAD correctly reported "2 lane rows for a 5-lane run".
+    RULE: presence-of-substring is not evidence of structure. Count the structural marker.
+  · ORCHESTRATOR FAILURE (mine, #19) — I added `questions.md` to the lane's `owns` to dodge
+    the questions_file/owns collision, but ALSO left it in the check's exported path list,
+    so the exported patch would have committed questions.md into the repo. Applied with
+    `git apply --exclude=questions.md`. The workaround for one defect created another.
+  · Worker quality: it rendered waiting lanes as "Waiting its turn." with 0s and NO
+    deliverable links, exactly as the spec's honesty rule demanded — it did not invent a
+    deliverable to fill the column. Attempt 1 failed, attempt 2 passed.
