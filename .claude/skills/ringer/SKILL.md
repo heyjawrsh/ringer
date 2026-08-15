@@ -295,6 +295,29 @@ structure, only the running page shows whether it reads right.
 reads `awaiting` while nothing is listening, and held lanes report ERROR with
 zero attempts. Check the process is alive before waiting on a decision.
 
+## Running a batch you will not watch
+
+Ringer is not a scheduler: it runs one manifest and YOU decide what runs next,
+so an unattended night means your session stays alive. Four run-level fields
+make such a run stop sensibly and explain itself:
+
+- **`budget_wall_clock_s`** — past the deadline no NEW task starts; running
+  tasks finish and verify normally, and unstarted tasks are reported as *not
+  started*, never as failures.
+- **`failure_breaker`** — N consecutive failed attempts stops new work. Use it.
+  The failure mode it catches is real: a broken check grinds through a whole
+  manifest burning attempts on work no model can satisfy.
+- **`questions_file`** — name a file (e.g. `questions.md`) a worker writes when
+  it hits a judgment call it should not guess at. It NEVER blocks, never fails
+  the task, never changes a verdict; the report collects them, attributed.
+- **`RUN_REPORT.md`** lands in the workdir when any of these is set: why the run
+  ended, every task including the ones that never started, totals, questions.
+
+**Policy for unattended work (Josh, 2026-08-15):** commit verified patches to a
+DEDICATED branch — never `main`, never push. The human wakes to real history
+they can diff, cherry-pick, or delete wholesale. Say in the morning summary
+which branch it is. Questions never block the night; they are read at breakfast.
+
 ## Freeze the shared vocabulary before parallel lanes
 
 Lanes over one repo collide on shared types and files. Three run-level fields
