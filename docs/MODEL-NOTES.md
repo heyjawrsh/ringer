@@ -1709,3 +1709,42 @@ RULES:
     forms — adversarial-review only `Finding:`, review-swarm only `### Finding:` — and
     neither accepted bulleted, numbered or bolded. A user copying both kits into one
     project had no single report format that satisfied them.
+- 2026-08-15 — RINGSIDE DESIGN DIRECTIONS (3 lanes, design-directions kit's FIRST real use,
+  target = Ringer's own dashboard). codex high effort ×3, 3/3 PASS first try, 437s / 743s /
+  1140s. Same engine in every lane on purpose: vary the direction, hold the model constant,
+  or the comparison is confounded. Same run fixture in every lane for the same reason.
+  · The kit worked. Three genuinely distinct directions came back — a monospace control-room
+    matrix, an editorial run report, and a status-first signal board — all rendering the
+    SAME five-lane run, so the comparison was about design rather than content. The
+    divergence-notes requirement did its job: each lane named specific departures from the
+    supplied reference (card containers to ruled matrix, proportional display face to
+    monospace, broad green bar to five discrete lane segments) instead of describing itself.
+  · KIT DEFECT FOUND BY USING IT (1): the README documented `{{PRODUCT_NAME}}` and
+    `{{DIRECTION}}`; the manifest wanted `{{PROJECT_NAME}}` and `{{DIRECTION_A/B/C}}` and
+    also `{{SCREEN_SOURCE_FILE}}` and `{{SCREEN_OR_COMPONENT}}`, which the README never
+    mentioned. Filling the kit in from its own README yields a manifest with four unfilled
+    holes and two substitutions that do nothing. Now fixed and pinned by a test that scans
+    EVERY file in a kit — placeholders also live in `prompts/`, so an audit that reads only
+    manifests reports three false drifts and misses nothing real.
+  · KIT DEFECT FOUND BY USING IT (2), the serious one: `check_direction.py` accepted ANY
+    non-empty file as the render. `echo x > direction.png` passed. For a round whose entire
+    deliverable is an image, the central assertion could not fail. Now the gate reads the
+    PNG header and weighs compressed image bytes against pixel count — a blank 1440x900
+    page compresses to ~0.0045 bytes/pixel, a built screen to ~0.1, a 20x margin. Rejects a
+    text file named .png and a screenshot of an empty page.
+    RULE: when the deliverable is an artifact rather than text, ask what the check would
+    accept if the worker were lazy in the cheapest possible way, and close THAT.
+  · ORCHESTRATOR FAILURE (mine, #13) — my spec told each lane to self-verify with "the exact
+    command that will judge you", the trick that worked so well on the flont-friend
+    revision. But headless Chrome ABORTS (exit 134) inside the worker sandbox, so no lane
+    could run the gate it was measured by. All three passed anyway — Ringer executes checks
+    outside that sandbox — but they built the most important deliverable blind. Two lanes
+    independently discovered `--no-sandbox` makes Chrome work inside the sandbox and
+    documented the deviation in their notes, which is the right behaviour and is why they
+    had renders at all. FIX for next time: put `--no-sandbox` in the canonical render
+    command. RULE: "give the worker your check" only helps if the worker's environment can
+    RUN your check. Verify that before promising it in a spec.
+  · Also caught by hand-smoking, before any worker ran: my wrapper check hung for 180s
+    because Chrome hangs indefinitely when given `--user-data-dir`. Three concurrent
+    profile-less renders were then verified to succeed, which is what made max_parallel 3
+    safe. A crashing check remains the one failure the gates cannot catch for you.
