@@ -19,11 +19,13 @@ Use this before a visual rewrite — when a direction is still undecided and the
 | `{{RUN_SLUG}}` | Stable run slug for this design-directions round. |
 | `{{WORKDIR}}` | Scratch run directory outside the repo, where session dirs and renders land. |
 | `{{KIT_DIR}}` | Absolute path to `templates/design-directions` after copying or installing this kit. |
-| `{{PRODUCT_NAME}}` | The product being explored, as the lanes name it. |
+| `{{PROJECT_NAME}}` | The product being explored, as the lanes name it. |
+| `{{SCREEN_OR_COMPONENT}}` | The ONE screen or component every lane builds. Describe it concretely enough that three lanes build the same thing. |
+| `{{SCREEN_SOURCE_FILE}}` | The source file each lane writes its built surface to, relative to the task directory (e.g. `direction.html`). |
 | `{{REFERENCE_PATH}}` | The reference (screenshot, spec, or direction) the human supplied for each lane to diverge from. |
 | `{{HOW_TO_RUN}}` | Exact command lines to build or serve each lane's screen so it produces the visual artifact. |
 | `{{BUILD_ENGINE}}` | Engine name each lane runs under to build its direction. |
-| `{{DIRECTION}}` | The distinct visual direction this lane must build one screen or component in. One per lane. |
+| `{{DIRECTION_A}}`, `{{DIRECTION_B}}`, `{{DIRECTION_C}}` | The distinct visual direction each lane must build one screen or component in. One per lane; delete a task to run fewer. |
 
 ## Checks
 
