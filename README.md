@@ -117,6 +117,9 @@ Each task gets its own directory, its own worker, its own log, and its own verdi
 | `pilot_wait_s` (run-level) | How long the paused run waits for a decision (default 1800) |
 | `foundation` (run-level) | Key of the one task that runs FIRST and alone while every other lane is held unspawned; on failure the run fails, on pass its diff is exported to `<workdir>/foundation.patch` and applied to every other lane's worktree before its worker starts (empty diff allowed). Requires worktrees; cannot combine with `pilot`; naming a missing task key is an error |
 | `contracts` (run-level) | List of symbol names no lane may redefine — an added line defining one (`class`, `def`, `struct`, `enum`, `interface`, `type`, `typedef`, `protocol`, `func`, `fn`, `const`, `let`, `var`) fails that lane with the symbol, file, and line named. The foundation task itself is exempt |
+| `budget_wall_clock_s` (run-level) | Once the run has been going longer than this, no further task is started; tasks already running finish and are verified normally, and unstarted tasks are recorded as not started rather than failed |
+| `failure_breaker` (run-level) | After this many consecutive failed attempts across the run, no further task is started — something systemic is wrong and grinding through the manifest wastes tokens; a passing attempt resets the count |
+| `questions_file` (run-level) | Names a file (e.g. `questions.md`) a worker may write when it hits a judgment call it should not guess at; Ringer harvests it — it never blocks, never fails a task, and never changes a verdict |
 
 > **Worktree footgun:** on PASS the task's worktree is removed — including anything written inside it. In worktrees mode, worker logs live outside task worktrees in `workdir/logs/`; have workers write deliverables outside the worktree too, or have your `check` copy artifacts out before it exits 0. Ringer now names the files it discards on a passing worktree, so you can declare them in `expect_files` next time — it does not change what is deleted.
 
@@ -260,6 +263,22 @@ The point: redirect after one lane, not after N — aesthetic and architectural 
 ```
 ./ringer.py approve <run_id>
 ./ringer.py reject <run_id>
+```
+
+### Unattended runs: stop sensibly, report in the morning
+
+A run you leave unattended needs two things: a reason to stop, and a record waiting for you. Three run-level fields provide both. `budget_wall_clock_s` stops the run from *starting* new tasks once the clock runs out — tasks already running finish and are verified normally, and unstarted tasks are recorded as not started rather than failed. `failure_breaker` stops new tasks after that many consecutive failed attempts across the run, because something systemic is wrong and grinding through the manifest wastes tokens; a passing attempt resets the count. `questions_file` names a file (e.g. `questions.md`) a worker may write when it hits a judgment call it should not guess at — Ringer harvests it, and it never blocks, never fails a task, and never changes a verdict.
+
+When any of these is set, Ringer writes `<workdir>/RUN_REPORT.md` at the end of the run: why the run ended (finished, budget, or breaker), every task and its outcome including the ones that never started, totals, and the harvested questions attributed to the task that raised them. With none of the fields set, behaviour is unchanged and no report is written.
+
+Ringer is not a scheduler: it still runs one manifest, and deciding what runs next is still the orchestrator's job.
+
+```json
+{
+  "budget_wall_clock_s": 3600,
+  "failure_breaker": 3,
+  "questions_file": "questions.md"
+}
 ```
 
 ### Foundation rounds: freeze the shared vocabulary first
