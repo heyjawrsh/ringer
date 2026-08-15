@@ -5738,40 +5738,52 @@ def inject_models_tab_into_ringside_html(html: str) -> str:
     .models-table-wrap { overflow: auto; }
     .models-table {
       width: 100%;
-      min-width: 1500px;
+      /* 12 columns. The old 1500px floor forced a horizontal scrollbar on a
+         1440px window, so the scoreboard was always cramped and shoved
+         sideways. Control-room density gets the same columns under 1200px,
+         which fits a laptop viewport; narrower windows still scroll. */
+      min-width: 1200px;
       border-collapse: collapse;
-      font-size: 13px;
+      font-size: 11px;
     }
     .models-table th,
     .models-table td {
-      padding: 11px 10px;
-      border-bottom: 1px solid var(--hairline);
+      padding: var(--row-pad-y) 8px;
+      border-bottom: 1px solid var(--rule);
       vertical-align: middle;
       text-align: left;
     }
     .models-table th {
       color: var(--muted);
-      font-size: 11px;
+      font-family: var(--mono);
+      font-size: 10px;
       font-weight: 700;
-      letter-spacing: .06em;
+      letter-spacing: .08em;
       text-transform: uppercase;
+      white-space: nowrap;
     }
-    .models-table .numeric { text-align: right; }
+    .models-table tbody .model-row:nth-of-type(odd) { background: var(--surface-alt); }
+    .models-table .numeric {
+      text-align: right;
+      font-family: var(--mono);
+      white-space: nowrap;
+    }
     .model-row { cursor: pointer; }
     .model-row:hover,
     .model-row.expanded { background: var(--surface); }
-    .model-name-cell { display: grid; gap: 1px; min-width: 220px; }
+    .model-name-cell { display: grid; gap: 1px; min-width: 150px; }
     .model-display { color: var(--ink); font-weight: 700; }
     .models-meta {
       color: var(--muted);
-      font-size: 12px;
+      font-family: var(--mono);
+      font-size: 10px;
     }
     .model-flag {
       color: var(--muted);
       font-size: 11px;
       text-transform: uppercase;
     }
-    .model-notes { min-width: 280px; }
+    .model-notes { min-width: 190px; color: var(--muted); }
     .tier-badge {
       display: inline-flex;
       align-items: center;
