@@ -1012,7 +1012,7 @@
     .worker-card:has(.glyph.fail) { border-left-color: var(--fail); }
     .worker-card-toggle {
       min-height: 50px;
-      grid-template-columns: minmax(170px, 1.1fr) 90px minmax(220px, 1.35fr) minmax(240px, 2fr);
+      grid-template-columns: minmax(170px, 1.1fr) minmax(155px, auto) minmax(200px, 1.25fr) minmax(240px, 2fr);
       gap: 0;
       padding: var(--row-pad-y) 14px;
       background: transparent;
@@ -1037,6 +1037,13 @@
       font-weight: 700;
       letter-spacing: .08em;
       text-transform: uppercase;
+      /* nowrap is inherited from the base rule, and a grid item defaults to
+         min-width:auto, so a label wider than its track paints over the next
+         column instead of being contained. "finished & checked" did exactly
+         that. Clip rather than collide. */
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .state.pass { color: var(--pass); }
     .state.working { color: var(--running); }
