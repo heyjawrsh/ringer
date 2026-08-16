@@ -15,3 +15,6 @@ hud/icons/icon.iconset/
 /swarm.json
 /proof-*.json
 .serena/
+
+# Playwright MCP scratch snapshots
+.playwright-mcp/
