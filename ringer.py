@@ -1751,6 +1751,7 @@ class Manifest:
     pilot_max_revisions: int = DEFAULT_PILOT_MAX_REVISIONS
     foundation: str = ""
     contracts: tuple[str, ...] = ()
+    protect_assertions: tuple[str, ...] = ()
     budget_wall_clock_s: int | None = None
     failure_breaker: int | None = None
     questions_file: str = ""
@@ -1775,6 +1776,7 @@ class Manifest:
             pilot_max_revisions=manifest.pilot_max_revisions,
             foundation=manifest.foundation,
             contracts=manifest.contracts,
+            protect_assertions=manifest.protect_assertions,
             budget_wall_clock_s=manifest.budget_wall_clock_s,
             failure_breaker=manifest.failure_breaker,
             questions_file=manifest.questions_file,
@@ -1842,6 +1844,12 @@ class Manifest:
         if not all(isinstance(item, str) for item in contracts_raw):
             raise ValueError("contracts must be a list of strings")
         contracts = tuple(contracts_raw)
+        protect_assertions_raw = obj.get("protect_assertions", [])
+        if not isinstance(protect_assertions_raw, list) or not all(
+            isinstance(item, str) for item in protect_assertions_raw
+        ):
+            raise ValueError("protect_assertions must be a list of strings")
+        protect_assertions = tuple(protect_assertions_raw)
         raw_budget_wall_clock_s = obj.get("budget_wall_clock_s")
         if raw_budget_wall_clock_s is not None and (
             isinstance(raw_budget_wall_clock_s, bool)
@@ -1920,6 +1928,7 @@ class Manifest:
             pilot_max_revisions=raw_pilot_max_revisions,
             foundation=foundation,
             contracts=contracts,
+            protect_assertions=protect_assertions,
             budget_wall_clock_s=raw_budget_wall_clock_s,
             failure_breaker=raw_failure_breaker,
             questions_file=questions_file,
@@ -1944,6 +1953,7 @@ class Manifest:
             pilot_max_revisions=self.pilot_max_revisions,
             foundation=self.foundation,
             contracts=self.contracts,
+            protect_assertions=self.protect_assertions,
             budget_wall_clock_s=self.budget_wall_clock_s,
             failure_breaker=self.failure_breaker,
             questions_file=self.questions_file,
@@ -9748,6 +9758,26 @@ def changed_paths_from_porcelain(output: bytes) -> set[str]:
     return paths
 
 
+def changed_path_statuses_from_porcelain(output: bytes) -> dict[str, str]:
+    """Return each changed path's porcelain status, preserving rename targets."""
+    statuses: dict[str, str] = {}
+    entries = output.split(b"\0")
+    index = 0
+    while index < len(entries):
+        entry = entries[index]
+        index += 1
+        if not entry:
+            continue
+        text = entry.decode("utf-8", errors="replace")
+        if len(text) < 4:
+            continue
+        status = text[:2]
+        statuses[text[3:]] = status
+        if "R" in status or "C" in status:
+            index += 1
+    return statuses
+
+
 async def inspect_worktree_changes(taskdir: Path) -> tuple[set[str], str | None]:
     try:
         proc = await asyncio.create_subprocess_exec(
@@ -9808,6 +9838,25 @@ def contract_violations_from_diff(
             continue
         else:
             new_line_number += 1
+    return violations
+
+
+def weakened_assertion_violations(path: str, diff: str) -> list[str]:
+    assertion = re.compile(
+        r"(?:^|\s)assert(?:\s|$)|"
+        r"(?:\bself\.)?\bassert[A-Z]\w*\s*\(|"
+        r"\bexpect\s*\(|"
+        r"\bXCTAssert\w*"
+    )
+    violations: list[str] = []
+    for line in diff.splitlines():
+        if not line.startswith("-") or line.startswith("---"):
+            continue
+        source = line[1:].strip()
+        if assertion.search(source):
+            violations.append(
+                f"[ringer.py] protected assertion violation: {path} removed {source}"
+            )
     return violations
 
 
@@ -10623,7 +10672,8 @@ class RingerRunner:
             self.manifest.contracts
             and runtime.task.key != self.manifest.foundation
         )
-        if not enforce_ownership and not enforce_contracts:
+        enforce_assertions = bool(self.manifest.protect_assertions)
+        if not enforce_ownership and not enforce_contracts and not enforce_assertions:
             return []
 
         status_proc = await asyncio.create_subprocess_exec(
@@ -10640,12 +10690,17 @@ class RingerRunner:
         status_stdout, _ = await status_proc.communicate()
         if status_proc.returncode != 0:
             message = status_stdout.decode("utf-8", errors="replace").strip()
-            prefix = "ownership" if enforce_ownership else "contract"
+            prefix = (
+                "ownership" if enforce_ownership else
+                "contract" if enforce_contracts else
+                "protected assertion"
+            )
             return [
                 f"[ringer.py] {prefix} violation: could not inspect changed paths: "
                 f"{message or 'git status failed'}"
             ]
         changed_paths = changed_paths_from_porcelain(status_stdout)
+        path_statuses = changed_path_statuses_from_porcelain(status_stdout)
         lane_paths = sorted(changed_paths - self.foundation_paths)
         violations: list[str] = []
         if enforce_ownership:
@@ -10666,7 +10721,7 @@ class RingerRunner:
                     + ", ".join(offending)
                 )
 
-        if not enforce_contracts:
+        if not enforce_contracts and not enforce_assertions:
             return violations
         add_proc = await asyncio.create_subprocess_exec(
             "git",
@@ -10681,7 +10736,7 @@ class RingerRunner:
         if add_proc.returncode != 0:
             message = add_stdout.decode("utf-8", errors="replace").strip()
             violations.append(
-                "[ringer.py] contract violation: could not stage changes for inspection: "
+                "[ringer.py] change guard violation: could not stage changes for inspection: "
                 f"{message or 'git add -A failed'}"
             )
             return violations
@@ -10703,18 +10758,38 @@ class RingerRunner:
             diff_stdout, _ = await diff_proc.communicate()
             if diff_proc.returncode != 0:
                 message = diff_stdout.decode("utf-8", errors="replace").strip()
+                guard = "contract" if enforce_contracts else "protected assertion"
                 violations.append(
-                    f"[ringer.py] contract violation: could not inspect {path}: "
+                    f"[ringer.py] {guard} violation: could not inspect {path}: "
                     f"{message or 'git diff failed'}"
                 )
                 continue
-            violations.extend(
-                contract_violations_from_diff(
-                    path,
-                    diff_stdout.decode("utf-8", errors="replace"),
-                    self.manifest.contracts,
+            diff = diff_stdout.decode("utf-8", errors="replace")
+            if enforce_contracts:
+                violations.extend(
+                    contract_violations_from_diff(
+                        path,
+                        diff,
+                        self.manifest.contracts,
+                    )
                 )
-            )
+            status = path_statuses.get(path, "")
+            is_added = "A" in status or "C" in status or status == "??"
+            if (
+                enforce_assertions
+                and path in path_statuses
+                and not is_added
+                and any(
+                    fnmatch.fnmatch(path, pattern)
+                    for pattern in self.manifest.protect_assertions
+                )
+            ):
+                violations.extend(
+                    weakened_assertion_violations(
+                        path,
+                        diff,
+                    )
+                )
         return violations
 
     async def _prepare_taskdir(self, runtime: TaskRuntime) -> tuple[bool, str | None]:

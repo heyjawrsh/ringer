@@ -110,6 +110,7 @@ Each task gets its own directory, its own worker, its own log, and its own verdi
 | `verified` | One plain-English sentence saying what the check proves — shown on the results page next to "finished & checked" |
 | `full_access` | Worker runs unsandboxed — required for workers that spawn their own sub-workers; must also be enabled in config |
 | `owns` | Per-task list of repo-relative paths or globs; after the worker exits and before the check runs, any changed path outside it is an ownership violation that fails the attempt — offending paths named in the failure output that reaches the retry prompt. Paths the foundation patch touched are excluded; tasks without `owns` are not checked (opt-in) |
+| `protect_assertions` (run-level) | Opt-in list of repo-relative path globs whose existing files may not lose recognizable assertions. A removed assertion fails the attempt and is quoted with its file in the retry output. Files newly added by a lane are exempt |
 | `worktrees` (run-level) | Give each task an isolated git worktree of `repo` so parallel workers can't collide |
 | `integration_check` (run-level) | Optional shell command run once after ALL tasks pass, against the combined result; nonzero fails the run |
 | `integration_timeout_s` (run-level) | Kill timer for `integration_check` (default 600) |
@@ -298,13 +299,16 @@ Parallel lanes over one repo collide on shared vocabulary — two lanes define t
 
 `owns` is a per-task list of repo-relative paths or globs. After the worker exits and before the check runs, any changed path outside that list is an ownership violation that fails the attempt, with the offending paths named in the failure output that reaches the retry prompt. Paths the foundation patch touched are excluded — a lane is never blamed for inheriting foundation output. Tasks without `owns` are not ownership-checked; it is opt-in.
 
-Both violation kinds are recorded in the run state.
+`protect_assertions` is an opt-in run-level list of repo-relative path globs. In matching files that existed at the worktree's base commit, removing a recognizable assertion fails the lane's attempt; the violation names the file and quotes the removed assertion so a retry can restore it. Newly added files are exempt, so lanes remain free to create new tests. Recognized forms include bare `assert` statements, `assertX(...)` and `self.assertX(...)` calls, `expect(...)`, and `XCTAssert` calls.
+
+Ownership, contract, and protected-assertion violations are recorded in the run state.
 
 ```json
 {
   "worktrees": true,
   "foundation": "schema",
   "contracts": ["User", "Order", "Repository"],
+  "protect_assertions": ["tests/**"],
   "tasks": [
     { "key": "schema", "spec": "Define the shared types.", "check": "pytest -q test_schema.py", "owns": ["src/schema/**"] },
     { "key": "api", "spec": "Build the API on the shared types.", "check": "pytest -q test_api.py", "owns": ["src/api/**"] }
