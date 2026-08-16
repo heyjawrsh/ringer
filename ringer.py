@@ -5763,6 +5763,19 @@ def inject_models_tab_into_ringside_html(html: str) -> str:
       white-space: nowrap;
     }
     .models-table tbody .model-row:nth-of-type(odd) { background: var(--surface-alt); }
+    /* Every column except notes holds one atomic value — a lab, a harness, a
+       date. Letting them wrap made "OpenRouter API" and "July 18, 2026" break
+       across two lines while notes hogged the width. Keep them on one line and
+       give the freed space to notes, which is the only cell that wants it. */
+    .models-table td { white-space: nowrap; }
+    .models-table td.model-notes {
+      white-space: normal;
+      /* Cap at a readable measure rather than a narrow one: the atomic columns
+         no longer stretch, so notes takes the remainder, and a wider notes cell
+         means FEWER lines and shorter rows. 90ch is about the limit before long
+         line length hurts reading. */
+      max-width: 90ch;
+    }
     .models-table .numeric {
       text-align: right;
       font-family: var(--mono);
@@ -5783,7 +5796,7 @@ def inject_models_tab_into_ringside_html(html: str) -> str:
       font-size: 11px;
       text-transform: uppercase;
     }
-    .model-notes { min-width: 190px; color: var(--muted); }
+    .model-notes { min-width: 190px; color: var(--muted); line-height: 1.5; }
     .tier-badge {
       display: inline-flex;
       align-items: center;
