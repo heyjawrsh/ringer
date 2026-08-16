@@ -705,8 +705,33 @@ when picking the `model` field. Ringer's config can only pin ONE default
   `git diff --unified=0` on `tests/` and fail on a deleted `assert`. A green
   suite proves nothing about a lane that is allowed to edit the suite.
   Related: the 2026-08-13 lesson about a worker rewriting a `check` command to
-  make its own output lint clean. Same shape — when the measurement is inside the
-  worker's blast radius, the worker will move the measurement.
+  make its own output lint clean, and the dotfiles Phase 5 entry directly below.
+  Same shape — when the measurement is inside the worker's blast radius, the
+  worker will move the measurement.
+
+- 2026-08-16 (dotfiles Phase 5) — EXECUTED CHECKS PROVE THE CONTRACT, NOT THE
+  PRODUCT. Three lanes passed strong checks (prove-fail AND prove-pass green,
+  merged-tree verification green), and running the deliverables for real
+  immediately found two defects no check had asked about:
+  (1) audit.sh walked gitignored trees and emitted 276 warnings in 100+ seconds
+      — 265 of them from cache/uv and state/mise. Every assertion I wrote was
+      about correctness (does it catch X, does it name the path); none was about
+      whether a human could READ the output. Fixed by reading broken symlinks
+      from the git index: 11 warnings, 0.15s.
+  (2) the pre-commit hook passed a PEM pattern beginning '-----BEGIN' straight to
+      grep, which parsed it as options, so the private-key rule silently never
+      ran. My check tested a ghp_ token and a .bak name — both of which worked —
+      so the gate was green while one rule was dead. `grep -e "$pattern" --`.
+  RULE: after a lane passes, RUN the thing in its real context before committing.
+  A check verifies the contract you thought to write down; usability, output
+  volume, and rules the fixture never exercised are invisible to it. This is the
+  same lesson as the 2026-08-16 models-table note (image assertions prove a
+  surface exists, not that it is good), arriving from the shell side.
+  · Corollary that DID work: worker honesty was good. The audit lane hit a spec
+    conflict (two pre-existing tracked .lock files vs 'must exit 0 on a clean
+    tree') and resolved it with a narrow, commented two-path exemption leaving
+    every other state path an error — visible and easy to review, rather than
+    quietly weakening the rule. I removed the exemption by fixing the two files.
 
 - 2026-08-16 (dotfiles-architecture r1/r2) — A RE-RUN THAT REUSES THE WORKDIR
   DESTROYS THE FAILING MODEL'S RAW LOG. Re-running `structure-cruft` on codex
@@ -1699,7 +1724,7 @@ RULES:
     "auto-update" mechanism Claude Code does not use). This is the third consecutive
     confirmation of its standing verdict: strong on read-and-compare with an explicit output
     contract, worth its free slot. Do NOT record this FAIL as a demotion.
-  · ORCHESTRATOR FAILURE (mine, #10) — the nemotron lane failed only because my check's
+  · ORCHESTRATOR FAILURE (mine — check-side, format strictness) — the nemotron lane failed only because my check's
     label regex accepted `Finding:`, `- Finding:` and `**Finding:**` but not `### Finding:`.
     The model chose a markdown heading; the check called an honest 10-finding report
     "neither NO FINDINGS nor any Finding block". This is the SAME class as the demo-night
@@ -1726,7 +1751,7 @@ RULES:
     `ClassificationProposalTarget {target, proposalId}` so each target carries the proposal
     the owner actually reviewed. Writing a known_good taught me the check was satisfiable;
     it did NOT teach me the right design, and I should not have assumed my skeleton was it.
-  · ORCHESTRATOR FAILURE (mine, #11) — over-strict INTEGRATION gate. I reused the review
+  · ORCHESTRATOR FAILURE (mine — gate-side, stale regression baseline) — over-strict INTEGRATION gate. I reused the review
     lane's `proof.sh` verbatim as a regression gate, but that script pins an exact schema
     inventory ("9 CREATE TABLEs, 16 named objects"). The task's whole mandate was to ADD a
     table, so the gate demanded the revision not do the thing I asked it to do. 20/21
@@ -1960,3 +1985,55 @@ RULES:
     exists and fits. They cannot see collision (the lane label), cramping (this), or
     hierarchy. A human glance found both defects my gates passed. Machine checks are for
     "did it render, is it coherent, did it change" — not "is it good".
+
+- 2026-08-15/16 — FLONT-FRIEND PHASE 2, the whole build (9 further runs: three
+  architecture-revision lanes, implementation Rounds 0-4, one fix lane). codex
+  high effort throughout, one GLM proof lane. 8 of 9 passed first try; the ninth
+  passed on attempt 2. ZERO runs failed on bad model output. Every failure in
+  the phase was a defect in MY check. That ratio is the entry.
+  · Four checks I wrote were IMPOSSIBLE to satisfy, each in a different way:
+    (1) parsed `cargo test -- --list` with `split(":")[0]`, but Rust paths use
+    `::`, so every name collapsed to its first segment and a module filter
+    matched nothing; (2) hard-coded a shared CARGO_TARGET_DIR that the worker
+    sandbox cannot write to, so the check could never pass from inside a lane —
+    this failed a round outright and wasted a build in another; (3) set an
+    ownership boundary (`src/lib/**`) for a round whose wire change necessarily
+    broke a React component the lane was forbidden to touch; (4) demanded a
+    proof script written for the OLD artifact keep passing across a change that
+    was explicitly asked to add a table. RULE: after writing a check, ask what
+    the task is supposed to CHANGE, and confirm the check permits exactly that.
+  · One check nearly false-PASSED: hazard coverage asserted on test NAMES, but
+    the repo already had tests matching those words for unrelated features
+    (`bulk_delete_requires_trash_and_prune` satisfied "no orphan"). Scoping the
+    match to the feature's own module fixed it. Same family as the "greps must
+    survive a repo that already says the words" rule, one level up: it applies
+    to test names, not just file contents.
+  · WORKER BEHAVIOUR WORTH CREDITING. Three separate lanes diagnosed my broken
+    check precisely in `questions.md`, proposed the exact fix, and REFUSED to
+    work around it — one even declined to edit a file it did not own or weaken a
+    wire contract to make a build pass, and said so. A fourth disclosed the
+    workaround it had been forced into, which is why it was safe to strip. The
+    spec line that earned this: "if a check seems impossible to satisfy
+    honestly, STOP and write the contradiction to questions.md rather than
+    working around it." Use it verbatim; it converts a silent creative
+    satisfaction into a bug report.
+  · THE REAL MISS, and it is not about models. Every check I built verified the
+    Rust backend rigorously — executing migrations against a copy of the owner's
+    real 2,818-bookmark database, parsing the JSON schema as data, enumerating
+    test names to force concurrency coverage — and verified the UI only by "does
+    it compile". Four rounds passed clean and the app hung on the first click.
+    The repo turned out to hold ELEVEN frontend test files with 86 cases and NO
+    test runner wired: they had never executed once, needed zero dependencies
+    (`node:test`), and one of them caught a real regression the moment it ran.
+    RULE: before trusting a check suite, ask which layer it cannot see, and
+    check whether the repo already contains dead tests for that layer.
+  · Technique worth reusing: a StrictMode-only React bug was reproduced HEADLESS
+    by driving TanStack's `MutationObserver` directly — subscribe, mutate,
+    unsubscribe, resubscribe, resolve — with no DOM and no new dependency. When
+    a UI bug is really a lifecycle bug, the lifecycle is usually testable alone.
+  · Diagnosis order that worked on a hung GUI, cheapest first: read the app's
+    captured stdout for a panic; `sample <pid>` the live process (all threads
+    parked with zero app frames ruled out deadlock AND slow queries in one
+    shot); check CPU across WebKit processes (ruled out a render loop); read the
+    webview console. Only then read code. I inverted this at first and burned
+    several turns on hypotheses that measurement killed in seconds.
