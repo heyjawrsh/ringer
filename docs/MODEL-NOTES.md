@@ -612,6 +612,25 @@ when picking the `model` field. Ringer's config can only pin ONE default
 
 ## north-mini-code (via opencode, `openrouter/cohere/north-mini-code:free`)
 
+- 2026-08-15 — AUDITION #4 FAILED, BOTH ATTEMPTS (exploration slot, $0 — free).
+  research, open-ended AUDIT lane (dotfiles structure/cruft: classify config vs
+  machine state across four large tracked dirs, test README/install.sh against the
+  real tree, write a 6-finding report to its own `report.md`). Attempt 1: 284s,
+  43.6k tokens, no deliverable. Attempt 2: 696s, 43.7k tokens, and a 141-char file
+  — three lines (`CHECK FAIL: report.md is 141 chars; that is not a report`).
+  981s / 87k is the lane TOTAL across both attempts, not either attempt alone.
+  It explored continuously and never budgeted for writing; the log showed it
+  reasoning about being "blocked" from writing when nothing blocked it, then
+  discovering `echo >> report.md` far too late. The check was sound: all four
+  lanes ran the same `checks/scout.py` with different args, and the three
+  siblings passed it. Re-run on codex medium: PASS attempt 1, 383s, 133k tokens,
+  10 findings, 1456 words.
+  DEMOTION — the pattern across four auditions is now consistent: this model is
+  reliable on STANDALONE-ARTIFACT lanes where the spec supplies the content and it
+  only has to transcribe (types contract, dither matrices, sourced dataset), and it
+  fails OPEN-ENDED lanes where it must decide what to investigate and when to stop.
+  Do not give it discovery, audit, or judgment work. Don't re-run this experiment.
+
 - 2026-08-06 — AUDITION #3 PASSED (exploration slot, $0 — free). research, mechanical
   dataset lane (portfolio-puller device profiles: 20 entries x 8 mandatory keys + a
   cited report, two owned files, own task dir): PASS attempt 1. Sourced from Playwright's
@@ -669,6 +688,33 @@ when picking the `model` field. Ringer's config can only pin ONE default
   group lesson).
 
 ## Process lessons (cross-model)
+
+- 2026-08-16 (dotfiles-architecture r1/r2) — A RE-RUN THAT REUSES THE WORKDIR
+  DESTROYS THE FAILING MODEL'S RAW LOG. Re-running `structure-cruft` on codex
+  under a new run_name but the SAME scratchpad workdir truncated
+  `work/structure-cruft/worker.log` — the file now begins with codex's attempt 1,
+  and north-mini-code's two attempts are gone from disk. Post-mortems depend on
+  that log, and the re-run is exactly when you want it. What survived: the run
+  JSON's `log_tail` snapshot, and `ringer.db`'s `attempts` table (per-attempt
+  duration, tokens, verdict). Two consequences: (1) when a lane fails and you
+  intend to re-run it on another engine, copy the log aside FIRST, or give the
+  re-run its own workdir; (2) per-attempt numbers belong in `ringer.db`, not the
+  run JSON — the JSON's `elapsed_s`/`tokens` are lane TOTALS, and reading them as
+  a single attempt is how this file got three wrong numbers (corrected above).
+
+- 2026-08-15 (dotfiles-architecture r1) — A CHECK THAT VERIFIES CITED PATHS MUST
+  ACCEPT EVERY HONEST CITATION FORM. My scout check stripped a trailing `:12` from
+  a backticked path so `config/_rc/zshrc:335` would resolve — but not rg's native
+  `path:12:matched text`, so an honest `` `.gitignore:8:private/` `` was reported as
+  a fabricated path and cost GLM-5.2 a retry on work that was correct. Same gate
+  also flagged `VAR_API_KEY_A/B/C` (a slash-separated enumeration) as a missing
+  path. Two fixes, both cheap: strip `:\d+(:.*)?$`, and only apply the strict
+  existence gate when the token's FIRST SEGMENT already exists under the base —
+  which keeps `config/invented/fake.json` failing while letting prose through.
+  This is the sibling of the existing "accept every dress" label lesson: verbatim
+  gates must model the tool output workers actually paste, not the one form the
+  fixture happened to use. `--prove-fail`/`--prove-pass` could not catch it; only
+  a real worker's honest output did.
 
 - 2026-07-20 (DitherTone web port) — TWO lessons:
   (1) `expect_files` MUST list files, never a directory. A task whose check
