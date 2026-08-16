@@ -6002,7 +6002,21 @@ def inject_models_tab_into_ringside_html(html: str) -> str:
         modelsPanel.hidden = activeView !== "models";
         runsTab.setAttribute("aria-selected", String(activeView === "runs"));
         modelsTab.setAttribute("aria-selected", String(activeView === "models"));
-        if (persist) localStorage.setItem(VIEW_KEY, activeView);
+        if (persist) {
+          localStorage.setItem(VIEW_KEY, activeView);
+          // `tab` already means live-vs-artifacts, so the Runs/Models nav gets
+          // its own param. Without this the Models tab had no URL at all: it
+          // could not be linked and did not survive a reload.
+          const params = new URLSearchParams(window.location.search);
+          if (activeView === "models") params.set("panel", "models");
+          else params.delete("panel");
+          const search = params.toString();
+          window.history.replaceState(
+            window.history.state,
+            "",
+            `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`
+          );
+        }
         if (activeView === "models") fetchModels(true);
       }
 
@@ -6027,7 +6041,13 @@ def inject_models_tab_into_ringside_html(html: str) -> str:
       setInterval(() => {
         if (activeView === "models") fetchModels(false);
       }, MODELS_REFRESH_MS);
-      selectView(localStorage.getItem(VIEW_KEY) === "models" ? "models" : "runs", false);
+      const urlPanel = new URLSearchParams(window.location.search).get("panel");
+      selectView(
+        urlPanel === "models" || urlPanel === "runs"
+          ? urlPanel
+          : (localStorage.getItem(VIEW_KEY) === "models" ? "models" : "runs"),
+        false
+      );
     }
 
 """
