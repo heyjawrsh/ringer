@@ -60,6 +60,7 @@ class PilotDecisionEndpointTests(unittest.TestCase):
         *,
         run_id: str = "pilot-run",
         decision: str = "approve",
+        note: str | None = None,
         origin: str | None = None,
         host: str | None = None,
     ) -> tuple[int, dict[str, object]]:
@@ -70,17 +71,27 @@ class PilotDecisionEndpointTests(unittest.TestCase):
             headers["Origin"] = origin
         if host is not None:
             headers["Host"] = host
-        body = json.dumps({"run_id": run_id, "decision": decision})
+        request_payload = {"run_id": run_id, "decision": decision}
+        if note is not None:
+            request_payload["note"] = note
+        body = json.dumps(request_payload)
         conn.request(method, "/api/pilot/decision", body=body, headers=headers)
         response = conn.getresponse()
         raw = response.read()
         payload = json.loads(raw.decode("utf-8")) if raw else {}
         return response.status, payload
 
-    def assert_decision_file(self, path: Path, expected: str) -> None:
+    def assert_decision_file(
+        self, path: Path, expected: str, *, note: str | None = None
+    ) -> None:
         payload = json.loads(path.read_text(encoding="utf-8"))
-        self.assertEqual({"decision", "decided_at"}, set(payload))
+        expected_keys = {"decision", "decided_at"}
+        if note is not None:
+            expected_keys.add("note")
+        self.assertEqual(expected_keys, set(payload))
         self.assertEqual(expected, payload["decision"])
+        if note is not None:
+            self.assertEqual(note, payload["note"])
         decided_at = datetime.fromisoformat(payload["decided_at"])
         self.assertIsNotNone(decided_at.tzinfo)
 
@@ -94,7 +105,7 @@ class PilotDecisionEndpointTests(unittest.TestCase):
         )
 
         self.assertEqual(200, status)
-        self.assertEqual("approve-run", payload["run_id"])
+        self.assertTrue(payload["ok"])
         self.assertEqual("approve", payload["decision"])
         self.assert_decision_file(decision_file, "approve")
 

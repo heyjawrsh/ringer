@@ -57,6 +57,7 @@ DEFAULT_ENGINE_NAME = "codex"
 DEFAULT_TIMEOUT_S = 900
 DEFAULT_INTEGRATION_TIMEOUT_S = 600
 DEFAULT_PILOT_WAIT_S = 1800
+DEFAULT_PILOT_MAX_REVISIONS = 3
 CHECK_TIMEOUT_S = 60
 RERUN_CONTEXT_LIMIT = 2000
 DEFAULT_DASHBOARD_PORT_BASE = 8787
@@ -1747,6 +1748,7 @@ class Manifest:
     source_path: Path | None = None
     pilot: str = ""
     pilot_wait_s: int = DEFAULT_PILOT_WAIT_S
+    pilot_max_revisions: int = DEFAULT_PILOT_MAX_REVISIONS
     foundation: str = ""
     contracts: tuple[str, ...] = ()
     budget_wall_clock_s: int | None = None
@@ -1770,6 +1772,7 @@ class Manifest:
             integration_timeout_s=manifest.integration_timeout_s,
             pilot=manifest.pilot,
             pilot_wait_s=manifest.pilot_wait_s,
+            pilot_max_revisions=manifest.pilot_max_revisions,
             foundation=manifest.foundation,
             contracts=manifest.contracts,
             budget_wall_clock_s=manifest.budget_wall_clock_s,
@@ -1873,6 +1876,19 @@ class Manifest:
         pilot_wait_s = raw_pilot_wait_s
         if pilot_wait_s <= 0:
             raise ValueError("pilot_wait_s must be positive")
+        raw_pilot_max_revisions = obj.get(
+            "pilot_max_revisions", DEFAULT_PILOT_MAX_REVISIONS
+        )
+        if (
+            isinstance(raw_pilot_max_revisions, bool)
+            or not isinstance(raw_pilot_max_revisions, int)
+        ):
+            raise ValueError(
+                "pilot_max_revisions must be an integer, "
+                f"got {type(raw_pilot_max_revisions).__name__}"
+            )
+        if raw_pilot_max_revisions < 0:
+            raise ValueError("pilot_max_revisions must be non-negative")
         worktrees = bool(obj.get("worktrees", False))
         if foundation and (not worktrees or repo is None):
             raise ValueError(
@@ -1901,6 +1917,7 @@ class Manifest:
             integration_timeout_s=integration_timeout_s,
             pilot=pilot,
             pilot_wait_s=pilot_wait_s,
+            pilot_max_revisions=raw_pilot_max_revisions,
             foundation=foundation,
             contracts=contracts,
             budget_wall_clock_s=raw_budget_wall_clock_s,
@@ -1924,6 +1941,7 @@ class Manifest:
             integration_timeout_s=self.integration_timeout_s,
             pilot=self.pilot,
             pilot_wait_s=self.pilot_wait_s,
+            pilot_max_revisions=self.pilot_max_revisions,
             foundation=self.foundation,
             contracts=self.contracts,
             budget_wall_clock_s=self.budget_wall_clock_s,
@@ -6236,10 +6254,13 @@ def record_pilot_decision(
     run_id: str,
     decision: str,
     *,
+    note: str | None = None,
     active_runs: dict[str, dict[str, Any]] | None = None,
 ) -> None:
-    if not isinstance(decision, str) or decision not in {"approve", "reject"}:
-        raise PilotDecisionError("invalid", "decision must be approve or reject")
+    if not isinstance(decision, str) or decision not in {"approve", "reject", "revise"}:
+        raise PilotDecisionError("invalid", "decision must be approve, reject, or revise")
+    if decision == "revise" and (not isinstance(note, str) or not note.strip()):
+        raise PilotDecisionError("invalid", "a non-empty note is required to revise")
     state_path = run_state_path_for_id(state_dir, run_id)
     if state_path is None or not state_path.is_file():
         raise PilotDecisionError("unknown", f"unknown run_id: {run_id}")
@@ -6266,18 +6287,21 @@ def record_pilot_decision(
         raise PilotDecisionError(
             "invalid", f"run {run_id} has no pilot decision-file path"
         )
-    atomic_write_json(
-        Path(decision_file),
-        {"decision": decision, "decided_at": utc_now_iso()},
-    )
+    payload = {"decision": decision, "decided_at": utc_now_iso()}
+    if decision == "revise":
+        payload["note"] = note.strip()
+    atomic_write_json(Path(decision_file), payload)
 
 
-def write_pilot_decision(config: AppConfig, run_id: str, decision: str) -> int:
+def write_pilot_decision(
+    config: AppConfig, run_id: str, decision: str, *, note: str | None = None
+) -> int:
     try:
         record_pilot_decision(
             config.state_dir,
             run_id,
             decision,
+            note=note,
             active_runs=read_active_runs(),
         )
     except PilotDecisionError as exc:
@@ -6550,15 +6574,25 @@ class PersistentHudServer:
                     return
                 run_id = payload.get("run_id")
                 decision = payload.get("decision")
+                note = payload.get("note")
                 if (
                     not isinstance(run_id, str)
                     or not run_id
                     or not isinstance(decision, str)
-                    or decision not in {"approve", "reject"}
+                    or decision not in {"approve", "reject", "revise"}
                 ):
                     send_json_response(
                         self,
-                        {"error": "run_id and an approve or reject decision are required"},
+                        {"error": "run_id and an approve, reject, or revise decision are required"},
+                        status=HTTPStatus.BAD_REQUEST,
+                    )
+                    return
+                if decision == "revise" and (
+                    not isinstance(note, str) or not note.strip()
+                ):
+                    send_json_response(
+                        self,
+                        {"error": "a non-empty note is required to revise"},
                         status=HTTPStatus.BAD_REQUEST,
                     )
                     return
@@ -6567,6 +6601,7 @@ class PersistentHudServer:
                         state_dir,
                         run_id,
                         decision,
+                        note=note,
                         active_runs=read_active_runs(),
                     )
                 except PilotDecisionError as exc:
@@ -6586,7 +6621,7 @@ class PersistentHudServer:
                     return
                 send_json_response(
                     self,
-                    {"run_id": run_id, "decision": decision},
+                    {"ok": True, "decision": decision},
                 )
 
             def log_message(self, _format: str, *_args: Any) -> None:
@@ -10157,33 +10192,77 @@ class RingerRunner:
                     "since": utc_now_iso(),
                     "wait_s": self.manifest.pilot_wait_s,
                     "decision_file": str(self.pilot_decision_path),
+                    "revisions": 0,
+                    "last_note": "",
                 }
             self.state_writer.flush()
             print(f"Pilot '{pilot_runtime.task.key}' passed.")
             print(f"Run {self.run_id} is awaiting pilot review.")
             print(f"./ringer.py approve {self.run_id}")
             print(f"./ringer.py reject {self.run_id}")
+            print(f"./ringer.py revise {self.run_id} --note \"<changes>\"")
 
-            decision = await self._wait_for_pilot_decision()
-            with self.lock:
-                assert self.state_writer.pilot is not None
-                self.state_writer.pilot["status"] = decision
-            self.state_writer.flush()
-            if decision == "approved":
-                await self._cleanup_worktree_on_pass(pilot_runtime)
-                release.set()
-                await asyncio.gather(*held_tasks)
-                return True
-            if decision == "rejected":
-                print(
-                    f"Pilot run rejected; {held_count} held lane(s) were never started."
-                )
-            else:
-                print(
-                    f"Pilot review timed out after {self.manifest.pilot_wait_s}s; "
-                    f"{held_count} held lane(s) were never started."
-                )
-            return False
+            while True:
+                decision, note = await self._wait_for_pilot_decision()
+                if decision == "revise":
+                    assert note is not None
+                    with self.lock:
+                        assert self.state_writer.pilot is not None
+                        revisions = int(self.state_writer.pilot["revisions"])
+                        self.state_writer.pilot["last_note"] = note
+                    if revisions >= self.manifest.pilot_max_revisions:
+                        with self.lock:
+                            self.state_writer.pilot["status"] = "revision-limit"
+                        self.state_writer.flush()
+                        print(
+                            "Pilot revision limit "
+                            f"{self.manifest.pilot_max_revisions} reached after "
+                            f"{revisions} completed revision(s); {held_count} held "
+                            "lane(s) were never started."
+                        )
+                        return False
+                    with contextlib.suppress(FileNotFoundError):
+                        self.pilot_decision_path.unlink()
+                    await self._run_task(
+                        pilot_runtime,
+                        revision_note=note,
+                        prepare_taskdir=False,
+                    )
+                    if pilot_runtime.status != "pass":
+                        print(
+                            f"Pilot '{pilot_runtime.task.key}' failed during revision; "
+                            f"{held_count} held lane(s) were never started."
+                        )
+                        return False
+                    with self.lock:
+                        self.state_writer.pilot["revisions"] = revisions + 1
+                        self.state_writer.pilot["status"] = "awaiting"
+                        self.state_writer.pilot["since"] = utc_now_iso()
+                    self.state_writer.flush()
+                    print(
+                        f"Pilot revision {revisions + 1} passed; run {self.run_id} "
+                        "is awaiting pilot review again."
+                    )
+                    continue
+                with self.lock:
+                    assert self.state_writer.pilot is not None
+                    self.state_writer.pilot["status"] = decision
+                self.state_writer.flush()
+                if decision == "approved":
+                    await self._cleanup_worktree_on_pass(pilot_runtime)
+                    release.set()
+                    await asyncio.gather(*held_tasks)
+                    return True
+                if decision == "rejected":
+                    print(
+                        f"Pilot run rejected; {held_count} held lane(s) were never started."
+                    )
+                else:
+                    print(
+                        f"Pilot review timed out after {self.manifest.pilot_wait_s}s; "
+                        f"{held_count} held lane(s) were never started."
+                    )
+                return False
         finally:
             if not release.is_set():
                 for task in held_tasks:
@@ -10198,7 +10277,7 @@ class RingerRunner:
         await release.wait()
         await self._run_task(runtime)
 
-    async def _wait_for_pilot_decision(self) -> str:
+    async def _wait_for_pilot_decision(self) -> tuple[str, str | None]:
         deadline = time.monotonic() + self.manifest.pilot_wait_s
         while True:
             try:
@@ -10208,12 +10287,15 @@ class RingerRunner:
             if isinstance(payload, dict):
                 decision = payload.get("decision")
                 if decision == "approve":
-                    return "approved"
+                    return "approved", None
                 if decision == "reject":
-                    return "rejected"
+                    return "rejected", None
+                note = payload.get("note")
+                if decision == "revise" and isinstance(note, str) and note.strip():
+                    return "revise", note.strip()
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                return "timeout"
+                return "timeout", None
             await asyncio.sleep(min(1.0, remaining))
 
     async def _run_integration_check(self) -> IntegrationResult | None:
@@ -10378,16 +10460,28 @@ class RingerRunner:
             if proc.returncode is None:
                 kill_process_group(proc)
 
-    async def _run_task(self, runtime: TaskRuntime) -> None:
+    async def _run_task(
+        self,
+        runtime: TaskRuntime,
+        *,
+        revision_note: str | None = None,
+        prepare_taskdir: bool = True,
+    ) -> None:
         async with self.semaphore:
             if not self._begin_task(runtime):
                 return
-            prepared, prepare_error = await self._prepare_taskdir(runtime)
+            prepared, prepare_error = (
+                await self._prepare_taskdir(runtime)
+                if prepare_taskdir
+                else (True, None)
+            )
             if not prepared:
                 await self._record_prepare_error(runtime, prepare_error or "taskdir preparation failed")
                 self._harvest_questions(runtime)
                 return
             current_spec = runtime.task.spec
+            if revision_note is not None:
+                current_spec = build_retry_spec(runtime.task.spec, revision_note)
             max_attempts = runtime.task.max_attempts
             for attempt in range(1, max_attempts + 1):
                 retrying = attempt > 1
@@ -10440,10 +10534,7 @@ class RingerRunner:
                     return
                 if attempt < max_attempts and verdict in {"FAIL", "TIMEOUT"}:
                     failure_context = build_failure_context(runtime.log_path, verify.raw_output_excerpt)
-                    current_spec = (
-                        f"{runtime.task.spec}\n\n"
-                        f"Previous attempt failed: {failure_context}. Fix it."
-                    )
+                    current_spec = build_retry_spec(runtime.task.spec, failure_context)
                     continue
                 with self.lock:
                     runtime.status = "fail"
@@ -11791,6 +11882,13 @@ def build_failure_context(log_path: Path, raw_check_output: str) -> str:
     if len(context) > 6000:
         return context[-6000:]
     return context
+
+
+def build_retry_spec(original_spec: str, failure_context: str) -> str:
+    return (
+        f"{original_spec}\n\n"
+        f"Previous attempt failed: {failure_context}. Fix it."
+    )
 
 
 def shorten(value: str, limit: int) -> str:
@@ -13425,7 +13523,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="append the previous check failure output to failed task specs",
     )
 
-    for decision in ("approve", "reject"):
+    for decision in ("approve", "reject", "revise"):
         decision_parser = subparsers.add_parser(
             decision,
             help=f"{decision} a run awaiting pilot review",
@@ -13437,6 +13535,12 @@ def build_parser() -> argparse.ArgumentParser:
             default=argparse.SUPPRESS,
             help=argparse.SUPPRESS,
         )
+        if decision == "revise":
+            decision_parser.add_argument(
+                "--note",
+                required=True,
+                help="non-empty note describing the requested pilot changes",
+            )
 
     ask_parser = subparsers.add_parser(
         "ask",
@@ -13712,8 +13816,14 @@ def main(argv: list[str] | None = None) -> int:
                 output_path=args.output,
                 with_context=args.with_context,
             )
-        if args.command in {"approve", "reject"}:
-            return write_pilot_decision(config, args.run_id, args.command)
+        if args.command in {"approve", "reject", "revise"}:
+            note = getattr(args, "note", None)
+            if args.command == "revise" and (not isinstance(note, str) or not note.strip()):
+                print("ringer.py: error: revise requires a non-empty --note", file=sys.stderr)
+                return 2
+            return write_pilot_decision(
+                config, args.run_id, args.command, note=note
+            )
         if args.command == "db":
             return run_db_command(config, args)
         if args.command == "models":

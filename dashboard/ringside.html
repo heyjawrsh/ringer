@@ -953,6 +953,62 @@
       font-size: 10px;
       text-transform: uppercase;
     }
+    .pilot-banner {
+      border-bottom: 1px solid var(--rule);
+      background: var(--surface);
+    }
+    .pilot-queue-shell {
+      display: grid;
+      grid-template-columns: minmax(190px, 250px) minmax(0, 1fr) minmax(220px, 280px);
+      min-height: 190px;
+    }
+    .pilot-queue {
+      padding: 14px;
+      border-right: 1px solid var(--rule);
+      background: var(--ground);
+    }
+    .pilot-queue-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .pilot-queue-title { margin: 0; color: var(--ink); font: 700 11px/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    .pilot-queue-count {
+      min-width: 24px; padding: 1px 6px; border: 1px solid #c18a32; color: #e4ad52;
+      font: 700 10px/1.5 var(--mono); text-align: center;
+    }
+    .pilot-queue-list { display: grid; gap: 5px; margin: 12px 0 0; padding: 0; list-style: none; }
+    .pilot-queue-item { width: 100%; padding: 8px; border: 1px solid var(--hairline); background: transparent; color: var(--muted); text-align: left; }
+    .pilot-queue-item:hover { border-color: #c18a32; }
+    .pilot-queue-item[aria-current="true"] { border-color: #c18a32; background: rgba(193, 138, 50, .08); color: var(--ink); }
+    .pilot-queue-run, .pilot-queue-meta { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 10px/1.5 var(--mono); }
+    .pilot-queue-run { font-weight: 700; }
+    .pilot-queue-meta { color: var(--muted); }
+    .pilot-queue-empty { margin: 14px 0 0; color: var(--muted); font: 10px/1.55 var(--mono); }
+    .pilot-review {
+      display: contents;
+    }
+    .pilot-review-main { min-width: 0; padding: 14px 18px; border-left: var(--gutter-w) solid #c18a32; }
+    .pilot-review.abandoned .pilot-review-main { border-left-color: var(--waiting); }
+    .pilot-review-title { color: #e4ad52; }
+    .pilot-evidence { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+    .pilot-evidence-item { min-width: 0; padding: 8px 10px; border: 1px solid var(--hairline); background: var(--ground); }
+    .pilot-evidence-label { display: block; margin-bottom: 3px; color: var(--muted); font: 9px/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    .pilot-evidence-value { display: block; overflow-wrap: anywhere; color: var(--ink); font: 10px/1.5 var(--mono); }
+    .pilot-evidence-value.pass { color: var(--pass); }
+    .pilot-last-note { grid-column: 1 / -1; border-left: 2px solid #c18a32; }
+    .pilot-clear { padding: 14px; border-left: 1px solid var(--rule); background: var(--surface-alt); }
+    .pilot-clear-title { margin: 0 0 10px; color: var(--muted); font: 700 9px/1.4 var(--mono); letter-spacing: .09em; text-transform: uppercase; }
+    .pilot-note-label { display: block; margin: 12px 0 5px; color: #e4ad52; font: 700 10px/1.4 var(--mono); }
+    .pilot-note {
+      width: 100%; min-height: 76px; resize: vertical; padding: 8px; border: 1px solid #c18a32;
+      border-radius: 0; background: var(--ground); color: var(--ink); font: 11px/1.5 var(--mono);
+    }
+    .pilot-note:focus-visible { outline: 2px solid #e4ad52; outline-offset: 2px; }
+    .pilot-actions { display: grid; gap: 7px; }
+    .pilot-actions button { width: 100%; min-height: 32px; }
+    .pilot-actions .approve { border-color: var(--pass); background: var(--pass); color: var(--ground); }
+    .pilot-actions .revise { border: 1px solid #c18a32; color: #e4ad52; }
+    .pilot-actions .reject { border: 0; color: var(--fail); font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
+    .pilot-decision-status.revise { color: #e4ad52; }
+    .pilot-timeout { color: var(--fail); }
+    .pilot-empty-workspace { grid-column: 2 / -1; display: grid; place-content: center; padding: 24px; color: var(--muted); font: 10px/1.6 var(--mono); }
 
     .agents { margin-top: 0; background: var(--ground); }
     .run {
@@ -1133,6 +1189,8 @@
         grid-template-columns: minmax(140px, 1fr) 82px minmax(190px, 1.3fr);
       }
       .worker-card .activity { grid-column: 1 / -1; padding-top: 5px; }
+      .pilot-queue-shell { grid-template-columns: 190px minmax(0, 1fr); }
+      .pilot-clear { grid-column: 2; border-top: 1px solid var(--rule); }
     }
     @media (max-width: 640px) {
       .artifact-tools { grid-template-columns: 1fr 1fr; }
@@ -1147,6 +1205,11 @@
       .worker-card .meta,
       .worker-card .activity { grid-column: 1 / -1; padding: 0; }
       .frame-wrap iframe { min-height: 58vh; }
+      .pilot-queue-shell { display: block; }
+      .pilot-queue { border-right: 0; border-bottom: 1px solid var(--rule); }
+      .pilot-queue-list { display: flex; overflow-x: auto; }
+      .pilot-queue-list li { min-width: 180px; }
+      .pilot-clear { border-left: 0; border-top: 1px solid var(--rule); }
     }
   </style>
 </head>
@@ -1169,7 +1232,7 @@
     <main>
       <section id="artifacts-panel" class="panel">
         <div class="artifact-layout">
-          <div id="pilot-banner" class="pilot-banner"></div>
+          <div id="pilot-banner" class="pilot-banner" aria-label="Pilot review queue"></div>
           <section class="artifact-main" aria-label="Artifact preview">
             <div class="artifact-tools">
               <div id="view-switch" class="view-switch" role="group" aria-label="Runs view">
@@ -1226,7 +1289,8 @@
       runOpen: {},
       focusedRunId: queryRun,
       restoreRunFromUrl: Boolean(queryRun),
-      pilotDecisions: new Map()
+      pilotDecisions: new Map(),
+      pilotNotes: new Map()
     };
 
     const els = {
@@ -1672,7 +1736,7 @@
       state.rendering = false;
     }
 
-    function focusRun(runIdValue) {
+    function focusRun(runIdValue, scrollToRun = true) {
       const run = state.runs.find(item => item.__id === runIdValue);
       if (!run) return;
       state.view = "single";
@@ -1690,6 +1754,7 @@
       renderArtifactControls();
       renderLive();
       loadArtifactFrame(true);
+      if (!scrollToRun) return;
       requestAnimationFrame(() => requestAnimationFrame(() => {
         const target = [...els.runs.querySelectorAll("details.run")]
           .find(section => section.dataset.key === run.__id);
@@ -1706,19 +1771,30 @@
     function renderPilotReview(run) {
       const pilot = run.pilot;
       const pilotTask = String(pilot.task || "unknown");
+      const task = run.tasks.find((item, index) => taskKey(item, index) === pilotTask) || null;
       const heldCount = run.tasks.filter((task, index) => taskKey(task, index) !== pilotTask).length;
       const since = parseTime(pilot.since);
       const waitedSeconds = since ? Math.max(0, (Date.now() - since) / 1000) : 0;
       const waiting = since ? (waitedSeconds < 1 ? "0s" : formatDuration(waitedSeconds)) : "unknown";
-      const decisionState = state.pilotDecisions.get(run.__id) || {};
+      const waitLimit = numberOrZero(pilot.wait_s) || 1800;
+      const timedOut = waitedSeconds >= waitLimit;
+      const revisions = Math.max(0, Math.floor(numberOrZero(pilot.revisions)));
+      let decisionState = state.pilotDecisions.get(run.__id) || {};
+      if (decisionState.result === "revise" && revisions > numberOrZero(decisionState.revisions)) {
+        state.pilotDecisions.delete(run.__id);
+        decisionState = {};
+      }
       const inFlight = Boolean(decisionState.inFlight);
-      const recorded = decisionState.result === "approve" || decisionState.result === "reject";
+      const recorded = Boolean(decisionState.result);
       const abandoned = run.orchestrator_alive === false;
 
       const block = document.createElement("section");
-      block.className = "pilot-review";
+      block.className = `pilot-review${abandoned ? " abandoned" : ""}`;
       block.dataset.key = `pilot-review:${run.__id}`;
       block.setAttribute("aria-label", abandoned ? "Pilot review abandoned" : "Pilot decision required");
+
+      const main = document.createElement("div");
+      main.className = "pilot-review-main";
 
       const head = document.createElement("div");
       head.className = "pilot-review-head";
@@ -1728,27 +1804,94 @@
       const facts = document.createElement("span");
       facts.className = "pilot-review-facts mono";
       facts.textContent = abandoned
-        ? `Pilot ${pilotTask} · ${heldCount} lane${heldCount === 1 ? " was" : "s were"} held · orchestrator exited`
-        : `Pilot ${pilotTask} · ${heldCount} lane${heldCount === 1 ? "" : "s"} held · waiting ${waiting}`;
+        ? `Pilot ${pilotTask} · revision ${revisions} · orchestrator exited`
+        : `Pilot ${pilotTask} · revision ${revisions} · waiting ${waiting} of ${formatDuration(waitLimit)}`;
       head.append(title, facts);
-      block.appendChild(head);
+      main.appendChild(head);
 
       const copy = document.createElement("p");
       copy.className = "pilot-review-copy";
       copy.textContent = abandoned
         ? "The run's orchestrator exited and the decision can no longer be delivered."
-        : "Approve to release the held lanes, or reject to end this run.";
-      block.appendChild(copy);
+        : `Review the pilot deliverable and evidence, then clear this item. ${heldCount} lane${heldCount === 1 ? " is" : "s are"} held.`;
+      main.appendChild(copy);
+
+      const evidence = document.createElement("div");
+      evidence.className = "pilot-evidence";
+      const evidenceItem = (labelText, valueText, className = "") => {
+        const item = document.createElement("div");
+        item.className = "pilot-evidence-item";
+        const label = document.createElement("span");
+        label.className = "pilot-evidence-label";
+        label.textContent = labelText;
+        const value = document.createElement("span");
+        value.className = `pilot-evidence-value${className ? ` ${className}` : ""}`;
+        value.textContent = valueText;
+        item.append(label, value);
+        return item;
+      };
+      evidence.append(
+        evidenceItem("Deliverable", pilotTask),
+        evidenceItem("Check", task ? `${taskStateText(taskKind(task))} · ${String(task.check || "No check recorded")}` : "Pilot task not found", task && taskKind(task) === "pass" ? "pass" : ""),
+        evidenceItem("Latest evidence", task ? (taskActivity(task) || String(task.output || task.result || "No evidence summary recorded")) : "No evidence recorded")
+      );
+      const lastNote = String(pilot.last_note || "").trim();
+      if (lastNote) {
+        const note = evidenceItem("Previous request", lastNote);
+        note.classList.add("pilot-last-note");
+        evidence.appendChild(note);
+      }
+      if (timedOut) {
+        const timeout = evidenceItem("Review window", `Timed out after ${formatDuration(waitLimit)}`);
+        timeout.querySelector(".pilot-evidence-value").classList.add("pilot-timeout");
+        evidence.appendChild(timeout);
+      }
+      main.appendChild(evidence);
+      block.appendChild(main);
+
+      const clear = document.createElement("aside");
+      clear.className = "pilot-clear";
+      clear.setAttribute("aria-label", "Clear this review item");
+      const clearTitle = document.createElement("h3");
+      clearTitle.className = "pilot-clear-title";
+      clearTitle.textContent = "Clear this item";
+      clear.appendChild(clearTitle);
 
       const actions = document.createElement("div");
       actions.className = "pilot-actions";
       const approve = document.createElement("button");
       approve.type = "button";
       approve.className = "approve";
-      approve.textContent = inFlight && decisionState.decision === "approve" ? "Approving…" : "Approve";
+      approve.textContent = inFlight && decisionState.decision === "approve" ? "Approving…" : `Approve & release ${heldCount} lane${heldCount === 1 ? "" : "s"}`;
       approve.setAttribute("aria-label", `Approve pilot task ${pilotTask} and release held lanes`);
       approve.disabled = abandoned || inFlight || recorded;
       approve.addEventListener("click", () => submitPilotDecision(run, "approve"));
+      actions.appendChild(approve);
+
+      const noteLabel = document.createElement("label");
+      noteLabel.className = "pilot-note-label";
+      noteLabel.htmlFor = `pilot-note-${run.__id}`;
+      noteLabel.textContent = "Request changes note";
+      const note = document.createElement("textarea");
+      note.className = "pilot-note";
+      note.id = `pilot-note-${run.__id}`;
+      note.dataset.key = `pilot-note:${run.__id}`;
+      note.placeholder = "What should the pilot change?";
+      note.value = state.pilotNotes.get(run.__id) || "";
+      note.disabled = abandoned || inFlight || recorded;
+      const revise = document.createElement("button");
+      revise.type = "button";
+      revise.className = "revise";
+      revise.textContent = inFlight && decisionState.decision === "revise" ? "Sending note…" : "Send note & re-run pilot";
+      revise.setAttribute("aria-label", `Send changes note and re-run pilot task ${pilotTask}`);
+      revise.disabled = abandoned || inFlight || recorded || !note.value.trim();
+      note.addEventListener("input", () => {
+        state.pilotNotes.set(run.__id, note.value);
+        revise.disabled = abandoned || inFlight || recorded || !note.value.trim();
+      });
+      revise.addEventListener("click", () => submitPilotDecision(run, "revise", note.value));
+      actions.append(noteLabel, note, revise);
+
       const reject = document.createElement("button");
       reject.type = "button";
       reject.className = "reject";
@@ -1756,8 +1899,8 @@
       reject.setAttribute("aria-label", `Reject pilot task ${pilotTask} and end the run`);
       reject.disabled = abandoned || inFlight || recorded;
       reject.addEventListener("click", () => submitPilotDecision(run, "reject"));
-      actions.append(approve, reject);
-      block.appendChild(actions);
+      actions.appendChild(reject);
+      clear.appendChild(actions);
 
       const status = document.createElement("p");
       status.className = "pilot-decision-status";
@@ -1770,12 +1913,17 @@
       } else if (decisionState.result === "reject") {
         status.classList.add("reject");
         status.textContent = "Rejected. The run will end.";
+      } else if (decisionState.result === "revise") {
+        status.classList.add("revise");
+        status.textContent = "Changes requested. The pilot is re-running and will return to this queue.";
       } else if (inFlight) {
-        status.textContent = "Recording decision…";
+        status.textContent = decisionState.decision === "revise" ? "Sending note and restarting pilot…" : "Recording decision…";
+      } else if (timedOut) {
+        status.textContent = "The review window has elapsed; the orchestrator may time out this run.";
       } else {
         status.textContent = "Awaiting a decision.";
       }
-      block.appendChild(status);
+      clear.appendChild(status);
 
       if (decisionState.error) {
         const error = document.createElement("p");
@@ -1784,7 +1932,7 @@
         const label = document.createElement("b");
         label.textContent = "Decision not recorded:";
         error.append(label, document.createTextNode(` ${decisionState.error}`));
-        block.appendChild(error);
+        clear.appendChild(error);
       }
 
       const cli = document.createElement("p");
@@ -1799,34 +1947,95 @@
           Object.assign(document.createElement("code"), {textContent: `./ringer.py reject ${run.__id}`})
         );
       }
-      block.appendChild(cli);
+      clear.appendChild(cli);
+      block.appendChild(clear);
       return block;
     }
 
     function renderPilotBanner() {
-      const awaiting = state.runs.filter(run => run.pilot?.status === "awaiting");
+      const awaiting = state.runs
+        .filter(run => run.pilot?.status === "awaiting")
+        .sort((left, right) => parseTime(left.pilot?.since) - parseTime(right.pilot?.since));
       const staging = document.createElement("div");
+      const shell = document.createElement("section");
+      shell.className = "pilot-queue-shell";
+      shell.dataset.key = "pilot-queue-shell";
+      shell.setAttribute("aria-label", "Pilot review queue");
+      const queue = document.createElement("aside");
+      queue.className = "pilot-queue";
+      const queueHead = document.createElement("div");
+      queueHead.className = "pilot-queue-head";
+      const queueTitle = document.createElement("h2");
+      queueTitle.className = "pilot-queue-title";
+      queueTitle.textContent = "Review queue";
+      const count = document.createElement("span");
+      count.className = "pilot-queue-count";
+      count.setAttribute("role", "status");
+      count.setAttribute("aria-label", `${awaiting.length} pending pilot decision${awaiting.length === 1 ? "" : "s"}`);
+      count.textContent = String(awaiting.length);
+      queueHead.append(queueTitle, count);
+      queue.appendChild(queueHead);
+      const list = document.createElement("ol");
+      list.className = "pilot-queue-list";
+      list.setAttribute("aria-label", "Pending pilot decisions, oldest first");
+      const selectedId = effectiveFocusedRunId(awaiting);
+      const run = awaiting.find(item => item.__id === selectedId) || awaiting[0];
       if (awaiting.length) {
-        const selectedId = effectiveFocusedRunId(awaiting);
-        const run = awaiting.find(item => item.__id === selectedId) || awaiting[0];
-        staging.appendChild(renderPilotReview(run));
+        awaiting.forEach((item, index) => {
+          const li = document.createElement("li");
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "pilot-queue-item";
+          button.dataset.key = `pilot-queue-item:${item.__id}`;
+          button.setAttribute("aria-current", String(item.__id === run.__id));
+          button.setAttribute("aria-label", `${index + 1} of ${awaiting.length}: ${item.run_name}, pilot ${item.pilot?.task || "unknown"}, waiting ${relativeAgo(item.pilot?.since)}`);
+          const name = document.createElement("span");
+          name.className = "pilot-queue-run";
+          name.textContent = item.run_name;
+          const meta = document.createElement("span");
+          meta.className = "pilot-queue-meta";
+          meta.textContent = `${item.pilot?.task || "unknown"} · ${relativeAgo(item.pilot?.since)}`;
+          button.append(name, meta);
+          button.addEventListener("click", () => focusRun(item.__id, false));
+          li.appendChild(button);
+          list.appendChild(li);
+        });
+      } else {
+        const empty = document.createElement("p");
+        empty.className = "pilot-queue-empty";
+        empty.textContent = "Inbox clear. No pilot decisions are waiting.";
+        queue.appendChild(empty);
       }
+      queue.appendChild(list);
+      shell.appendChild(queue);
+      if (run) shell.appendChild(renderPilotReview(run));
+      else {
+        const empty = document.createElement("div");
+        empty.className = "pilot-empty-workspace";
+        empty.textContent = "Nothing needs review. New pilot gates will appear here without displacing the run you are watching.";
+        shell.appendChild(empty);
+      }
+      staging.appendChild(shell);
       state.rendering = true;
       morphChildren(els.pilotBanner, staging);
       state.rendering = false;
     }
 
-    async function submitPilotDecision(run, decision) {
+    async function submitPilotDecision(run, decision, note = "") {
       const current = state.pilotDecisions.get(run.__id);
       if (current?.inFlight || current?.result) return;
+      const cleanNote = String(note || "").trim();
+      if (decision === "revise" && !cleanNote) return;
       if (decision === "reject" && !window.confirm("Reject this pilot and end the run?")) return;
-      state.pilotDecisions.set(run.__id, {inFlight: true, decision, error: "", result: ""});
+      state.pilotDecisions.set(run.__id, {inFlight: true, decision, error: "", result: "", revisions: numberOrZero(run.pilot?.revisions)});
       renderLive();
       try {
         const response = await fetch("/api/pilot/decision", {
           method: "POST",
           headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({run_id: run.__id, decision})
+          body: JSON.stringify(decision === "revise"
+            ? {run_id: run.__id, decision, note: cleanNote}
+            : {run_id: run.__id, decision})
         });
         let payload = {};
         try { payload = await response.json(); } catch (_error) {}
@@ -1835,8 +2044,10 @@
           inFlight: false,
           decision,
           error: "",
-          result: String(payload.decision || decision)
+          result: String(payload.decision || decision),
+          revisions: numberOrZero(run.pilot?.revisions)
         });
+        if (decision === "revise") state.pilotNotes.delete(run.__id);
       } catch (error) {
         state.pilotDecisions.set(run.__id, {
           inFlight: false,

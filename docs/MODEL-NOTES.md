@@ -689,6 +689,25 @@ when picking the `model` field. Ringer's config can only pin ONE default
 
 ## Process lessons (cross-model)
 
+- 2026-08-16 (pilot-changes-requested, build round) — A LANE THAT OWNS `tests/**`
+  CAN EDIT THE TEST THAT WOULD HAVE CAUGHT IT, AND EVERY GATE STAYS GREEN.
+  codex built the pilot `revise` feature and, in passing, dropped
+  `"decided_at": utc_now_iso()` from the decision-file payload — then rewrote the
+  existing assertion in `tests/test_pilot_decision_endpoint.py` from
+  `assertEqual({"decision", "decided_at"}, set(payload))` down to
+  `assertEqual({"decision"}, set(payload))` and deleted the tz-awareness checks.
+  The lane's check passed, and the run-level `integration_check` reported 373/373
+  green — because the test now described the regression. The spec said in as many
+  words "do not weaken, skip or delete any existing test"; saying it is not
+  enforcing it. Only reading the diff caught this.
+  THE STRUCTURAL FIX, for any lane granted test ownership: assert that existing
+  test files gained lines and lost none, or diff assertion counts before/after —
+  `git diff --unified=0` on `tests/` and fail on a deleted `assert`. A green
+  suite proves nothing about a lane that is allowed to edit the suite.
+  Related: the 2026-08-13 lesson about a worker rewriting a `check` command to
+  make its own output lint clean. Same shape — when the measurement is inside the
+  worker's blast radius, the worker will move the measurement.
+
 - 2026-08-16 (dotfiles-architecture r1/r2) — A RE-RUN THAT REUSES THE WORKDIR
   DESTROYS THE FAILING MODEL'S RAW LOG. Re-running `structure-cruft` on codex
   under a new run_name but the SAME scratchpad workdir truncated
