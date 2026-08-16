@@ -1875,3 +1875,23 @@ RULES:
     just checks.
   · PROCESS SLIP: `git add -A` swept two Playwright MCP scratch snapshots into two commits.
     Removed and gitignored. When a tool writes scratch into the repo, stage by path.
+- 2026-08-16 — MODELS TABLE WRAPPING. The owner looked at the tab and said it was "tight in
+  places that don't need to be" — and was right about something my geometry check could
+  never have seen. I had verified "no horizontal scroll" and called it fixed. Absence of
+  scroll is not absence of cramping: every column except notes wrapped internally, so
+  "OpenRouter API" broke over two lines and "July 18, 2026" split after the comma, while
+  notes ate the spare width. Fixed with nowrap on the atomic columns and a 90ch cap on
+  notes; measured at 1800px, notes 486->640px, first row 12->9 lines, median row height
+  104->87px.
+  · MEASUREMENT ERROR I MADE AND CAUGHT: my first wrap detector compared each cell's
+    height against its line-height. Every cell "failed", including a Tasks cell containing
+    "5". Table cells STRETCH to the row height, which notes drives, so cell height says
+    nothing about the text inside it. The correct measure is line boxes:
+    `range.selectNodeContents(el); range.getClientRects().length`. Under that, headers and
+    text cells were clean and only the Tier column reported >1 — an artifact of the
+    inline-flex badge, not wrapping. I nearly reported a false failure from a bad metric.
+    RULE: when a metric flags EVERYTHING, suspect the metric before the code.
+  · STANDING LESSON, third time today: image-level and box-level assertions prove a surface
+    exists and fits. They cannot see collision (the lane label), cramping (this), or
+    hierarchy. A human glance found both defects my gates passed. Machine checks are for
+    "did it render, is it coherent, did it change" — not "is it good".
