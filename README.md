@@ -441,6 +441,12 @@ The decision endpoint refuses such a request too, so neither the page nor the CL
 
 Multiple swarms at once is the designed-for case: run three batches under three identities and Ringside shows all three, live. `--browser` opens a simpler per-run fallback dashboard, and `--no-dashboard` runs headless.
 
+Each run-state JSON records two top-level provenance fields. `project` is the absolute resolved manifest `repo` path, or the resolved `workdir` when `repo` is omitted. `ringer_version` identifies the Ringer code that produced the state. Older state files lack these fields; Ringside treats that provenance as unknown and continues to load them.
+
+Live and versioned artifact paths are namespaced by project: `artifacts/live/<project-slug>/<run-name>.html` and `artifacts/versions/<project-slug>/<run-name>/<run-id>.html`. The slug combines a readable sanitized repository basename with a hash of the full absolute project path, so same-named repositories remain distinct. The artifact library records `project` on new entries. Existing flat artifacts and pre-project library indexes remain in place and readable; Ringer does not migrate or delete them.
+
+Implementation notes: project slugs use `<sanitized-basename>-<12 hex SHA-256 characters>` from the full resolved path, giving a readable name plus 48 bits of path-derived collision resistance. Clean Git checkouts use the full `git rev-parse HEAD` SHA for `ringer_version`. Dirty or non-Git installs use `source-<SHA-256 of ringer.py>`, computed once per process; this fallback cannot distinguish changes outside `ringer.py`, build/environment differences, or installations with identical `ringer.py` bytes. Backward-compatible readers checked include artifact/report/index rendering, HUD run and library endpoints, the per-run dashboard, artifact serving and reconciliation, and CLI `rerun` selection.
+
 The Runs tab now has two views. The default is unchanged — one run's results document plus that run's lanes. The lane view is a wall of lane cards drawn from every live run at once, each naming its run, its lane, engine and model, elapsed time, and current activity.
 
 The wall sorts so lanes needing a human come first (failed or errored lanes, and lanes in a run paused for pilot review), then working lanes, then finished ones. One line above it counts how many swarms are live, how many lanes are working, and how many need attention.

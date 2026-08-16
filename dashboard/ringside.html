@@ -111,6 +111,15 @@
     }
     .eyebrow b { color: var(--ink); }
     .clock { margin-left: auto; font-size: 12px; color: var(--muted); }
+    .server-version {
+      max-width: 24ch;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 10px;
+      white-space: nowrap;
+    }
 
     .topbar {
       min-height: 42px;
@@ -292,6 +301,41 @@
     .run {
       padding: clamp(18px, 3vw, 28px) clamp(12px, 2vw, 22px) clamp(20px, 3vw, 30px);
       border-bottom: 1px solid var(--hairline);
+    }
+    .project-group { border-bottom: 1px solid var(--rule); }
+    .project-group:last-child { border-bottom: 0; }
+    .project-head {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      min-height: 30px;
+      margin: 0;
+      padding: 7px 30px;
+      border-bottom: 1px solid var(--hairline);
+      background: var(--surface-alt);
+      color: var(--muted);
+      font: 600 10px/1.4 var(--mono);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .project-head b { color: var(--ink); font-size: 11px; letter-spacing: .04em; text-transform: none; }
+    .project-count { margin-left: auto; font-size: 9px; }
+    .build-warning {
+      margin: 8px 0 0;
+      padding: 7px 10px;
+      border-left: 2px solid #c18a32;
+      background: rgba(193, 138, 50, .08);
+      color: #e4ad52;
+      font: 10px/1.5 var(--mono);
+    }
+    .build-badge {
+      flex: 0 0 auto;
+      padding: 2px 5px;
+      border: 1px solid #c18a32;
+      color: #e4ad52;
+      font: 700 8px/1.2 var(--mono);
+      letter-spacing: .08em;
+      text-transform: uppercase;
     }
     .agents { margin-top: clamp(16px, 3vw, 28px); }
     summary.run-head { cursor: pointer; list-style: none; }
@@ -1198,6 +1242,7 @@
       .artifact-tools .view-switch button { width: 50%; }
       .artifact-layout { min-height: auto; }
       .run, .lane-wall { padding-inline: 14px; }
+      .project-head { padding-inline: 14px; }
       .worker-card-toggle {
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 4px 10px;
@@ -1226,6 +1271,7 @@
         <span id="reconnect" class="reconnect mono" hidden>reconnecting…</span>
       </div>
       <div id="running-now" class="running-now" role="group" aria-label="Running now"></div>
+      <span id="server-version" class="server-version" title="Ringer build unknown">build unknown</span>
       <time id="clock" class="clock mono"></time>
     </header>
 
@@ -1267,6 +1313,7 @@
     const queryView = normalizeView(query.get("view"));
     const state = {
       runs: [],
+      serverVersion: "",
       active: {},
       update: null,
       artifacts: [],
@@ -1298,6 +1345,7 @@
       reconnect: document.getElementById("reconnect"),
       clock: document.getElementById("clock"),
       runningNow: document.getElementById("running-now"),
+      serverVersion: document.getElementById("server-version"),
       updateBanner: document.getElementById("update-banner"),
       updateMessage: document.getElementById("update-message"),
       dismissUpdate: document.getElementById("dismiss-update"),
@@ -1404,6 +1452,34 @@
 
     function runId(run, index = 0) {
       return String(run.run_id || run.id || `${run.identity || "run"}-${run.run_name || "ringer"}-${run.started_at || index}`);
+    }
+
+    function projectInfo(run) {
+      const path = String(run?.project || "").trim().replace(/\/+$/, "");
+      if (!path) return {key: "unknown", name: "Unknown project", path: "Project path was not recorded"};
+      const name = path.split("/").filter(Boolean).pop() || "Unknown project";
+      return {key: `path:${path}`, name, path};
+    }
+
+    function displayVersion(value) {
+      const version = String(value || "").trim();
+      if (!version) return "unknown";
+      return /^[0-9a-f]{12,}$/i.test(version) ? version.slice(0, 8) : version;
+    }
+
+    function hasBuildMismatch(run) {
+      const runVersion = String(run?.ringer_version || "").trim();
+      return Boolean(runVersion && state.serverVersion && runVersion !== state.serverVersion);
+    }
+
+    function appendBuildWarning(parent, run) {
+      if (!hasBuildMismatch(run)) return;
+      const warning = document.createElement("p");
+      warning.className = "build-warning";
+      warning.setAttribute("role", "status");
+      warning.title = `Run build: ${run.ringer_version}; served build: ${state.serverVersion}`;
+      warning.textContent = `Warning: this run was produced by a different Ringer build (${displayVersion(run.ringer_version)}) than this page is serving (${displayVersion(state.serverVersion)}).`;
+      parent.appendChild(warning);
     }
 
     function taskKey(task, index = 0) {
@@ -1682,6 +1758,9 @@
       const anyLive = runningNowRuns().length > 0;
       els.topDot.classList.toggle("live", anyLive);
       els.reconnect.hidden = !(state.runError || state.libraryError);
+      const version = state.serverVersion;
+      els.serverVersion.textContent = `build ${displayVersion(version)}`;
+      els.serverVersion.title = version ? `Ringer build ${version}` : "Ringer build unknown";
     }
 
     function effectiveFocusedRunId(liveRuns) {
@@ -1723,7 +1802,10 @@
           dot.setAttribute("aria-hidden", "true");
           const name = document.createElement("span");
           name.className = "run-switch-name";
-          name.textContent = run.run_name;
+          const project = projectInfo(run);
+          name.textContent = `${project.name} / ${run.run_name}`;
+          name.title = project.path;
+          button.setAttribute("aria-label", `${project.name}, ${run.run_name}, live, ${done} of ${total} tasks done`);
           const progress = document.createElement("span");
           progress.className = "run-switch-progress mono";
           progress.textContent = `${done}/${total}`;
@@ -1988,10 +2070,12 @@
           button.className = "pilot-queue-item";
           button.dataset.key = `pilot-queue-item:${item.__id}`;
           button.setAttribute("aria-current", String(item.__id === run.__id));
-          button.setAttribute("aria-label", `${index + 1} of ${awaiting.length}: ${item.run_name}, pilot ${item.pilot?.task || "unknown"}, waiting ${relativeAgo(item.pilot?.since)}`);
+          const project = projectInfo(item);
+          button.setAttribute("aria-label", `${index + 1} of ${awaiting.length}: ${project.name}, ${item.run_name}, pilot ${item.pilot?.task || "unknown"}, waiting ${relativeAgo(item.pilot?.since)}`);
           const name = document.createElement("span");
           name.className = "pilot-queue-run";
-          name.textContent = item.run_name;
+          name.textContent = `${project.name} / ${item.run_name}`;
+          name.title = project.path;
           const meta = document.createElement("span");
           meta.className = "pilot-queue-meta";
           meta.textContent = `${item.pilot?.task || "unknown"} · ${relativeAgo(item.pilot?.since)}`;
@@ -2075,6 +2159,8 @@
       }));
       entries.sort((left, right) => {
         if (left.rank !== right.rank) return left.rank - right.rank;
+        const byProject = projectInfo(left.run).name.localeCompare(projectInfo(right.run).name);
+        if (byProject) return byProject;
         const byRun = left.run.run_name.localeCompare(right.run.run_name);
         if (byRun) return byRun;
         const byLane = left.key.localeCompare(right.key);
@@ -2148,7 +2234,9 @@
         name.textContent = key;
         const runName = document.createElement("span");
         runName.className = "run-name";
-        runName.textContent = review ? `${run.run_name} · ${reviewText}` : run.run_name;
+        const project = projectInfo(run);
+        runName.textContent = `${project.name} / ${run.run_name}${review ? ` · ${reviewText}` : ""}`;
+        runName.title = project.path;
         lane.append(name, runName);
         const cardHead = document.createElement("span");
         cardHead.className = "worker-card-head";
@@ -2164,7 +2252,8 @@
         meta.className = "meta mono";
         meta.textContent = metaParts.join(" · ");
         const reviewLabel = review ? `, ${reviewText}` : "";
-        button.setAttribute("aria-label", `${key} in ${run.run_name}, ${taskStateText(kind)}${reviewLabel}, ${metaParts.join(", ")}. Open single-run view.`);
+        button.setAttribute("aria-label", `${key} in ${project.name}, ${run.run_name}, ${taskStateText(kind)}${reviewLabel}, ${metaParts.join(", ")}. Open single-run view.`);
+        if (hasBuildMismatch(run)) button.title = "Warning: this run was produced by a different Ringer build than this page is serving.";
         button.append(cardHead, taskState, meta);
 
         const activityText = taskIsRunning(task) ? (taskActivity(task) || "No activity reported yet.") : "";
@@ -2214,7 +2303,33 @@
         note.textContent = "No agent activity recorded for this artifact yet.";
         staging.appendChild(note);
       }
-      visibleRuns.forEach((run, runIndex) => {
+      const groups = new Map();
+      visibleRuns.forEach(run => {
+        const project = projectInfo(run);
+        if (!groups.has(project.key)) groups.set(project.key, {project, runs: []});
+        groups.get(project.key).runs.push(run);
+      });
+      let renderedRunIndex = 0;
+      groups.forEach(group => {
+        const projectSection = document.createElement("section");
+        projectSection.className = "project-group";
+        projectSection.dataset.key = `project:${group.project.key}`;
+        projectSection.setAttribute("aria-label", group.project.name);
+        const projectHead = document.createElement("h2");
+        projectHead.className = "project-head";
+        projectHead.title = group.project.path;
+        const projectLabel = document.createElement("span");
+        projectLabel.textContent = "Project";
+        const projectName = document.createElement("b");
+        projectName.textContent = group.project.name;
+        const projectCount = document.createElement("span");
+        projectCount.className = "project-count";
+        projectCount.textContent = `${group.runs.length} run${group.runs.length === 1 ? "" : "s"}`;
+        projectHead.append(projectLabel, projectName, projectCount);
+        projectSection.appendChild(projectHead);
+        group.runs.forEach(run => {
+        const runIndex = renderedRunIndex;
+        renderedRunIndex += 1;
         const section = document.createElement("details");
         section.className = `run ${run.state}`;
         section.dataset.key = run.__id;
@@ -2245,8 +2360,17 @@
           : (run.fail > 0 ? `${run.pass} passed · ${run.fail} failed` : `all ${run.pass} passed`);
         const tok = run.tokens > 0 ? ` · ${formatTokens(run.tokens)}` : "";
         stats.textContent = `${outcome} · ${formatDuration(run.elapsed_s)}${tok}`;
-        head.append(dot, title, identity, stats);
+        head.append(dot, title, identity);
+        if (hasBuildMismatch(run)) {
+          const badge = document.createElement("span");
+          badge.className = "build-badge";
+          badge.textContent = "build mismatch";
+          badge.title = `Run build ${run.ringer_version}; served build ${state.serverVersion}`;
+          head.appendChild(badge);
+        }
+        head.appendChild(stats);
         section.appendChild(head);
+        appendBuildWarning(section, run);
 
         const rounds = document.createElement("div");
         rounds.className = "rounds";
@@ -2353,8 +2477,10 @@
           workers.appendChild(card);
         });
         section.appendChild(workers);
-        staging.appendChild(section);
-        if (runIndex < state.runs.length - 1) section.setAttribute("aria-label", run.run_name);
+        projectSection.appendChild(section);
+        section.setAttribute("aria-label", `${group.project.name}: ${run.run_name}`);
+        });
+        staging.appendChild(projectSection);
       });
 
       state.rendering = true;
@@ -2622,8 +2748,13 @@
         }).sort((left, right) => right.finishedTs - left.finishedTs);
         const updatedAt = String(item.updated_at || "");
         const updatedTs = parseTime(updatedAt) || normalizedVersions[0]?.finishedTs || 0;
+        const keyText = String(name || "artifact");
         return {
-          name: String(name || "artifact"),
+          name: keyText,
+          // The key carries a `<project-slug>:` prefix for namespacing; that is
+          // plumbing, not something a human should have to read.
+          label: keyText.includes(":") ? keyText.slice(keyText.indexOf(":") + 1) : keyText,
+          project: String(item.project || ""),
           live_path: String(item.live_path || ""),
           state: normalizeArtifactState(item.state),
           identity: String(item.identity || "unknown"),
@@ -2712,7 +2843,12 @@
           };
         }
       }
-      const src = artifactLiveHref(artifact.name);
+      // Library keys are namespaced by project (`<project-slug>:<run_name>`), so
+      // they are NOT a path component. Prefer the entry's recorded live_path;
+      // fall back to the flat name for entries written before namespacing.
+      const src = artifact.live_path
+        ? artifactPathHref(artifact.live_path)
+        : artifactLiveHref(artifact.name);
       return {
         artifact,
         version: null,
@@ -2729,9 +2865,15 @@
       } else {
         options = state.artifacts.map(artifact => {
           const marker = artifact.state === "live" ? "● " : "";
+          // Two projects may each have a run called "build", so the project has
+          // to ride along in the label or the picker is ambiguous.
+          const projectName = artifact.project
+            ? artifact.project.replace(/\/+$/, "").split("/").pop()
+            : "";
+          const scope = projectName ? `${projectName} / ` : "";
           return {
             value: artifact.name,
-            text: `${marker}${artifact.name} — ${artifact.state === "live" ? "live" : artifact.state} · updated ${relativeAgo(artifact.updated_at)}`
+            text: `${marker}${scope}${artifact.label} — ${artifact.state === "live" ? "live" : artifact.state} · updated ${relativeAgo(artifact.updated_at)}`
           };
         });
       }
@@ -2834,7 +2976,7 @@
         const keepScroll = sameDoc ? (window.scrollY || 0) : 0;
         if (!frame || !sameDoc) {
           frame = document.createElement("iframe");
-          frame.title = `Artifact: ${target.artifact.name}`;
+          frame.title = `Artifact: ${target.artifact.label || target.artifact.name}`;
           els.frameWrap.replaceChildren(frame);
         }
         frame.addEventListener("load", () => {
@@ -2862,6 +3004,7 @@
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const payload = await response.json();
         state.runs = normalizeRuns(payload);
+        state.serverVersion = String(payload?.server?.ringer_version || "").trim();
         state.runUnreadable = Math.max(0, Math.trunc(numberOrZero(payload?.unreadable)));
         state.active = payload?.active || {};
         state.update = payload?.update || null;

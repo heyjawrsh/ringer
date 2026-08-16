@@ -222,7 +222,20 @@ class AskCommandTests(unittest.TestCase):
                     encoding="utf-8"
                 )
             )
-            self.assertIn("one-request", library["artifacts"])
+            # Library keys are namespaced by project now, so a run_name alone is
+            # no longer a key: two projects may each have a "build". Assert the
+            # entry exists exactly once and is attributed to a project.
+            matching = [
+                key
+                for key in library["artifacts"]
+                if key == "one-request" or key.endswith(":one-request")
+            ]
+            self.assertEqual(1, len(matching), library["artifacts"])
+            entry = library["artifacts"][matching[0]]
+            self.assertTrue(entry.get("project"), entry)
+            self.assertEqual(
+                Path(workdir).resolve(), Path(entry["project"]).resolve()
+            )
             self.assertFalse((workdir / "packet.txt").exists())
 
     def test_redact_hides_request_metadata_but_preserves_worker_output(self) -> None:

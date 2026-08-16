@@ -1743,6 +1743,7 @@ class Manifest:
     worktrees: bool
     repo: Path | None
     tasks: tuple[TaskSpec, ...]
+    project: Path | None = None
     integration_check: str = ""
     integration_timeout_s: int = DEFAULT_INTEGRATION_TIMEOUT_S
     source_path: Path | None = None
@@ -1756,6 +1757,10 @@ class Manifest:
     failure_breaker: int | None = None
     questions_file: str = ""
 
+    def __post_init__(self) -> None:
+        if self.project is None:
+            object.__setattr__(self, "project", self.repo or self.workdir)
+
     @classmethod
     def from_path(cls, path: Path) -> "Manifest":
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -1765,6 +1770,7 @@ class Manifest:
         return cls(
             run_name=manifest.run_name,
             workdir=manifest.workdir,
+            project=manifest.project,
             max_parallel=manifest.max_parallel,
             worktrees=manifest.worktrees,
             repo=manifest.repo,
@@ -1917,6 +1923,7 @@ class Manifest:
         return cls(
             run_name=run_name,
             workdir=workdir,
+            project=repo or workdir,
             max_parallel=max_parallel,
             worktrees=worktrees,
             repo=repo,
@@ -1942,6 +1949,7 @@ class Manifest:
         return Manifest(
             run_name=self.run_name,
             workdir=self.workdir,
+            project=self.project,
             max_parallel=value,
             worktrees=self.worktrees,
             repo=self.repo,
@@ -2700,6 +2708,8 @@ class StateWriter:
         max_parallel: int = 1,
         artifact: ArtifactConfig | None = None,
         path: Path | None = None,
+        project: Path | str | None = None,
+        ringer_version: str | None = None,
     ) -> None:
         self.run_id = run_id
         self.run_name = run_name
@@ -2710,6 +2720,8 @@ class StateWriter:
         self.lock = lock
         self.max_parallel = max_parallel
         self.state_dir = state_dir
+        self.project = str(Path(project).expanduser().resolve()) if project is not None else None
+        self.ringer_version = ringer_version or running_ringer_version()
         self.path = path or (state_dir / "runs" / f"{run_id}.json")
         self.pid = os.getpid()
         self.port: int | None = None
@@ -2726,8 +2738,10 @@ class StateWriter:
             index_out=state_dir / "artifacts" / "index.html",
         )
         self.artifact_path = self.artifact.artifact_path(self.run_id, self.run_name)
-        self.live_path = artifact_live_path(self.state_dir, self.run_name)
-        self.version_path = artifact_version_path(self.state_dir, self.run_name, self.run_id)
+        self.live_path = artifact_live_path(self.state_dir, self.run_name, self.project)
+        self.version_path = artifact_version_path(
+            self.state_dir, self.run_name, self.run_id, self.project
+        )
         self.report_path = self.artifact.report_path(self.run_id, self.run_name)
         self.artifact_renderer = ArtifactRenderer(self.artifact_path)
         self.report_written = False
@@ -2852,6 +2866,8 @@ class StateWriter:
                 "run_id": self.run_id,
                 "run_name": self.run_name,
                 "identity": self.identity,
+                "project": self.project,
+                "ringer_version": self.ringer_version,
                 "state": "finished" if self.finished else "live",
                 "pid": self.pid,
                 "port": self.port,
@@ -2945,6 +2961,7 @@ class StateWriter:
                 run_name=self.run_name,
                 run_id=self.run_id,
                 identity=self.identity,
+                project=self.project,
                 state=outcome,
             )
             self._last_library_state = outcome
@@ -2963,6 +2980,7 @@ class StateWriter:
                 run_name=self.run_name,
                 run_id=self.run_id,
                 identity=self.identity,
+                project=self.project,
                 outcome=outcome,
                 version_path=self.version_path,
                 report_path=self.report_path if self.report_path != self.version_path else None,
@@ -3690,13 +3708,18 @@ def _prune_active_runs(runs: dict[str, dict[str, Any]]) -> dict[str, dict[str, A
             continue
         if not pid_is_alive(pid_int):
             continue
-        pruned[run_id] = {
+        pruned_entry = {
             "pid": pid_int,
             "identity": str(entry.get("identity", "")),
             "run_name": str(entry.get("run_name", "")),
             "workdir": str(entry.get("workdir", "")),
             "started_at": str(entry.get("started_at", "")),
         }
+        if "project" in entry:
+            pruned_entry["project"] = str(entry.get("project", ""))
+        if "ringer_version" in entry:
+            pruned_entry["ringer_version"] = str(entry.get("ringer_version", ""))
+        pruned[run_id] = pruned_entry
     return pruned
 
 
@@ -3732,17 +3755,24 @@ def register_active_run(
     *,
     pid: int | None = None,
     started_at: datetime | None = None,
+    project: Path | str | None = None,
+    ringer_version: str | None = None,
 ) -> None:
     path = active_runs_path()
     with exclusive_file_lock(path):
         runs = _prune_active_runs(_read_active_runs_raw(path))
-        runs[run_id] = {
+        entry = {
             "pid": int(pid if pid is not None else os.getpid()),
             "identity": identity,
             "run_name": run_name,
             "workdir": str(workdir),
             "started_at": (started_at or datetime.now(timezone.utc)).isoformat(),
         }
+        if project is not None:
+            entry["project"] = str(Path(project).expanduser().resolve())
+        if ringer_version is not None:
+            entry["ringer_version"] = ringer_version
+        runs[run_id] = entry
         _write_active_runs(runs)
 
 
@@ -3762,15 +3792,33 @@ def artifact_library_path(state_dir: Path) -> Path:
     return artifacts_dir(state_dir) / "library.json"
 
 
-def artifact_live_path(state_dir: Path, run_name: str) -> Path:
-    return artifacts_dir(state_dir) / "live" / f"{sanitize_artifact_name(run_name)}.html"
+def project_artifact_slug(project: Path | str) -> str:
+    project_text = str(Path(project).expanduser().resolve())
+    readable = sanitize_artifact_name(Path(project_text).name or "project")
+    digest = hashlib.sha256(project_text.encode("utf-8")).hexdigest()[:12]
+    return f"{readable}-{digest}"
 
 
-def artifact_version_path(state_dir: Path, run_name: str, run_id: str) -> Path:
+def artifact_live_path(
+    state_dir: Path, run_name: str, project: Path | str | None = None
+) -> Path:
+    root = artifacts_dir(state_dir) / "live"
+    if project is not None:
+        root /= project_artifact_slug(project)
+    return root / f"{sanitize_artifact_name(run_name)}.html"
+
+
+def artifact_version_path(
+    state_dir: Path,
+    run_name: str,
+    run_id: str,
+    project: Path | str | None = None,
+) -> Path:
+    root = artifacts_dir(state_dir) / "versions"
+    if project is not None:
+        root /= project_artifact_slug(project)
     return (
-        artifacts_dir(state_dir)
-        / "versions"
-        / sanitize_artifact_name(run_name)
+        root / sanitize_artifact_name(run_name)
         / f"{sanitize_artifact_name(run_id)}.html"
     )
 
@@ -3831,12 +3879,14 @@ def _library_entry(
     state: str,
     now_iso: str,
     existing: dict[str, Any] | None = None,
+    project: Path | str | None = None,
 ) -> dict[str, Any]:
     versions = []
     if existing and isinstance(existing.get("versions"), list):
         versions = [item for item in existing["versions"] if isinstance(item, dict)]
     return {
-        "live_path": str(artifact_live_path(state_dir, run_name)),
+        "live_path": str(artifact_live_path(state_dir, run_name, project)),
+        "project": str(project) if project is not None else None,
         "state": state,
         "identity": identity,
         "current_run_id": run_id,
@@ -3853,12 +3903,14 @@ def update_artifact_library_live(
     identity: str,
     state: str,
     now: datetime | None = None,
+    project: Path | str | None = None,
 ) -> None:
     now_iso = (now or datetime.now(timezone.utc)).isoformat()
     library = read_artifact_library(state_dir)
     artifacts = library.setdefault("artifacts", {})
-    existing = artifacts.get(run_name) if isinstance(artifacts.get(run_name), dict) else None
-    artifacts[run_name] = _library_entry(
+    key = project_artifact_slug(project) + ":" + run_name if project is not None else run_name
+    existing = artifacts.get(key) if isinstance(artifacts.get(key), dict) else None
+    artifacts[key] = _library_entry(
         state_dir=state_dir,
         run_name=run_name,
         run_id=run_id,
@@ -3866,6 +3918,7 @@ def update_artifact_library_live(
         state=state,
         now_iso=now_iso,
         existing=existing,
+        project=project,
     )
     write_artifact_library(state_dir, library)
 
@@ -3883,11 +3936,13 @@ def append_artifact_library_version(
     tasks_fail: int,
     deliverables: list[dict[str, Any]] | None = None,
     now: datetime | None = None,
+    project: Path | str | None = None,
 ) -> None:
     now_iso = (now or datetime.now(timezone.utc)).isoformat()
     library = read_artifact_library(state_dir)
     artifacts = library.setdefault("artifacts", {})
-    existing = artifacts.get(run_name) if isinstance(artifacts.get(run_name), dict) else None
+    key = project_artifact_slug(project) + ":" + run_name if project is not None else run_name
+    existing = artifacts.get(key) if isinstance(artifacts.get(key), dict) else None
     entry = _library_entry(
         state_dir=state_dir,
         run_name=run_name,
@@ -3896,6 +3951,7 @@ def append_artifact_library_version(
         state=outcome,
         now_iso=now_iso,
         existing=existing,
+        project=project,
     )
     new_version = {
         "run_id": run_id,
@@ -3912,7 +3968,7 @@ def append_artifact_library_version(
         if version.get("run_id") != run_id:
             versions.append(version)
     entry["versions"] = versions[:ARTIFACT_LIBRARY_MAX_VERSIONS]
-    artifacts[run_name] = entry
+    artifacts[key] = entry
     write_artifact_library(state_dir, library)
     prune_artifact_versions(state_dir, versions[ARTIFACT_LIBRARY_MAX_VERSIONS:])
 
@@ -6427,6 +6483,7 @@ class PersistentHudServer:
         self.model_db_path: Path | None = None
         self.model_notes_path: Path | None = None
         self.update_status: dict[str, Any] | None = None
+        self.ringer_version = running_ringer_version()
 
     def start(self) -> int:
         state_dir = self.state_dir
@@ -6458,6 +6515,7 @@ class PersistentHudServer:
                     send_json_response(
                         self,
                         {
+                            "server": {"ringer_version": server_ref.ringer_version},
                             "runs": runs,
                             "unreadable": unreadable,
                             "active": active_runs,
@@ -9889,6 +9947,7 @@ class RingerRunner:
             self.lock,
             max_parallel=manifest.max_parallel,
             artifact=config.artifact,
+            project=manifest.project,
         )
         self.dashboard = (
             Dashboard(
@@ -13284,6 +13343,8 @@ async def run_manifest(
         manifest.run_name,
         manifest.workdir,
         started_at=runner.started_at,
+        project=manifest.project,
+        ringer_version=runner.state_writer.ringer_version,
     )
     task = asyncio.create_task(runner.run())
     loop = asyncio.get_running_loop()
@@ -13352,6 +13413,39 @@ def current_repo_head(
         return None
     head = str(result.stdout).strip() if result.returncode == 0 else ""
     return head or None
+
+
+_RUNNING_RINGER_VERSION: str | None = None
+
+
+def running_ringer_version() -> str:
+    """Return one stable identity for the code loaded by this process."""
+    global _RUNNING_RINGER_VERSION
+    if _RUNNING_RINGER_VERSION is not None:
+        return _RUNNING_RINGER_VERSION
+    code_root = Path(__file__).resolve().parent
+    head = current_repo_head(code_root)
+    dirty = True
+    git_bin = shutil.which("git")
+    if head and git_bin:
+        try:
+            result = subprocess.run(
+                [git_bin, "status", "--porcelain", "--untracked-files=no"],
+                cwd=code_root,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            dirty = result.returncode != 0 or bool(result.stdout.strip())
+        except OSError:
+            dirty = True
+    if head and not dirty:
+        version = head
+    else:
+        digest = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+        version = f"source-{digest}"
+    _RUNNING_RINGER_VERSION = version
+    return version
 
 
 def hud_should_restart(
