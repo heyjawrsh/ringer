@@ -10545,10 +10545,16 @@ class RingerRunner:
         lane_paths = sorted(changed_paths - self.foundation_paths)
         violations: list[str] = []
         if enforce_ownership:
+            # The questions file is Ringer's own escape hatch: specs tell workers
+            # to write it when they hit a judgment call, and the docs promise it
+            # never fails a task. Counting it as an ownership violation punished
+            # a worker for doing exactly what it was told.
+            exempt = {self.manifest.questions_file} if self.manifest.questions_file else set()
             offending = [
                 path
                 for path in lane_paths
-                if not any(fnmatch.fnmatch(path, pattern) for pattern in runtime.task.owns)
+                if path not in exempt
+                and not any(fnmatch.fnmatch(path, pattern) for pattern in runtime.task.owns)
             ]
             if offending:
                 violations.append(

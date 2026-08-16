@@ -257,6 +257,45 @@ class FoundationContractTests(unittest.TestCase):
             self.assertIn("forbidden.txt", lane["check_output_tail"])
             self.assertIn("forbidden.txt", "\n".join(lane["violations"]))
 
+    def test_questions_file_is_exempt_from_ownership(self) -> None:
+        """The docs promise the questions file never fails a task. It must not."""
+        with tempfile.TemporaryDirectory() as temp_root:
+            root = Path(temp_root)
+            repo = root / "repo"
+            init_git_repo(repo)
+            manifest = self._manifest(
+                root,
+                repo,
+                [self._task("lane", "marker:questions.md", owns=["allowed/**"])],
+                questions_file="questions.md",
+            )
+            proc, state_dir = self._run(root, manifest)
+            combined = proc.stdout + proc.stderr
+
+            self.assertEqual(0, proc.returncode, combined)
+            self.assertNotIn("ownership violation", combined)
+            state = json.loads(next((state_dir / "runs").glob("*.json")).read_text())
+            self.assertEqual("pass", state["tasks"][0]["status"])
+
+    def test_unrelated_stray_file_still_violates_when_questions_file_is_set(self) -> None:
+        """The exemption is exactly one filename, not a hole in ownership."""
+        with tempfile.TemporaryDirectory() as temp_root:
+            root = Path(temp_root)
+            repo = root / "repo"
+            init_git_repo(repo)
+            manifest = self._manifest(
+                root,
+                repo,
+                [self._task("lane", "bad", owns=["allowed/**"])],
+                questions_file="questions.md",
+            )
+            proc, _ = self._run(root, manifest)
+            combined = proc.stdout + proc.stderr
+
+            self.assertNotEqual(0, proc.returncode, combined)
+            self.assertIn("[ringer.py] ownership violation:", combined)
+            self.assertIn("forbidden.txt", combined)
+
     def test_foundation_paths_are_excluded_from_lane_ownership(self) -> None:
         with tempfile.TemporaryDirectory() as temp_root:
             root = Path(temp_root)
