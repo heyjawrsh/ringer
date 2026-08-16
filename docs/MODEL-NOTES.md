@@ -1861,3 +1861,17 @@ RULES:
     (the Models tab requires a click, since it has no URL), geometry assertions via
     browser_evaluate are the verification; headless-Chrome --screenshot only works for
     surfaces reachable by URL.
+- 2026-08-15 — TWO FIXES, inline, both root-caused and pinned by tests.
+  · MODELS TAB HAD NO URL. `tab` already means live-vs-artifacts, so the Runs/Models nav
+    was never represented at all — ?tab=models could not have worked, and the tab did not
+    survive a reload. Now round-trips through a `panel` param. Verified in a real browser:
+    ?panel=models restores the tab on load, Runs drops the param, Models sets it.
+  · QUESTIONS FILE COUNTED AS AN OWNERSHIP VIOLATION — Ringer failing a worker for using
+    Ringer's own escape hatch, against an explicit README promise. Fixed by exempting the
+    configured questions_file from the ownership sweep. Two tests: one proving the exempt
+    lane passes, one proving a stray file STILL violates when questions_file is set, so the
+    exemption is one filename and not a hole. Confirmed the test fails without the fix by
+    stashing the change and re-running — prove-it-can-fail applies to unit tests too, not
+    just checks.
+  · PROCESS SLIP: `git add -A` swept two Playwright MCP scratch snapshots into two commits.
+    Removed and gitignored. When a tool writes scratch into the repo, stage by path.
