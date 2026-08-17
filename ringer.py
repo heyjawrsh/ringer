@@ -10642,6 +10642,11 @@ class RingerRunner:
         for proc in procs:
             if proc.returncode is None:
                 kill_process_group(proc)
+        if procs:
+            await asyncio.gather(*(proc.wait() for proc in procs))
+        for proc in procs:
+            self.active_processes.pop(proc.pid, None)
+            close_subprocess_transport(proc)
 
     async def _run_task(
         self,
@@ -11200,22 +11205,33 @@ class RingerRunner:
             reader = asyncio.create_task(self._tee_stream(proc, log_fh, capture))
             timed_out = False
             try:
-                await asyncio.wait_for(proc.wait(), timeout=runtime.task.timeout_s)
-            except asyncio.TimeoutError:
-                timed_out = True
-                terminate_process_group(proc)
                 try:
-                    await asyncio.wait_for(proc.wait(), timeout=5)
+                    await asyncio.wait_for(proc.wait(), timeout=runtime.task.timeout_s)
                 except asyncio.TimeoutError:
-                    kill_process_group(proc)
-                    await proc.wait()
-            try:
-                await asyncio.wait_for(reader, timeout=5)
-            except asyncio.TimeoutError:
-                reader.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await reader
-            self.active_processes.pop(proc.pid, None)
+                    timed_out = True
+                    terminate_process_group(proc)
+                    try:
+                        await asyncio.wait_for(proc.wait(), timeout=5)
+                    except asyncio.TimeoutError:
+                        kill_process_group(proc)
+                        await proc.wait()
+                try:
+                    await asyncio.wait_for(reader, timeout=5)
+                except asyncio.TimeoutError:
+                    reader.cancel()
+                    with contextlib.suppress(asyncio.CancelledError):
+                        await reader
+            finally:
+                if not reader.done():
+                    reader.cancel()
+                    with contextlib.suppress(asyncio.CancelledError):
+                        await reader
+                # A live process remains registered for kill_all_workers(), which
+                # owns cancellation cleanup.  Completed workers can be released
+                # here on the ordinary and timeout paths.
+                if proc.returncode is not None:
+                    self.active_processes.pop(proc.pid, None)
+                    close_subprocess_transport(proc)
         output_tail = capture.text()
         tokens = parse_token_count(output_tail, engine.token_regex)
         reported_model = parse_reported_model(output_tail, engine.model_report_regex)
@@ -12679,6 +12695,13 @@ def kill_process_group(proc: asyncio.subprocess.Process) -> None:
             proc.kill()
         except ProcessLookupError:
             pass
+
+
+def close_subprocess_transport(proc: asyncio.subprocess.Process) -> None:
+    """Release asyncio's transport while its event loop is still usable."""
+    transport = getattr(proc, "_transport", None)
+    if transport is not None:
+        transport.close()
 
 
 def shell_command_for_display(parts: Iterable[str]) -> str:
