@@ -1982,6 +1982,18 @@ SPEC_WRITE_PATH_RE = re.compile(
     r"(?:/[A-Za-z0-9_.-]*[A-Za-z0-9_-])*)"
 )
 
+# A path a spec FORBIDS is not a path it requests. These are the ways a spec
+# actually says no; "must not" and "should not" were both missing at first and
+# flagged files a spec had explicitly told the worker to leave alone. A rule
+# that cries wolf is one people learn to ignore, which costs more than the rule
+# is worth. Kept adjacent-only (the negation must sit immediately before the
+# verb) so that "do not forget to write ./notes.md" is still reported.
+SPEC_NEGATION_RE = re.compile(
+    r"(?i)\b(?:do(?:es)?\s+not|don't|doesn't|must\s+not|mustn't"
+    r"|should\s+not|shouldn't|shall\s+not|cannot|can't|may\s+not"
+    r"|never|avoid|without)\s*$"
+)
+
 
 def path_matches_owns(path: str, owns: Iterable[str]) -> bool:
     """Use the runtime ownership matcher everywhere ownership is interpreted."""
@@ -1992,8 +2004,14 @@ def spec_instructed_write_paths(spec: str) -> set[str]:
     """Return conservative, repo-style paths explicitly targeted by write verbs."""
     paths: set[str] = set()
     for match in SPEC_WRITE_PATH_RE.finditer(spec):
-        prefix = spec[max(spec.rfind("\n", 0, match.start()) + 1, match.start() - 16):match.start()]
-        if re.search(r"(?i)\b(?:do\s+not|don't|never|without)\s*$", prefix):
+        # A path the spec FORBIDS is not a path it requests. Cover the ways a
+        # spec actually says no - "must not" and "should not" were both missed
+        # at first and flagged files a spec explicitly told the worker to leave
+        # alone. A rule that cries wolf is a rule people learn to ignore, which
+        # costs more than the rule is worth. The window is same-line and only a
+        # little wider than the longest phrasing, to keep this conservative.
+        prefix = spec[max(spec.rfind("\n", 0, match.start()) + 1, match.start() - 28):match.start()]
+        if re.search(SPEC_NEGATION_RE, prefix):
             continue
         paths.add(match.group("path")[2:])
     return paths

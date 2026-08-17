@@ -75,6 +75,35 @@ class OwnsLintTests(unittest.TestCase):
         manifest = self.manifest("Read ./notes.md before changing ringer.py.", owns=["ringer.py"])
         self.assertEqual([], self.ownership_findings(manifest))
 
+    def test_forbidding_phrasings_are_not_write_instructions(self) -> None:
+        # A path the spec FORBIDS is not one it requests. "must not" and
+        # "should not" were both missed originally and flagged files the spec
+        # had explicitly told the worker to leave alone; a rule that cries wolf
+        # is one people learn to ignore.
+        for phrasing in (
+            "You must not edit ./docs/A.md",
+            "You should not modify ./docs/A.md",
+            "You cannot modify ./docs/A.md",
+            "You may not write ./docs/A.md",
+            "Never write ./docs/A.md",
+            "Do not create ./docs/A.md",
+            "Avoid ./docs/A.md",
+        ):
+            with self.subTest(phrasing=phrasing):
+                manifest = self.manifest(phrasing, owns=["ringer.py"])
+                self.assertEqual([], self.ownership_findings(manifest))
+
+    def test_negation_must_be_adjacent_to_the_verb(self) -> None:
+        # "do not forget to write X" IS an instruction to write X. The guard
+        # only suppresses a negation sitting immediately before the verb, so
+        # this must still be reported.
+        manifest = self.manifest(
+            "Do not forget to write ./notes.md when you finish.", owns=["ringer.py"]
+        )
+        findings = self.ownership_findings(manifest)
+        self.assertEqual(1, len(findings), findings)
+        self.assertIn("notes.md", findings[0])
+
 
 if __name__ == "__main__":
     unittest.main()
