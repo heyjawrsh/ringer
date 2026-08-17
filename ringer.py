@@ -10158,7 +10158,11 @@ class RingerRunner:
             # The post-run journey: tell a human exactly where the results live.
             with contextlib.suppress(Exception):
                 if self.state_writer.artifact is not None and self.state_writer.artifact.enabled:
-                    results_page = artifact_live_path(self.state_writer.state_dir, self.manifest.run_name)
+                    # Use the path the state writer actually wrote to. Recomputing
+                    # it here without the project silently printed the legacy flat
+                    # path, sending people to a file that no longer exists once
+                    # artifacts became project-namespaced.
+                    results_page = self.state_writer.live_path
                     print(f"\nYour results: {results_page}")
                     print("Open it in a browser, or run './ringer.py hud' for the full Ringside view (http://127.0.0.1:8700).")
 

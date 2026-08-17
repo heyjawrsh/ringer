@@ -103,6 +103,19 @@ class ProjectNamespaceTests(unittest.TestCase):
         self.assertEqual(2, len(entries))
         self.assertEqual(2, len({entry["project"] for entry in entries}))
 
+    def test_live_path_is_namespaced_not_the_flat_recomputation(self) -> None:
+        # The end-of-run console line recomputed this path without the project
+        # and printed the legacy flat location, sending people to a file that
+        # does not exist. Anything reporting where results live must use the
+        # writer's own live_path rather than deriving a second answer.
+        writer = self.writer(self.root / "a" / "repo", "shared-name")
+        writer.flush()
+        flat = artifact_live_path(self.state_dir, "shared-name")
+
+        self.assertTrue(writer.live_path.is_file())
+        self.assertNotEqual(flat, writer.live_path)
+        self.assertFalse(flat.exists())
+
     def test_legacy_flat_artifact_and_library_still_resolve(self) -> None:
         legacy = artifact_live_path(self.state_dir, "build")
         legacy.parent.mkdir(parents=True)
