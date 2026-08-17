@@ -36,6 +36,7 @@ import time
 import tomllib
 import urllib.parse
 import urllib.request
+import uuid
 import webbrowser
 from dataclasses import asdict, dataclass, field, replace as dataclass_replace
 from datetime import datetime, timezone
@@ -62,6 +63,7 @@ CHECK_TIMEOUT_S = 60
 RERUN_CONTEXT_LIMIT = 2000
 DEFAULT_DASHBOARD_PORT_BASE = 8787
 DEFAULT_HUD_PORT = 8700
+RINGSIDE_SERVICE = "ringer-ringside"
 DEFAULT_CATALOG_SOURCE = "https://openrouter.ai/api/v1/models"
 CATALOG_AUTO_REFRESH_MAX_AGE_S = 24 * 60 * 60
 CATALOG_FETCH_TIMEOUT_S = 5
@@ -6484,6 +6486,19 @@ class PersistentHudServer:
         self.model_notes_path: Path | None = None
         self.update_status: dict[str, Any] | None = None
         self.ringer_version = running_ringer_version()
+        self.instance_token = uuid.uuid4().hex
+        self.started_at = utc_now_iso()
+        self.code_root = str(Path(__file__).resolve().parent)
+
+    def identity(self) -> dict[str, Any]:
+        return {
+            "service": RINGSIDE_SERVICE,
+            "ringer_version": self.ringer_version,
+            "pid": os.getpid(),
+            "started_at": self.started_at,
+            "instance_token": self.instance_token,
+            "code_root": self.code_root,
+        }
 
     def start(self) -> int:
         state_dir = self.state_dir
@@ -6515,7 +6530,7 @@ class PersistentHudServer:
                     send_json_response(
                         self,
                         {
-                            "server": {"ringer_version": server_ref.ringer_version},
+                            "server": server_ref.identity(),
                             "runs": runs,
                             "unreadable": unreadable,
                             "active": active_runs,
@@ -6605,6 +6620,21 @@ class PersistentHudServer:
 
             def do_POST(self) -> None:  # noqa: N802
                 path = urllib.parse.urlparse(self.path).path
+                if path == "/api/server/stop":
+                    if self.headers.get("X-Ringside-Instance") != server_ref.instance_token:
+                        send_json_response(
+                            self,
+                            {"error": "Ringside instance identity did not match"},
+                            status=HTTPStatus.CONFLICT,
+                        )
+                        return
+                    send_json_response(self, {"ok": True})
+                    threading.Thread(
+                        target=server_ref.stop,
+                        name="ringer-hud-shutdown",
+                        daemon=True,
+                    ).start()
+                    return
                 if path != "/api/pilot/decision":
                     self.send_error(HTTPStatus.NOT_FOUND)
                     return
@@ -6705,6 +6735,11 @@ class PersistentHudServer:
         self.port = int(self.httpd.server_address[1])
         self.thread = threading.Thread(target=self.httpd.serve_forever, name="ringer-hud", daemon=True)
         self.thread.start()
+        try:
+            write_hud_instance_record(self.state_dir, self.identity(), self.port)
+        except Exception:
+            self.stop()
+            raise
         url = f"http://127.0.0.1:{self.port}"
         if self.open_viewer:
             with contextlib.suppress(Exception):
@@ -6721,6 +6756,7 @@ class PersistentHudServer:
             self.httpd.server_close()
         if self.thread is not None:
             self.thread.join(timeout=2)
+        remove_hud_instance_record(self.state_dir, self.port, self.instance_token)
 
 
 class Dashboard:
@@ -13378,11 +13414,70 @@ async def run_manifest(
         unregister_active_run(runner.run_id)
 
 
-def hud_is_alive(port: int) -> bool:
+def hud_instance_record_path(state_dir: Path, port: int) -> Path:
+    return state_dir / f"hud-{port}.json"
+
+
+def write_hud_instance_record(
+    state_dir: Path, identity: dict[str, Any], port: int
+) -> None:
+    record = dict(identity)
+    record["port"] = port
+    atomic_write_json(hud_instance_record_path(state_dir, port), record)
+
+
+def load_hud_instance_record(state_dir: Path, port: int) -> dict[str, Any] | None:
+    try:
+        payload = json.loads(hud_instance_record_path(state_dir, port).read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def remove_hud_instance_record(state_dir: Path, port: int | None, token: str) -> None:
+    if port is None:
+        return
+    path = hud_instance_record_path(state_dir, port)
+    record = load_hud_instance_record(state_dir, port)
+    if record is not None and record.get("instance_token") == token:
+        with contextlib.suppress(OSError):
+            path.unlink()
+
+
+def hud_identity(port: int) -> dict[str, Any] | None:
+    """Return a verified Ringside identity, or None for any other responder."""
     try:
         with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/runs", timeout=0.4) as response:
-            return response.status == 200
+            if response.status != 200:
+                return None
+            payload = json.loads(response.read().decode("utf-8"))
+            identity = payload.get("server") if isinstance(payload, dict) else None
+            if not isinstance(identity, dict) or identity.get("service") != RINGSIDE_SERVICE:
+                return None
+            return identity
     except Exception:
+        return None
+
+
+def hud_is_alive(port: int) -> bool:
+    return hud_identity(port) is not None
+
+
+def port_is_occupied(port: int) -> bool:
+    """Is ANYTHING listening on this loopback port?
+
+    Distinguishes 'the port is free' from 'something is there but is not a
+    Ringside we can identify'. Those two need different advice, and reporting
+    an occupied port as 'not running' sends people to start a second server
+    that cannot bind. A Ringside older than the identity marker looks exactly
+    like an impostor to `hud_identity`, so this case is reachable on every
+    upgrade until the running instance is restarted.
+    """
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+            probe.settimeout(0.3)
+            return probe.connect_ex(("127.0.0.1", port)) == 0
+    except OSError:
         return False
 
 
@@ -13538,25 +13633,105 @@ def ensure_hud_running(config: AppConfig, *, open_browser: bool) -> None:
     port = config.hud_port
     url = f"http://127.0.0.1:{port}"
     already_alive = hud_is_alive(port)
+    spawn_error: Exception | None = None
     if not already_alive:
         log_path = config.state_dir / "hud.log"
-        with contextlib.suppress(Exception):
+        try:
             log_path.parent.mkdir(parents=True, exist_ok=True)
             with log_path.open("ab") as log_file:
+                command = [sys.executable, str(Path(__file__).resolve()), "hud"]
+                if config.path is not None:
+                    command.extend(["--config", str(config.path)])
+                command.extend(["--no-open", "--port", str(port)])
                 subprocess.Popen(
-                    [sys.executable, str(Path(__file__).resolve()), "hud", "--no-open", "--port", str(port)],
+                    command,
                     stdout=log_file,
                     stderr=log_file,
                     stdin=subprocess.DEVNULL,
                     start_new_session=True,
                 )
+        except Exception as exc:
+            spawn_error = exc
         for _ in range(20):
             if hud_is_alive(port):
                 break
             time.sleep(0.15)
-    if open_browser and not already_alive and hud_is_alive(port):
+    verified_alive = hud_is_alive(port)
+    if open_browser and not already_alive and verified_alive:
         open_in_browser(url)
-    print(f"Ringside: {url}", flush=True)
+    if verified_alive:
+        print(f"Ringside: {url}", flush=True)
+    else:
+        detail = f" ({spawn_error})" if spawn_error is not None else ""
+        print(
+            f"Ringside could not be started{detail}. See log: {config.state_dir / 'hud.log'}",
+            flush=True,
+        )
+
+
+def stop_persistent_hud(config: AppConfig, *, port: int | None) -> int:
+    chosen_port = port if port is not None else config.hud_port
+    identity = hud_identity(chosen_port)
+    if identity is None:
+        if port_is_occupied(chosen_port):
+            print(
+                f"No identifiable Ringside on port {chosen_port}, but something IS "
+                "listening there; refusing to stop a process this build cannot "
+                "identify. Run `hud status` for details."
+            )
+            return 0
+        print(f"Ringside is not running on port {chosen_port}; nothing to stop.")
+        return 0
+    record = load_hud_instance_record(config.state_dir, chosen_port)
+    keys = ("service", "pid", "started_at", "instance_token", "code_root")
+    if record is None or any(record.get(key) != identity.get(key) for key in keys):
+        print(
+            f"Ringside is running on port {chosen_port}, but its lifecycle record does not "
+            "match; it was not stopped."
+        )
+        return 1
+    request = urllib.request.Request(
+        f"http://127.0.0.1:{chosen_port}/api/server/stop",
+        data=b"",
+        method="POST",
+        headers={"X-Ringside-Instance": str(identity["instance_token"])},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=1) as response:
+            if response.status != 200:
+                raise RuntimeError(f"shutdown returned HTTP {response.status}")
+    except Exception as exc:
+        print(f"Ringside on port {chosen_port} could not be stopped: {exc}")
+        return 1
+    for _ in range(30):
+        if not hud_is_alive(chosen_port):
+            print(f"Ringside stopped on port {chosen_port}.")
+            return 0
+        time.sleep(0.1)
+    print(f"Ringside on port {chosen_port} did not stop cleanly.")
+    return 1
+
+
+def status_persistent_hud(config: AppConfig, *, port: int | None) -> int:
+    chosen_port = port if port is not None else config.hud_port
+    identity = hud_identity(chosen_port)
+    if identity is None:
+        if port_is_occupied(chosen_port):
+            print(
+                f"No identifiable Ringside on port {chosen_port}, but something IS "
+                "listening there. If that is a Ringside started before this build, "
+                "restart it to pick up the identity marker; otherwise the port is "
+                "taken by another service and Ringside cannot bind it."
+            )
+        else:
+            print(f"Ringside is not running on port {chosen_port}.")
+        return 0
+    print(
+        f"Ringside is running on port {chosen_port}: version={identity.get('ringer_version', 'unknown')} "
+        f"pid={identity.get('pid', 'unknown')} started={identity.get('started_at', 'unknown')} "
+        f"code_root={identity.get('code_root', 'unknown')}"
+    )
+    return 0
 
 
 def run_persistent_hud(config: AppConfig, *, port: int | None, open_viewer: bool) -> int:
@@ -13578,6 +13753,15 @@ def run_persistent_hud(config: AppConfig, *, port: int | None, open_viewer: bool
     running_head = current_repo_head(repo_dir)
     server.update_status = self_update_dashboard_status(config.state_dir, repo_dir)
     server.start()
+    verified_identity = hud_identity(chosen_port)
+    if (
+        verified_identity is None
+        or verified_identity.get("instance_token") != server.instance_token
+    ):
+        server.stop()
+        raise RuntimeError(
+            f"Ringside could not be verified after starting on port {chosen_port}"
+        )
     start_hud_update_maintenance(
         config,
         server,
@@ -13824,6 +14008,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     hud_parser = subparsers.add_parser("hud", help="start the persistent Ringside page in your browser")
     hud_parser.add_argument("--config", type=Path, default=argparse.SUPPRESS, help=argparse.SUPPRESS)
+    hud_parser.add_argument(
+        "hud_action",
+        nargs="?",
+        choices=("status", "stop", "restart"),
+        help="inspect, stop, or restart the persistent Ringside server",
+    )
     hud_parser.add_argument("--port", type=int, help=f"port to bind on 127.0.0.1 (default: {DEFAULT_HUD_PORT})")
     hud_parser.add_argument("--no-open", action="store_true", help="start the server without opening a browser")
 
@@ -13884,7 +14074,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     invocation_argv = list(sys.argv) if argv is None else [str(Path(__file__).resolve()), *argv]
-    maybe_self_update(invocation_argv)
+    # `hud status` is a strictly read-only observation, including before CLI
+    # dispatch; it must not update or re-exec the checkout it is inspecting.
+    command_args = invocation_argv[1:]
+    is_hud_status = "hud" in command_args and "status" in command_args[command_args.index("hud") + 1 :]
+    if not is_hud_status:
+        maybe_self_update(invocation_argv)
     # The guard is only for this process start. Clearing it lets a restarted,
     # long-running HUD discover a later update during its lifetime.
     os.environ.pop("RINGER_SELF_UPDATED", None)
@@ -13998,6 +14193,14 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "models":
             return run_models_command(config, args)
         if args.command == "hud":
+            if args.hud_action == "status":
+                return status_persistent_hud(config, port=args.port)
+            if args.hud_action == "stop":
+                return stop_persistent_hud(config, port=args.port)
+            if args.hud_action == "restart":
+                stopped = stop_persistent_hud(config, port=args.port)
+                if stopped != 0:
+                    return stopped
             return run_persistent_hud(
                 config,
                 port=args.port,
