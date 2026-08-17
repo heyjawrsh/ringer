@@ -8377,53 +8377,81 @@ def normalize_notes_match_text(value: str) -> str:
 
 def parse_model_notes_sections(path: Path) -> dict[str, list[str]]:
     """Return dated bullet blocks keyed by the raw level-2 heading text."""
-    try:
-        lines = path.expanduser().read_text(encoding="utf-8").splitlines()
-    except (OSError, UnicodeDecodeError):
-        return {}
-    sections: dict[str, list[str]] = {}
-    current_heading: str | None = None
-    current_bullets: list[str] = []
-    active_bullet: list[str] | None = None
+    path = path.expanduser()
 
-    def flush_bullet() -> None:
-        nonlocal active_bullet
-        if active_bullet is not None:
-            text = "\n".join(active_bullet).strip()
-            if re.search(r"\b\d{4}-\d{2}-\d{2}\b", text):
-                current_bullets.append(text)
-            active_bullet = None
+    def parse_file(notes_path: Path) -> dict[str, list[str]] | None:
+        try:
+            lines = notes_path.read_text(encoding="utf-8").splitlines()
+        except (OSError, UnicodeDecodeError):
+            return None
+        parsed: dict[str, list[str]] = {}
+        current_heading: str | None = None
+        current_bullets: list[str] = []
+        active_bullet: list[str] | None = None
 
-    def flush_section() -> None:
-        flush_bullet()
-        if current_heading is not None:
-            sections[current_heading] = list(current_bullets)
+        def flush_bullet() -> None:
+            nonlocal active_bullet
+            if active_bullet is not None:
+                text = "\n".join(active_bullet).strip()
+                if re.search(r"\b\d{4}-\d{2}-\d{2}\b", text):
+                    current_bullets.append(text)
+                active_bullet = None
 
-    for line in lines:
-        heading_match = re.match(r"^##\s+(.+?)\s*$", line)
-        if heading_match:
-            flush_section()
-            current_heading = heading_match.group(1).strip()
-            current_bullets = []
-            active_bullet = None
-            continue
-        if current_heading is None:
-            continue
-        if line.startswith("## "):
-            flush_section()
-            current_heading = None
-            current_bullets = []
-            active_bullet = None
-            continue
-        if line.startswith("- "):
+        def flush_section() -> None:
             flush_bullet()
-            active_bullet = [line[2:].strip()]
+            if current_heading is not None:
+                parsed[current_heading] = list(current_bullets)
+
+        for line in lines:
+            heading_match = re.match(r"^##\s+(.+?)\s*$", line)
+            if heading_match:
+                flush_section()
+                current_heading = heading_match.group(1).strip()
+                current_bullets = []
+                active_bullet = None
+                continue
+            if current_heading is None:
+                continue
+            if line.startswith("## "):
+                flush_section()
+                current_heading = None
+                current_bullets = []
+                active_bullet = None
+                continue
+            if line.startswith("- "):
+                flush_bullet()
+                active_bullet = [line[2:].strip()]
+                continue
+            if active_bullet is not None and (line.startswith("  ") or not line.strip()):
+                active_bullet.append(line.strip())
+                continue
+            flush_bullet()
+        flush_section()
+        return parsed
+
+    sections = parse_file(path)
+    if sections is None:
+        return {}
+
+    incoming_dir = path.parent / "model-notes" / "incoming"
+    try:
+        incoming_paths = sorted(incoming_dir.glob("*.md"), key=lambda item: item.name)
+    except OSError:
+        incoming_paths = []
+    # Gather first, then prepend. Incoming notes are the NEWEST and this log
+    # reads newest-first; the scoreboard's Notes column shows only the leading
+    # bullet, so appending would merge an entry and still leave it invisible on
+    # the one surface people actually read. Order between incoming files stays
+    # the name-sorted order above.
+    incoming_by_heading: dict[str, list[str]] = {}
+    for incoming_path in incoming_paths:
+        incoming_sections = parse_file(incoming_path)
+        if incoming_sections is None:
             continue
-        if active_bullet is not None and (line.startswith("  ") or not line.strip()):
-            active_bullet.append(line.strip())
-            continue
-        flush_bullet()
-    flush_section()
+        for heading, bullets in incoming_sections.items():
+            incoming_by_heading.setdefault(heading, []).extend(bullets)
+    for heading, bullets in incoming_by_heading.items():
+        sections[heading] = bullets + sections.get(heading, [])
     return sections
 
 
