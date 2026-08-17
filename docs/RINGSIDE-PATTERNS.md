@@ -200,12 +200,32 @@ as last week's, so the scoreboard cannot notice a model getting worse.
   a diagram of the pipeline shape plus "could take up to 2 minutes". We know
   each task's `timeout_s`; we show no expected duration anywhere.
 
-## Method note
+## The appearance map
 
-Three stylesheets define Ringside's look — `ARTIFACT_BASE_CSS` (report) and
-`inject_models_tab_into_ringside_html` (Models tab) in `ringer.py`, and
-`dashboard/ringside.html` (shell). Scoping visual work by file has already
-missed the third once. Scope by *surface*, then find every stylesheet that
-surface touches. Note also that the injected CSS is baked at process start:
-editing `ringer.py` does nothing until the hud restarts, while `ringside.html`
-is re-read per request.
+**Correction, 2026-08-16.** An earlier version of this file said Ringside's look
+lives in THREE places. It lives in **five**, across **three different reload
+lifecycles**. The original claim was made by scoping the search to the files a
+restyle had already touched — the same file-scoped reasoning that caused the
+miss it was warning about. Established by a read-only review lane
+(`ringside-shared`), citations verified.
+
+| # | Source | Covers | To see a change |
+|---|---|---|---|
+| 1 | `dashboard/ringside.html` | the main multi-run shell: tabs, theme tokens, CSS, client-rendered markup | **browser reload** — `read_ringside_html` reads it per request |
+| 2 | `inject_models_tab_into_ringside_html` in `ringer.py` | the Models tab's nav, panel, CSS and script | **server restart** — injection runs per request, but its source is baked into the process |
+| 3 | `dashboard/dashboard.html` | the legacy single-run browser shell | **browser reload** — also read per request |
+| 4 | `hud/frontend/hud.js` + `dashboard/dashboard.html` | the desktop Tauri HUD (shell plus injected overlay CSS) | **rebuild and relaunch** — `hud/build.rs` copies both into `dist` at build time |
+| 5 | `ARTIFACT_BASE_CSS` and `MODEL_SCOREBOARD_CSS` in `ringer.py` | generated status, final report, artifact index, text/log wrappers, model scoreboard | **restart AND regenerate** — process-baked, and the HTML is already materialized to disk |
+
+Worker-produced HTML is linked directly and never restyled, so its visuals
+belong to the deliverable, not to Ringside.
+
+**The rule that follows:** scope visual work by *surface*, never by file, and
+name explicitly which of the five you are touching — shell, injected tab, legacy
+shell, desktop bundle, generated families. Two of the five need more than a
+reload, and one needs a rebuild; assuming hot reload is how stale output gets
+shipped believing it was verified.
+
+Related: `contracts` cannot see CSS custom properties and fails open, so it will
+not catch a lane redefining a design token. Confirmed against the code, not
+assumed.
