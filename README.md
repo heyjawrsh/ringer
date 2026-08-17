@@ -178,6 +178,7 @@ lint: clean (1 tasks)
 
 Lint now also reports:
 
+- a task with non-empty `owns` whose spec explicitly tells the worker to write a conventional task-relative path such as `./notes.md` that its ownership patterns do not cover; the configured run-level `questions_file` remains exempt, exactly as it is during runtime enforcement
 - a check that greps for a bare literal with no word boundary or anchor, because `grep todo` matches `mastodon` — use `grep -w` or anchor the pattern
 - a check or spec containing a command that steals window focus (`open`, `xdg-open`, `osascript ... activate`, `screencapture`, a simulator launch) — use a headless probe and write evidence to a file
 - in worktrees mode, an `expect_files` deliverable under a path ignored by the repo's .gitignore, because `git add -A` cannot stage ignored files, so the patch export silently omits it and the worktree is then deleted — have the check copy the artifact outside the worktree and verify the copy

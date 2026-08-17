@@ -1973,6 +1973,31 @@ class Manifest:
 
 FILE_TEST_OPS = {"-e", "-f", "-s", "-d", "-r", "-w", "-x", "-L"}
 
+# Deliberately narrow: lint only treats an explicit write verb followed on the
+# same line by a conventional task-relative path as an instruction to write.
+SPEC_WRITE_PATH_RE = re.compile(
+    r"(?i)\b(?:write|create|produce|edit|update|modify|save|generate)\b"
+    r"[^\n.!?]{0,120}?"
+    r"(?P<path>\./[A-Za-z0-9_.-]*[A-Za-z0-9_-]"
+    r"(?:/[A-Za-z0-9_.-]*[A-Za-z0-9_-])*)"
+)
+
+
+def path_matches_owns(path: str, owns: Iterable[str]) -> bool:
+    """Use the runtime ownership matcher everywhere ownership is interpreted."""
+    return any(fnmatch.fnmatch(path, pattern) for pattern in owns)
+
+
+def spec_instructed_write_paths(spec: str) -> set[str]:
+    """Return conservative, repo-style paths explicitly targeted by write verbs."""
+    paths: set[str] = set()
+    for match in SPEC_WRITE_PATH_RE.finditer(spec):
+        prefix = spec[max(spec.rfind("\n", 0, match.start()) + 1, match.start() - 16):match.start()]
+        if re.search(r"(?i)\b(?:do\s+not|don't|never|without)\s*$", prefix):
+            continue
+        paths.add(match.group("path")[2:])
+    return paths
+
 
 def lint_manifest(
     manifest: Manifest,
@@ -1987,6 +2012,14 @@ def lint_manifest(
         findings.append("manifest: run_name model-scoreboard is reserved for the scoreboard page.")
 
     for task in manifest.tasks:
+        if task.owns:
+            for path in sorted(spec_instructed_write_paths(task.spec)):
+                if path == manifest.questions_file:
+                    continue
+                if not path_matches_owns(path, task.owns):
+                    findings.append(
+                        f"{task.key}: spec instructs the worker to write {path}, but owns does not cover it."
+                    )
         if check_cannot_fail(task.check):
             findings.append(f"{task.key}: check cannot fail, so the task cannot be verified.")
         if check_may_fail_silently(task.check):
@@ -10814,7 +10847,7 @@ class RingerRunner:
                 path
                 for path in lane_paths
                 if path not in exempt
-                and not any(fnmatch.fnmatch(path, pattern) for pattern in runtime.task.owns)
+                and not path_matches_owns(path, runtime.task.owns)
             ]
             if offending:
                 violations.append(
