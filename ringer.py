@@ -3908,21 +3908,23 @@ def update_artifact_library_live(
     project: Path | str | None = None,
 ) -> None:
     now_iso = (now or datetime.now(timezone.utc)).isoformat()
-    library = read_artifact_library(state_dir)
-    artifacts = library.setdefault("artifacts", {})
-    key = project_artifact_slug(project) + ":" + run_name if project is not None else run_name
-    existing = artifacts.get(key) if isinstance(artifacts.get(key), dict) else None
-    artifacts[key] = _library_entry(
-        state_dir=state_dir,
-        run_name=run_name,
-        run_id=run_id,
-        identity=identity,
-        state=state,
-        now_iso=now_iso,
-        existing=existing,
-        project=project,
-    )
-    write_artifact_library(state_dir, library)
+    path = artifact_library_path(state_dir)
+    with exclusive_file_lock(path):
+        library = read_artifact_library(state_dir)
+        artifacts = library.setdefault("artifacts", {})
+        key = project_artifact_slug(project) + ":" + run_name if project is not None else run_name
+        existing = artifacts.get(key) if isinstance(artifacts.get(key), dict) else None
+        artifacts[key] = _library_entry(
+            state_dir=state_dir,
+            run_name=run_name,
+            run_id=run_id,
+            identity=identity,
+            state=state,
+            now_iso=now_iso,
+            existing=existing,
+            project=project,
+        )
+        write_artifact_library(state_dir, library)
 
 
 def append_artifact_library_version(
@@ -3941,37 +3943,39 @@ def append_artifact_library_version(
     project: Path | str | None = None,
 ) -> None:
     now_iso = (now or datetime.now(timezone.utc)).isoformat()
-    library = read_artifact_library(state_dir)
-    artifacts = library.setdefault("artifacts", {})
-    key = project_artifact_slug(project) + ":" + run_name if project is not None else run_name
-    existing = artifacts.get(key) if isinstance(artifacts.get(key), dict) else None
-    entry = _library_entry(
-        state_dir=state_dir,
-        run_name=run_name,
-        run_id=run_id,
-        identity=identity,
-        state=outcome,
-        now_iso=now_iso,
-        existing=existing,
-        project=project,
-    )
-    new_version = {
-        "run_id": run_id,
-        "path": str(version_path),
-        "report_path": str(report_path) if report_path is not None else None,
-        "finished_at": now_iso,
-        "outcome": outcome,
-        "tasks_pass": tasks_pass,
-        "tasks_fail": tasks_fail,
-        "deliverables": [dict(item) for item in deliverables or []],
-    }
-    versions = [new_version]
-    for version in entry["versions"]:
-        if version.get("run_id") != run_id:
-            versions.append(version)
-    entry["versions"] = versions[:ARTIFACT_LIBRARY_MAX_VERSIONS]
-    artifacts[key] = entry
-    write_artifact_library(state_dir, library)
+    path = artifact_library_path(state_dir)
+    with exclusive_file_lock(path):
+        library = read_artifact_library(state_dir)
+        artifacts = library.setdefault("artifacts", {})
+        key = project_artifact_slug(project) + ":" + run_name if project is not None else run_name
+        existing = artifacts.get(key) if isinstance(artifacts.get(key), dict) else None
+        entry = _library_entry(
+            state_dir=state_dir,
+            run_name=run_name,
+            run_id=run_id,
+            identity=identity,
+            state=outcome,
+            now_iso=now_iso,
+            existing=existing,
+            project=project,
+        )
+        new_version = {
+            "run_id": run_id,
+            "path": str(version_path),
+            "report_path": str(report_path) if report_path is not None else None,
+            "finished_at": now_iso,
+            "outcome": outcome,
+            "tasks_pass": tasks_pass,
+            "tasks_fail": tasks_fail,
+            "deliverables": [dict(item) for item in deliverables or []],
+        }
+        versions = [new_version]
+        for version in entry["versions"]:
+            if version.get("run_id") != run_id:
+                versions.append(version)
+        entry["versions"] = versions[:ARTIFACT_LIBRARY_MAX_VERSIONS]
+        artifacts[key] = entry
+        write_artifact_library(state_dir, library)
     prune_artifact_versions(state_dir, versions[ARTIFACT_LIBRARY_MAX_VERSIONS:])
 
 
@@ -3994,23 +3998,25 @@ def prune_artifact_versions(state_dir: Path, versions: list[dict[str, Any]]) -> 
 
 
 def reconcile_artifact_library_dead_runs(state_dir: Path) -> None:
-    library = read_artifact_library(state_dir)
-    artifacts = library.get("artifacts", {})
-    if not isinstance(artifacts, dict):
-        return
     active = read_active_runs()
-    changed = False
-    now_iso = datetime.now(timezone.utc).isoformat()
-    for entry in artifacts.values():
-        if not isinstance(entry, dict) or entry.get("state") != "live":
-            continue
-        run_id = str(entry.get("current_run_id", ""))
-        if not run_id or run_id not in active:
-            entry["state"] = "died"
-            entry["updated_at"] = now_iso
-            changed = True
-    if changed:
-        write_artifact_library(state_dir, library)
+    path = artifact_library_path(state_dir)
+    with exclusive_file_lock(path):
+        library = read_artifact_library(state_dir)
+        artifacts = library.get("artifacts", {})
+        if not isinstance(artifacts, dict):
+            return
+        changed = False
+        now_iso = datetime.now(timezone.utc).isoformat()
+        for entry in artifacts.values():
+            if not isinstance(entry, dict) or entry.get("state") != "live":
+                continue
+            run_id = str(entry.get("current_run_id", ""))
+            if not run_id or run_id not in active:
+                entry["state"] = "died"
+                entry["updated_at"] = now_iso
+                changed = True
+        if changed:
+            write_artifact_library(state_dir, library)
 
 
 def scan_run_states(state_dir: Path) -> list[dict[str, Any]]:
