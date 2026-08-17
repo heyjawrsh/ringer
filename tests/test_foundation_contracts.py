@@ -384,5 +384,52 @@ class FoundationContractTests(unittest.TestCase):
             self.assertTrue(all("violations" not in task for task in state["tasks"]))
 
 
+class CssCustomPropertyContractTests(unittest.TestCase):
+    """A CSS custom property has no declaration keyword in front of it.
+
+    The keyword pattern could never see `--token: value`, so a contract naming a
+    design token silently FAILED OPEN - a lane could redefine it and no gate
+    noticed. Ringside's appearance is spread across five sources, which is
+    exactly the redefinition contracts exist to catch.
+    """
+
+    def violations(self, diff: str, contracts: tuple[str, ...]) -> list[str]:
+        # This module otherwise drives ringer.py as a subprocess, so the repo
+        # root is not already importable here.
+        root = str(Path(__file__).resolve().parents[1])
+        if root not in sys.path:
+            sys.path.insert(0, root)
+        from ringer import contract_violations_from_diff  # noqa: PLC0415
+
+        return contract_violations_from_diff("theme.css", diff, contracts)
+
+    def test_redefining_a_custom_property_is_a_violation(self) -> None:
+        found = self.violations(
+            "@@ -1,0 +1,3 @@\n+:root {\n+  --accent: hotpink;\n+}\n", ("--accent",)
+        )
+        self.assertEqual(1, len(found), found)
+        self.assertIn("--accent", found[0])
+        self.assertIn("theme.css:2", found[0])
+
+    def test_using_a_custom_property_is_not_a_violation(self) -> None:
+        # var(--accent) CONSUMES the token. Only redefinition is the offence,
+        # and flagging every use would make the contract unusable.
+        self.assertEqual(
+            [], self.violations("@@ -1,0 +1,1 @@\n+  color: var(--accent);\n", ("--accent",))
+        )
+
+    def test_other_tokens_and_removals_are_not_violations(self) -> None:
+        self.assertEqual(
+            [], self.violations("@@ -1,0 +1,1 @@\n+  --other: blue;\n", ("--accent",))
+        )
+        self.assertEqual(
+            [], self.violations("@@ -1,0 +1,1 @@\n-  --accent: red;\n", ("--accent",))
+        )
+
+    def test_keyword_declarations_still_match(self) -> None:
+        found = self.violations("@@ -1,0 +1,1 @@\n+const accent = 1;\n", ("accent",))
+        self.assertEqual(1, len(found), found)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

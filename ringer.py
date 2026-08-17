@@ -9984,17 +9984,30 @@ def contract_violations_from_diff(
     diff: str,
     contracts: tuple[str, ...],
 ) -> list[str]:
-    patterns = [
-        (
-            symbol,
-            re.compile(
-                r"^\+?\s*"
-                r"(class|def|struct|enum|interface|type|typedef|protocol|func|fn|const|let|var)"
-                rf"\s+{re.escape(symbol)}\b"
-            ),
+    patterns: list[tuple[str, re.Pattern[str]]] = []
+    for symbol in contracts:
+        patterns.append(
+            (
+                symbol,
+                re.compile(
+                    r"^\+?\s*"
+                    r"(class|def|struct|enum|interface|type|typedef|protocol|func|fn|const|let|var)"
+                    rf"\s+{re.escape(symbol)}\b"
+                ),
+            )
         )
-        for symbol in contracts
-    ]
+        # A CSS custom property is declared as `--token: value` with no keyword
+        # in front of it, so the keyword pattern above can never see one and the
+        # contract silently FAILED OPEN - a lane could redefine a design token
+        # and no gate noticed. Ringside's look is spread across five sources, so
+        # that is exactly the kind of redefinition contracts exist to catch.
+        # The leading `--` must be part of the declared contract symbol; matching
+        # a bare name against `name:` would fire on ordinary CSS properties and
+        # on YAML and JSON keys.
+        if symbol.startswith("--"):
+            patterns.append(
+                (symbol, re.compile(rf"^\+?\s*{re.escape(symbol)}\s*:"))
+            )
     violations: list[str] = []
     new_line_number: int | None = None
     for line in diff.splitlines():
