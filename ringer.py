@@ -4193,58 +4193,32 @@ def fmt_plain_ago(seconds: Any) -> str:
 
 ARTIFACT_BASE_CSS = """
   :root {
-    color-scheme: dark;
-    --ground: #0b0e14;
-    --surface: #0c1219;
-    --surface-alt: #0d1319;
-    --ink: #e9f0f4;
-    --muted: #8998a6;
-    --hairline: #19232c;
-    --rule: #27323c;
-    --accent: #70d7dc;
-    --readout: #70d7dc;
-    --pass: #4cdda0;
-    --fail: #ff735f;
-    --waiting: #64727f;
-    --quote-bg: rgba(255, 115, 95, .07);
-    --running: #70d7dc;
-    --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-    --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color-scheme: light;
+    --ground: #FFFFFF;
+    --surface: #FFFFFF;
+    --surface-alt: #F4F3F0;
+    --ink: #141412;
+    --muted: #6d6c66;
+    --label-muted: #8a8983;
+    --hairline: #dddcd6;
+    --hairline-soft: #e7e6e0;
+    --rule: #b9b8b0;
+    --accent: #577590;
+    --readout: #141412;
+    --pass: #5f9a3e;
+    --pass-fill: #90be6d;
+    --fail: #f94144;
+    --pilot: #c28e0e;
+    --pilot-fill: #f9c74f;
+    --waiting: #c9c8c1;
+    --quote-bg: #fdefee;
+    --running: #577590;
+    --terminal: #353531;
+    --terminal-ink: #e8e7e2;
+    --mono: ui-monospace, Menlo, monospace;
+    --sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
     --gutter-w: 6px;
     --row-pad-y: 10px;
-  }
-  @media (prefers-color-scheme: light) {
-    :root {
-      color-scheme: light;
-      --ground: #f3f6f7;
-      --surface: #ffffff;
-      --surface-alt: #edf2f4;
-      --ink: #172129;
-      --muted: #5f6f7a;
-      --hairline: #dce4e8;
-      --rule: #bcc9d0;
-      --accent: #087f87;
-      --readout: #087f87;
-      --pass: #087a50;
-      --fail: #c74638;
-      --waiting: #72808a;
-      --quote-bg: rgba(199, 70, 56, .07);
-      --running: #087f87;
-    }
-  }
-  :root[data-theme="dark"] {
-    color-scheme: dark;
-    --ground: #0b0e14; --surface: #0c1219; --surface-alt: #0d1319; --ink: #e9f0f4;
-    --muted: #8998a6; --hairline: #19232c; --rule: #27323c; --accent: #70d7dc;
-    --readout: #70d7dc; --pass: #4cdda0; --fail: #ff735f; --waiting: #64727f;
-    --quote-bg: rgba(255,115,95,.07); --running: #70d7dc;
-  }
-  :root[data-theme="light"] {
-    color-scheme: light;
-    --ground: #f3f6f7; --surface: #ffffff; --surface-alt: #edf2f4; --ink: #172129;
-    --muted: #5f6f7a; --hairline: #dce4e8; --rule: #bcc9d0; --accent: #087f87;
-    --readout: #087f87; --pass: #087a50; --fail: #c74638; --waiting: #72808a;
-    --quote-bg: rgba(199,70,56,.07); --running: #087f87;
   }
   * { box-sizing: border-box; }
   html, body {
@@ -4253,7 +4227,7 @@ ARTIFACT_BASE_CSS = """
     overflow-x: hidden;
     background: var(--ground);
     color: var(--ink);
-    font-family: var(--mono);
+    font-family: var(--sans);
     font-size: 12px;
     line-height: 1.35;
   }
@@ -4284,15 +4258,17 @@ ARTIFACT_BASE_CSS = """
     border-radius: 0;
     background: var(--accent);
   }
-  .live-dot.pass { background: var(--pass); }
-  .live-dot.fail, .live-dot.retry { background: var(--fail); }
+  .live-dot.pass { background: var(--pass-fill); }
+  .live-dot.fail { background: var(--fail); }
+  .live-dot.retry { background: var(--pilot-fill); }
   .live-dot.waiting { background: var(--waiting); }
   @media (prefers-reduced-motion: no-preference) {
     .live-dot.is-live { animation: pulse 1.4s ease-in-out infinite; }
     @keyframes pulse { 50% { opacity: .35; } }
   }
   .eyebrow {
-    color: var(--muted);
+    color: var(--label-muted);
+    font-family: var(--mono);
     font-size: 10px;
     font-weight: 700;
     letter-spacing: .13em;
@@ -4306,6 +4282,7 @@ ARTIFACT_BASE_CSS = """
   }
   .clock {
     color: var(--readout);
+    font-family: var(--mono);
     font-size: 11px;
     font-weight: 700;
     letter-spacing: .04em;
@@ -4344,9 +4321,10 @@ ARTIFACT_BASE_CSS = """
     background: var(--waiting);
     opacity: .55;
   }
-  .rounds .pass { background: var(--pass); opacity: 1; }
+  .rounds .pass { background: var(--pass-fill); opacity: 1; }
   .rounds .working { background: var(--accent); opacity: 1; }
-  .rounds .retry, .rounds .fail { background: var(--fail); opacity: 1; }
+  .rounds .retry { background: var(--pilot-fill); opacity: 1; }
+  .rounds .fail { background: var(--fail); opacity: 1; }
   @media (prefers-reduced-motion: no-preference) {
     .rounds .working, .rounds .retry { animation: pulse 1.4s ease-in-out infinite; }
   }
@@ -4358,7 +4336,8 @@ ARTIFACT_BASE_CSS = """
     border-bottom: 1px solid var(--rule);
     border-left: 1px solid var(--rule);
     background: var(--surface);
-    color: var(--muted);
+    color: var(--label-muted);
+    font-family: var(--mono);
     font-size: 9px;
     font-weight: 700;
     letter-spacing: .08em;
@@ -4412,7 +4391,7 @@ ARTIFACT_BASE_CSS = """
     object-fit: cover;
   }
   .work.is-primary .work-link {
-    color: var(--accent);
+    color: var(--ink);
     font-size: 10px;
   }
   .work-group {
@@ -4461,7 +4440,7 @@ ARTIFACT_BASE_CSS = """
   }
   .work-group-body .proof summary {
     cursor: pointer;
-    color: var(--accent);
+    color: var(--ink);
   }
   .work-group-body .proof pre {
     margin: 6px 0 0;
@@ -4487,7 +4466,7 @@ ARTIFACT_BASE_CSS = """
     white-space: nowrap;
   }
   .work-group-body .links a {
-    color: var(--accent);
+    color: var(--ink);
     text-decoration: none;
   }
   .work-group-body .links a:hover,
@@ -4518,8 +4497,10 @@ ARTIFACT_BASE_CSS = """
     grid-template-columns: minmax(150px, 16%) minmax(120px, 12%) minmax(96px, 9%) minmax(260px, 1fr);
     margin: 0;
     padding: 9px 14px 9px calc(var(--gutter-w) + 14px);
-    border: 1px solid var(--rule);
-    color: var(--muted);
+    border: 1px solid var(--hairline);
+    border-bottom: 2px solid var(--ink);
+    color: var(--label-muted);
+    font-family: var(--mono);
     background: var(--surface-alt);
     font-size: 0;
     font-weight: 700;
@@ -4552,7 +4533,7 @@ ARTIFACT_BASE_CSS = """
   }
   details.timeline[open] > summary h2::after { content: " ▾"; }
   details.timeline > summary:focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--ink);
     outline-offset: 2px;
   }
   .tl-row {
@@ -4600,9 +4581,10 @@ ARTIFACT_BASE_CSS = """
     height: auto;
     border-radius: 0;
   }
-  .glyph.pass { background: var(--pass); }
+  .glyph.pass { background: var(--pass-fill); }
   .glyph.working { background: var(--accent); }
   .glyph.retry, .glyph.fail { background: var(--fail); }
+  .glyph.retry { background: var(--pilot-fill); }
   .glyph.waiting {
     background: var(--waiting);
     border: 0;
@@ -4629,6 +4611,7 @@ ARTIFACT_BASE_CSS = """
     align-self: stretch;
     padding: calc(var(--row-pad-y) + 2px) 12px;
     border-left: 1px solid var(--hairline);
+    font-family: var(--mono);
     font-size: 0;
     font-weight: 800;
     letter-spacing: .1em;
@@ -4643,7 +4626,8 @@ ARTIFACT_BASE_CSS = """
   .worker .state.waiting::after { content: "WAIT"; }
   .state.pass { color: var(--pass); }
   .state.working { color: var(--accent); }
-  .state.retry, .state.fail { color: var(--fail); }
+  .state.retry { color: var(--pilot); }
+  .state.fail { color: var(--fail); }
   .state.waiting { color: var(--waiting); }
   .worker .time {
     grid-column: 3;
@@ -4652,6 +4636,7 @@ ARTIFACT_BASE_CSS = """
     padding: calc(var(--row-pad-y) + 2px) 12px;
     border-left: 1px solid var(--hairline);
     color: var(--readout);
+    font-family: var(--mono);
     font-size: 10px;
     font-weight: 700;
     white-space: nowrap;
@@ -4665,6 +4650,7 @@ ARTIFACT_BASE_CSS = """
     padding: calc(var(--row-pad-y) + 2px) 14px;
     border-left: 1px solid var(--hairline);
     color: var(--muted);
+    font-family: var(--mono);
     font-size: 10px;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -4683,7 +4669,7 @@ ARTIFACT_BASE_CSS = """
   }
   .worker .proof summary {
     cursor: pointer;
-    color: var(--accent);
+    color: var(--ink);
   }
   .worker .proof pre {
     margin: 6px 0 0;
@@ -4691,8 +4677,8 @@ ARTIFACT_BASE_CSS = """
     max-height: 200px;
     overflow: auto;
     border-left: 2px solid var(--hairline);
-    background: var(--surface);
-    color: var(--muted);
+    background: var(--terminal);
+    color: var(--terminal-ink);
     font-family: var(--mono);
     font-size: 11.5px;
     line-height: 1.55;
@@ -4704,7 +4690,7 @@ ARTIFACT_BASE_CSS = """
     font-size: 13px;
   }
   .worker .links a {
-    color: var(--accent);
+    color: var(--ink);
     text-decoration: none;
   }
   .worker .links a:hover,
@@ -4788,8 +4774,8 @@ ARTIFACT_BASE_CSS = """
     overflow: auto;
     border: 1px solid var(--rule);
     border-radius: 0;
-    background: var(--surface);
-    color: var(--ink);
+    background: var(--terminal);
+    color: var(--terminal-ink);
     padding: clamp(14px,3vw,24px);
     font-family: var(--mono);
     font-size: 10px;
@@ -4811,7 +4797,7 @@ ARTIFACT_BASE_CSS = """
     line-height: 1.5;
     text-transform: uppercase;
   }
-  a { color: var(--accent); text-decoration: none; }
+  a { color: var(--ink); text-decoration: none; }
   a:hover { text-decoration: underline; }
   @media (max-width: 760px) {
     body { padding: 12px; }
@@ -9059,6 +9045,8 @@ MODEL_SCOREBOARD_CSS = """
     gap: 18px;
     align-items: end;
     margin-bottom: clamp(14px, 2.5vw, 22px);
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--ink);
   }
   .scoreboard-title {
     margin: 0;
@@ -9114,7 +9102,7 @@ MODEL_SCOREBOARD_CSS = """
     padding: 3px 7px 4px;
     font-size: 12px;
     color: var(--ink);
-    background: rgba(255, 255, 255, .03);
+    background: var(--surface-alt);
   }
   .event-list li {
     color: var(--muted);
@@ -9144,7 +9132,7 @@ MODEL_SCOREBOARD_CSS = """
     text-transform: uppercase;
     text-align: left;
     padding: 10px 12px;
-    border-bottom: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--rule);
     white-space: nowrap;
   }
   .ranked-table td {
@@ -9154,7 +9142,7 @@ MODEL_SCOREBOARD_CSS = """
     color: var(--ink);
   }
   .ranked-table tr.model-row:hover td {
-    background: color-mix(in srgb, var(--surface) 48%, transparent);
+    background: var(--surface-alt);
   }
   .rank-cell {
     width: 58px;
@@ -9186,19 +9174,21 @@ MODEL_SCOREBOARD_CSS = """
     min-width: 78px;
     justify-content: center;
     padding: 3px 8px 4px;
-    border-radius: 4px;
+    border-radius: 0;
     font-size: 12px;
     font-weight: 700;
     color: var(--ink);
     border: 1px solid transparent;
   }
   .tier-badge.proven {
-    background: color-mix(in srgb, var(--pass) 30%, transparent);
-    border-color: color-mix(in srgb, var(--pass) 58%, var(--hairline));
+    background: transparent;
+    border-color: var(--pass);
+    color: var(--pass);
   }
   .tier-badge.probation {
-    background: color-mix(in srgb, var(--accent) 24%, transparent);
-    border-color: color-mix(in srgb, var(--accent) 48%, var(--hairline));
+    background: transparent;
+    border-color: var(--pilot);
+    color: var(--pilot);
   }
   .num {
     text-align: right;
@@ -9217,19 +9207,19 @@ MODEL_SCOREBOARD_CSS = """
     height: 6px;
     margin-left: 8px;
     vertical-align: 1px;
-    border-radius: 4px;
-    background: color-mix(in srgb, var(--muted) 22%, transparent);
+    border-radius: 0;
+    background: var(--hairline-soft);
     overflow: hidden;
   }
   .rate-bar {
     display: block;
     height: 100%;
-    border-radius: 4px;
-    background: var(--pass);
+    border-radius: 0;
+    background: var(--pass-fill);
   }
   .detail-row td {
     padding: 0;
-    background: color-mix(in srgb, var(--surface) 55%, transparent);
+    background: var(--surface-alt);
   }
   .model-detail {
     padding: 0;
@@ -9241,7 +9231,7 @@ MODEL_SCOREBOARD_CSS = """
     font-size: 13px;
     border-bottom: 1px solid var(--hairline);
   }
-  .model-detail summary:hover { background: color-mix(in srgb, var(--surface) 70%, transparent); }
+  .model-detail summary:hover { background: var(--surface-alt); }
   .detail-content {
     display: grid;
     grid-template-columns: minmax(0, .86fr) minmax(260px, 1.14fr);
@@ -9313,9 +9303,6 @@ MODEL_SCOREBOARD_CSS = """
     margin-top: 14px;
     color: var(--muted);
     font-size: 12px;
-  }
-  @media (prefers-color-scheme: dark) {
-    .watch-chip { background: rgba(255, 255, 255, .035); }
   }
   @media (max-width: 820px) {
     body { padding: 18px 14px; }

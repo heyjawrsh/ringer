@@ -23,17 +23,6 @@ def css_block(css: str, selector: str) -> str:
     return match.group("body")
 
 
-def media_light_root(css: str) -> str:
-    match = re.search(
-        r"@media\s*\(prefers-color-scheme:\s*light\)\s*\{\s*:root\s*\{(?P<body>.*?)\}\s*\}",
-        css,
-        re.S,
-    )
-    if not match:
-        raise AssertionError("missing light media :root block")
-    return match.group("body")
-
-
 def token_values(block: str) -> dict[str, str]:
     values: dict[str, str] = {}
     for name, value in re.findall(r"(--[a-z-]+)\s*:\s*([^;]+);", block):
@@ -52,15 +41,9 @@ class DesignReferenceTests(unittest.TestCase):
         self.assertTrue(REFERENCE.is_file(), f"committed design reference fixture is missing: {REFERENCE}")
         reference_css = REFERENCE.read_text(encoding="utf-8")
 
-        expected_dark = token_values(css_block(reference_css, ":root"))
-        expected_light = token_values(media_light_root(reference_css))
-        expected_dark_override = token_values(css_block(reference_css, ':root[data-theme="dark"]'))
-        expected_light_override = token_values(css_block(reference_css, ':root[data-theme="light"]'))
+        expected_light = token_values(css_block(reference_css, ":root"))
 
-        self.assertEqual(expected_dark, token_values(css_block(ARTIFACT_BASE_CSS, ":root")))
-        self.assertEqual(expected_light, token_values(media_light_root(ARTIFACT_BASE_CSS)))
-        self.assertEqual(expected_dark_override, token_values(css_block(ARTIFACT_BASE_CSS, ':root[data-theme="dark"]')))
-        self.assertEqual(expected_light_override, token_values(css_block(ARTIFACT_BASE_CSS, ':root[data-theme="light"]')))
+        self.assertEqual(expected_light, token_values(css_block(ARTIFACT_BASE_CSS, ":root")))
 
     def test_live_page_uses_reference_structure(self) -> None:
         render_status_html(

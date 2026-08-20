@@ -240,8 +240,14 @@ class PlainEnglishArtifactTests(unittest.TestCase):
             renderer=self.renderer,
         )
 
-        self.assertIn(':root[data-theme="dark"]', html)
-        self.assertIn(':root[data-theme="light"]', html)
+        # Generated pages are light-only now, so the data-theme overrides are
+        # deliberately gone. Assert the replacement contract rather than simply
+        # dropping the check: the light token block must be present, and the
+        # dual-theme machinery must be absent rather than merely unasserted.
+        self.assertIn(":root", html)
+        self.assertIn("--ground: #FFFFFF", html)
+        self.assertNotIn('data-theme="dark"', html)
+        self.assertNotIn("prefers-color-scheme", html)
 
     def test_final_report_all_pass_briefing(self) -> None:
         html = render_final_report_html(
