@@ -7,6 +7,17 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%2335d0ff'/%3E%3C/svg%3E">
   <style>
     :root {
+      /* Ringside redesign: shipped light-theme primitives. */
+      --rs-ground: #FFFFFF; --rs-surface-active: #F4F3F0; --rs-surface-hover: #f8f7f4;
+      --rs-ink: #141412; --rs-body-muted: #6d6c66; --rs-body-strong-muted: #3a3935; --rs-label-muted: #8a8983;
+      --rs-hairline: #dddcd6; --rs-hairline-soft: #e7e6e0; --rs-rule-strong: #b9b8b0;
+      --rs-terminal: #353531; --rs-terminal-ink: #e8e7e2;
+      --rs-working: #577590; --rs-pass: #90be6d; --rs-pass-text: #5f9a3e;
+      --rs-fail: #f94144; --rs-fail-tint: #fdefee; --rs-pilot: #f9c74f; --rs-pilot-text: #c28e0e; --rs-pilot-tint: #fdf8e9; --rs-waiting: #c9c8c1;
+      --rs-grotesk: "Helvetica Neue", Helvetica, Arial, sans-serif; --rs-mono: ui-monospace, Menlo, monospace;
+      --rs-poster: 700 76px/.9 var(--rs-grotesk); --rs-view-title: 700 26px/1 var(--rs-grotesk); --rs-panel-title: 700 20px/1.2 var(--rs-grotesk); --rs-stat-number: 700 26px/1 var(--rs-mono);
+      --rs-run-name: 600 14px/1.3 var(--rs-grotesk); --rs-lane-name: 600 12px/1.3 var(--rs-mono); --rs-body: 400 11px/1.4 var(--rs-grotesk); --rs-meta: 400 10px/1.4 var(--rs-mono); --rs-micro: 600 9px/1.2 var(--rs-mono); --rs-status: 600 9px/1.2 var(--rs-mono); --rs-badge: 700 8px/1.2 var(--rs-mono);
+      --rs-rail-width: 216px; --rs-content-gutter: 28px; --rs-row-y: 13px; --rs-column-gap: 16px; --rs-status-bar-width: 4px; --rs-status-bar-height: 34px; --rs-lane-strip-height: 10px; --rs-lane-gap: 1px; --rs-round-size: 10px; --rs-round-gap: 3px; --rs-elapsed-height: 4px;
       color-scheme: dark;
       --ground: #0b0e14;
       --surface: #0c1219;
@@ -1256,10 +1267,43 @@
       .pilot-queue-list li { min-width: 180px; }
       .pilot-clear { border-left: 0; border-top: 1px solid var(--rule); }
     }
+    /* Finalised light shell and Runs overview. The legacy workspace retains
+       its existing rules until its dedicated migration rounds. */
+    .ringside-shell{min-height:100vh;display:grid;grid-template-columns:var(--rs-rail-width) minmax(0,1fr);background:var(--rs-ground);color:var(--rs-ink)}
+    .ringside-rail{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;border-right:1px solid var(--rs-hairline);background:var(--rs-ground);font-family:var(--rs-grotesk)}
+    .rail-header{height:52px;flex:0 0 52px;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:2px solid var(--rs-ink)}
+    .rail-live{width:8px;height:8px;background:var(--rs-working)} .rail-title{font:700 12px/1 var(--rs-mono);letter-spacing:.18em;text-transform:uppercase}.rail-build{margin-left:auto;max-width:96px;overflow:hidden;color:var(--rs-label-muted);font:400 9px/1 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}
+    .rail-nav{display:grid}.rail-nav-item{width:100%;display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border:0;border-bottom:1px solid var(--rs-hairline);border-left:3px solid transparent;border-radius:0;background:transparent;color:var(--rs-body-muted);font:600 11px/16px var(--rs-grotesk);text-align:left}.rail-nav-item:hover,.rail-nav-item:focus-visible{background:var(--rs-surface-active);color:var(--rs-ink)}.rail-nav-item[aria-current="page"]{border-left-color:var(--rs-ink);background:var(--rs-surface-active);color:var(--rs-ink)}.rail-nav-item[aria-disabled="true"]{cursor:default}.rail-count{color:var(--rs-label-muted);font:500 10px/1 var(--rs-mono);font-variant-numeric:tabular-nums}.rail-foot{margin-top:auto;padding:12px 16px;border-top:1px solid var(--rs-hairline);color:var(--rs-label-muted);font:400 9px/1.4 var(--rs-mono)}
+    .rail-nav-item:focus-visible,.overview-row:focus-visible,.overview-pilot-action:focus-visible{outline:2px solid var(--rs-ink);outline-offset:-2px}
+    .ringside-content{min-width:0;background:var(--rs-ground)}.runs-overview{color:var(--rs-ink);background:var(--rs-ground);font-family:var(--rs-grotesk)}
+    .overview-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-bottom:2px solid var(--rs-ink)}.overview-stat{min-width:0;padding:30px var(--rs-content-gutter) 24px;border-right:1px solid var(--rs-hairline)}.overview-stat:last-child{border-right:0}.overview-number{font:var(--rs-poster);letter-spacing:-.04em;font-variant-numeric:tabular-nums}.overview-unit{color:var(--rs-label-muted);font-size:34px;letter-spacing:-.02em}.overview-label{margin-top:12px;color:var(--rs-body-muted);font:600 10px/1.35 var(--rs-mono);letter-spacing:.14em;text-transform:uppercase}.overview-stat.attention .overview-number,.overview-stat.attention .overview-label{color:var(--rs-fail)}
+    .status-working{color:var(--rs-working)}.status-pass{color:var(--rs-pass-text)}.status-fail{color:var(--rs-fail)}.status-waiting{color:var(--rs-label-muted)}.status-pilot{color:var(--rs-pilot-text)}
+    .overview-pilot{display:flex;align-items:center;gap:14px;padding:10px var(--rs-content-gutter);border-bottom:1px solid var(--rs-hairline);background:var(--rs-pilot-tint);color:var(--rs-body-strong-muted);font-size:11px;line-height:1.4}.overview-badge{flex:none;padding:3px 7px;background:var(--rs-pilot);color:var(--rs-ink);font:700 9px/1 var(--rs-mono);letter-spacing:.12em;text-transform:uppercase}.overview-pilot-action{margin-left:auto;flex:none;padding:6px 12px;border:0;border-radius:0;background:var(--rs-ink);color:var(--rs-ground);font:600 10px/1 var(--rs-mono)}.overview-pilot-action:hover{background:var(--rs-body-strong-muted)}
+    .overview-grid{display:grid;grid-template-columns:10px minmax(200px,1.3fr) minmax(180px,1.2fr) 70px 96px 116px 68px;align-items:center;column-gap:var(--rs-column-gap)}.overview-head{padding:8px var(--rs-content-gutter) 8px 16px;border-bottom:1px solid var(--rs-rule-strong);color:var(--rs-label-muted);font:600 9px/1.2 var(--rs-mono);letter-spacing:.12em;text-transform:uppercase}.overview-row{width:100%;padding:var(--rs-row-y) var(--rs-content-gutter) var(--rs-row-y) 16px;border:0;border-bottom:1px solid var(--rs-hairline);border-radius:0;background:var(--rs-ground);color:inherit;text-align:left}.overview-row:hover,.overview-row:focus-visible{background:var(--rs-surface-hover)}.overview-row.live{background:var(--rs-surface-active)}.overview-row.pilot{background:var(--rs-pilot-tint)}.overview-row.died{background:var(--rs-fail-tint)}.overview-row.finished{opacity:.72}
+    .run-status-bar{width:var(--rs-status-bar-width);height:var(--rs-status-bar-height);background:var(--rs-waiting)}.run-status-bar.working{background:var(--rs-working)}.run-status-bar.pass{background:var(--rs-pass)}.run-status-bar.fail{background:var(--rs-fail)}.run-status-bar.pilot{background:var(--rs-pilot)}.overview-project{display:block;overflow:hidden;color:var(--rs-label-muted);font:var(--rs-meta);text-overflow:ellipsis;white-space:nowrap}.overview-run-name{display:block;overflow:hidden;font:var(--rs-run-name);text-overflow:ellipsis;white-space:nowrap}
+    .lane-strip{display:flex;gap:var(--rs-lane-gap);height:var(--rs-lane-strip-height)}.lane-segment{flex:1;min-width:1px;background:var(--rs-waiting)}.lane-segment.pass{background:var(--rs-pass)}.lane-segment.fail{background:var(--rs-fail)}.lane-segment.working{background:var(--rs-working)}.lane-segment.retry{background:var(--rs-pilot)}.overview-count{text-align:right;font:600 14px/1 var(--rs-mono);font-variant-numeric:tabular-nums}.overview-count small{color:var(--rs-label-muted);font-size:inherit;font-weight:400}.overview-outcome{text-align:right;font:500 12px/1 var(--rs-mono);font-variant-numeric:tabular-nums}.elapsed-cell{display:grid;gap:3px}.elapsed-track{height:var(--rs-elapsed-height);background:var(--rs-hairline-soft)}.elapsed-fill{display:block;height:100%;background:var(--rs-ink)}.died .elapsed-fill{background:var(--rs-fail)}.elapsed-label,.started-label{color:var(--rs-label-muted);font:var(--rs-micro);font-weight:400;font-variant-numeric:tabular-nums}.started-label{text-align:right;font-size:10px;color:var(--rs-body-muted)}
+    .overview-legend{display:flex;gap:18px;padding:12px var(--rs-content-gutter);border-bottom:1px solid var(--rs-hairline);color:var(--rs-label-muted);font:500 9px/1 var(--rs-mono);text-transform:uppercase}.legend-item{display:inline-flex;align-items:center;gap:6px}.legend-swatch{width:8px;height:8px;background:var(--rs-waiting)}.legend-swatch.working{background:var(--rs-working)}.legend-swatch.pass{background:var(--rs-pass)}.legend-swatch.fail{background:var(--rs-fail)}.legend-swatch.pilot{background:var(--rs-pilot)}.legend-swatch.waiting{border:1.5px solid var(--rs-waiting);background:transparent}.legacy-page{min-height:auto}
+    @media(prefers-reduced-motion:no-preference){.run-status-bar.working,.lane-segment.working,.rail-live.live{animation:pulse 1.4s ease-in-out infinite}}
+    @media(max-width:950px){.overview-grid{grid-template-columns:10px minmax(170px,1.3fr) minmax(130px,1fr) 60px 80px 100px}.overview-grid>:last-child{display:none}}
+    @media(max-width:700px){.overview-number{font-size:48px}.overview-unit{font-size:22px}.overview-stat{padding-inline:16px}.overview-grid{grid-template-columns:10px minmax(120px,1fr) 70px 80px}.overview-grid>:nth-child(3),.overview-grid>:nth-child(6),.overview-grid>:nth-child(7){display:none}}
   </style>
 </head>
 <body>
-  <div class="page">
+  <div class="ringside-shell">
+  <aside class="ringside-rail" aria-label="Ringside navigation">
+    <div class="rail-header"><span id="rail-live" class="rail-live" aria-hidden="true"></span><span class="rail-title">Ringside</span><span id="rail-build" class="rail-build">unknown</span></div>
+    <nav class="rail-nav" aria-label="Dashboard views">
+      <button class="rail-nav-item" type="button" aria-current="page"><span>Runs</span><span id="rail-runs-count" class="rail-count">0</span></button>
+      <button class="rail-nav-item" type="button" aria-disabled="true"><span>Lanes</span><span id="rail-lanes-count" class="rail-count">0</span></button>
+      <button class="rail-nav-item" type="button" aria-disabled="true"><span>Reviews</span><span id="rail-reviews-count" class="rail-count">0</span></button>
+      <button class="rail-nav-item" type="button" aria-disabled="true"><span>Artifacts</span><span id="rail-artifacts-count" class="rail-count">0</span></button>
+      <button class="rail-nav-item" type="button" aria-disabled="true"><span>Models</span></button>
+    </nav>
+    <div id="rail-foot" class="rail-foot" aria-live="polite">0 swarms live</div>
+  </aside>
+  <div class="ringside-content">
+    <section id="runs-overview" class="runs-overview" aria-label="Runs overview" aria-live="polite"></section>
+  <div class="page legacy-page">
     <aside id="update-banner" class="update-banner" role="status" hidden>
       <span id="update-message"></span>
       <button id="dismiss-update" type="button" aria-label="Dismiss update notice">×</button>
@@ -1302,6 +1346,8 @@
       </section>
     </main>
   </div>
+  </div>
+  </div>
 
   <script>
   (() => {
@@ -1341,6 +1387,14 @@
     };
 
     const els = {
+      runsOverview: document.getElementById("runs-overview"),
+      railLive: document.getElementById("rail-live"),
+      railBuild: document.getElementById("rail-build"),
+      railRunsCount: document.getElementById("rail-runs-count"),
+      railLanesCount: document.getElementById("rail-lanes-count"),
+      railReviewsCount: document.getElementById("rail-reviews-count"),
+      railArtifactsCount: document.getElementById("rail-artifacts-count"),
+      railFoot: document.getElementById("rail-foot"),
       topDot: document.getElementById("top-dot"),
       reconnect: document.getElementById("reconnect"),
       clock: document.getElementById("clock"),
@@ -1464,6 +1518,11 @@
     function displayVersion(value) {
       const version = String(value || "").trim();
       if (!version) return "unknown";
+      // A clean checkout reports a bare git sha, but a dirty one reports the
+      // `source-<sha256>` fingerprint fallback — 71 characters that blew the
+      // rail header apart until this handled the prefix too.
+      const prefixed = version.match(/^([A-Za-z][\w.-]*-)([0-9a-f]{12,})$/i);
+      if (prefixed) return prefixed[1] + prefixed[2].slice(0, 8);
       return /^[0-9a-f]{12,}$/i.test(version) ? version.slice(0, 8) : version;
     }
 
@@ -1754,6 +1813,76 @@
       } catch (_e) {}
     }
 
+    function renderRunsOverview() {
+      const staging = document.createElement("div");
+      const liveRuns = runningNowRuns();
+      const liveTasks = liveRuns.flatMap(run => run.tasks);
+      const taskCounts = {working: 0, pass: 0, fail: 0, retry: 0, waiting: 0};
+      liveTasks.forEach(task => { taskCounts[taskKind(task)] += 1; });
+      const awaiting = state.runs.filter(run => run.pilot?.status === "awaiting" && !state.pilotDecisions.get(run.__id)?.result);
+      const failedLanes = liveTasks.filter(task => taskKind(task) === "fail").length;
+      const attention = failedLanes + awaiting.length;
+
+      const stats = document.createElement("div");
+      stats.className = "overview-stats";
+      const stat = (number, label, className = "") => {
+        const cell = document.createElement("div"); cell.className = `overview-stat${className ? ` ${className}` : ""}`;
+        const value = document.createElement("div"); value.className = "overview-number";
+        if (typeof number === "string") value.textContent = number; else value.append(...number);
+        const copy = document.createElement("div"); copy.className = "overview-label";
+        if (typeof label === "string") copy.textContent = label; else copy.append(...label);
+        cell.append(value, copy); stats.appendChild(cell);
+      };
+      stat(String(liveRuns.length), "Swarms live");
+      const laneNumber = [document.createTextNode(String(liveTasks.length)), Object.assign(document.createElement("span"), {className: "overview-unit", textContent: "lanes"})];
+      const laneLabel = [
+        Object.assign(document.createElement("span"), {className: "status-working", textContent: `${taskCounts.working} working`}), document.createTextNode(" · "),
+        Object.assign(document.createElement("span"), {className: "status-pass", textContent: `${taskCounts.pass} pass`}), document.createTextNode(" · "),
+        Object.assign(document.createElement("span"), {className: "status-waiting", textContent: `${taskCounts.waiting} waiting`})
+      ];
+      stat(laneNumber, laneLabel);
+      const attentionParts = [];
+      if (failedLanes) attentionParts.push(`${failedLanes} fail`);
+      if (awaiting.length) attentionParts.push(`${awaiting.length} pilot gate`);
+      stat(String(attention), attention ? `Need attention — ${attentionParts.join(" · ")}` : "No attention needed", attention ? "attention" : "");
+      staging.appendChild(stats);
+
+      if (awaiting.length) {
+        const run = awaiting[0]; const project = projectInfo(run); const held = Math.max(0, run.tasks.length - 1);
+        const strip = document.createElement("div"); strip.className = "overview-pilot"; strip.dataset.key = `overview-pilot:${run.__id}`;
+        const badge = document.createElement("span"); badge.className = "overview-badge"; badge.textContent = `${awaiting.length} pilot review${awaiting.length === 1 ? "" : "s"}`;
+        const copy = document.createElement("span");
+        const strong = document.createElement("b"); strong.textContent = `${project.name} / ${run.run_name}`;
+        copy.append(strong, document.createTextNode(` — pilot ${run.pilot?.task || "unknown"} waiting ${relativeAgo(run.pilot?.since)} · ${held} lane${held === 1 ? "" : "s"} held`));
+        const review = document.createElement("button"); review.type = "button"; review.className = "overview-pilot-action"; review.textContent = "REVIEW NOW";
+        review.addEventListener("click", () => { focusRun(run.__id, false); requestAnimationFrame(() => els.pilotBanner.scrollIntoView({block: "start"})); });
+        strip.append(badge, copy, review); staging.appendChild(strip);
+      }
+
+      const head = document.createElement("div"); head.className = "overview-grid overview-head";
+      ["", "Project / run", "Lanes", "Done", "Pass · Fail", "Elapsed", "Started"].forEach((text, index) => { const span = document.createElement("span"); span.textContent = text; if (index === 3 || index === 4 || index === 6) span.style.textAlign = "right"; head.appendChild(span); });
+      staging.appendChild(head);
+      state.runs.forEach(run => {
+        const pilot = run.pilot?.status === "awaiting" && !state.pilotDecisions.get(run.__id)?.result;
+        const isLive = run.state === "live"; const status = pilot ? "pilot" : (run.state === "died" || run.fail > 0 ? "fail" : (isLive ? "working" : "pass"));
+        const row = document.createElement("button"); row.type = "button"; row.className = `overview-grid overview-row ${run.state}${pilot ? " pilot" : ""}`; row.dataset.key = `overview:${run.__id}`;
+        row.setAttribute("aria-label", `${projectInfo(run).name}, ${run.run_name}, ${status}, ${run.done} of ${run.tasks.length} lanes done, ${run.pass} passed, ${run.fail} failed`);
+        row.addEventListener("click", () => focusRun(run.__id));
+        const bar = document.createElement("span"); bar.className = `run-status-bar ${status}`; bar.setAttribute("aria-hidden", "true");
+        const identity = document.createElement("span"); const project = document.createElement("span"); project.className = "overview-project"; project.textContent = projectInfo(run).name; project.title = projectInfo(run).path; const name = document.createElement("span"); name.className = "overview-run-name"; name.textContent = run.run_name; identity.append(project, name);
+        const lanes = document.createElement("span"); lanes.className = "lane-strip"; lanes.setAttribute("role", "img"); const counts = {pass:0,working:0,retry:0,fail:0,waiting:0}; run.tasks.forEach(task => { const kind = taskKind(task); counts[kind] += 1; const segment = document.createElement("span"); segment.className = `lane-segment ${kind}`; segment.setAttribute("aria-hidden", "true"); lanes.appendChild(segment); }); lanes.setAttribute("aria-label", `${counts.pass} pass, ${counts.working} working, ${counts.retry} retry, ${counts.fail} fail, ${counts.waiting} waiting`);
+        const done = document.createElement("span"); done.className = "overview-count"; done.append(document.createTextNode(String(Math.min(run.done, run.tasks.length))), Object.assign(document.createElement("small"), {textContent: `/${run.tasks.length}`}));
+        const outcome = document.createElement("span"); outcome.className = "overview-outcome"; outcome.append(Object.assign(document.createElement("span"), {className:"status-pass",textContent:String(run.pass)}), document.createTextNode(" · "), Object.assign(document.createElement("span"), {className:run.fail ? "status-fail" : "status-waiting",textContent:String(run.fail)}));
+        const elapsed = document.createElement("span"); elapsed.className = "elapsed-cell"; const track = document.createElement("span"); track.className = "elapsed-track"; const fill = document.createElement("span"); fill.className = "elapsed-fill"; const denominator = Math.max(run.tasks.length, run.done, 1); fill.style.width = `${Math.min(100, Math.round((run.done / denominator) * 100))}%`; track.appendChild(fill); elapsed.append(track, Object.assign(document.createElement("span"), {className:"elapsed-label",textContent:formatDuration(run.elapsed_s)}));
+        const started = document.createElement("span"); started.className = "started-label"; const stamp = parseTime(run.started_at); started.textContent = stamp ? new Date(stamp).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}) : "—";
+        row.append(bar, identity, lanes, done, outcome, elapsed, started); staging.appendChild(row);
+      });
+      const legend = document.createElement("div"); legend.className = "overview-legend";
+      [["working","Working"],["pass","Pass"],["fail","Fail / died"],["pilot","Pilot / retry"],["waiting","Waiting"]].forEach(([kind,label]) => { const item = document.createElement("span"); item.className = "legend-item"; item.append(Object.assign(document.createElement("span"), {className:`legend-swatch ${kind}`}), document.createTextNode(label)); legend.appendChild(item); }); staging.appendChild(legend);
+      morphChildren(els.runsOverview, staging);
+      els.railLive.classList.toggle("live", liveRuns.length > 0); els.railBuild.textContent = displayVersion(state.serverVersion); els.railRunsCount.textContent = String(state.runs.length); els.railLanesCount.textContent = String(liveTasks.length); els.railReviewsCount.textContent = String(awaiting.length); els.railArtifactsCount.textContent = String(state.artifacts.length); els.railFoot.textContent = `${liveRuns.length} swarm${liveRuns.length === 1 ? "" : "s"} live`;
+    }
+
     function renderTop() {
       const anyLive = runningNowRuns().length > 0;
       els.topDot.classList.toggle("live", anyLive);
@@ -1761,6 +1890,7 @@
       const version = state.serverVersion;
       els.serverVersion.textContent = `build ${displayVersion(version)}`;
       els.serverVersion.title = version ? `Ringer build ${version}` : "Ringer build unknown";
+      renderRunsOverview();
     }
 
     function effectiveFocusedRunId(liveRuns) {
@@ -2141,6 +2271,7 @@
         });
       }
       renderLive();
+      renderRunsOverview();
     }
 
     function renderLaneWall(staging) {
