@@ -6167,6 +6167,7 @@ class PersistentHudServer:
         self.instance_token = uuid.uuid4().hex
         self.started_at = utc_now_iso()
         self.code_root = str(Path(__file__).resolve().parent)
+        self.shutdown_complete = threading.Event()
 
     def identity(self) -> dict[str, Any]:
         return {
@@ -6428,13 +6429,19 @@ class PersistentHudServer:
     def start_background(self) -> int:
         return self.start()
 
+    def wait_until_stopped(self) -> None:
+        self.shutdown_complete.wait()
+
     def stop(self) -> None:
-        if self.httpd is not None:
-            self.httpd.shutdown()
-            self.httpd.server_close()
-        if self.thread is not None:
-            self.thread.join(timeout=2)
-        remove_hud_instance_record(self.state_dir, self.port, self.instance_token)
+        try:
+            if self.httpd is not None:
+                self.httpd.shutdown()
+                self.httpd.server_close()
+            if self.thread is not None:
+                self.thread.join(timeout=2)
+            remove_hud_instance_record(self.state_dir, self.port, self.instance_token)
+        finally:
+            self.shutdown_complete.set()
 
 
 class Dashboard:
@@ -13540,14 +13547,26 @@ def run_persistent_hud(config: AppConfig, *, port: int | None, open_viewer: bool
         recorded_running_head=running_head,
         repo_dir=repo_dir,
     )
+    stopped_remotely = False
     try:
-        while True:
-            time.sleep(3600)
+        server.wait_until_stopped()
+        stopped_remotely = True
     except KeyboardInterrupt:
         print("\nRingside stopped.")
         return 0
     finally:
-        server.stop()
+        if not server.shutdown_complete.is_set():
+            server.stop()
+    if stopped_remotely:
+        # This is the terminal foreground service path (and therefore also the
+        # path used by the detached child).  At this point the authenticated
+        # stop request has received its response and stop() has shut down the
+        # HTTP server, closed its socket, joined its serving thread, and removed
+        # the instance record.  Do not leave process lifetime to interpreter
+        # teardown: long-lived library state may own threads whose cleanup is
+        # unrelated to Ringside and can otherwise keep this service PID alive.
+        os._exit(0)
+    return 0
 
 
 

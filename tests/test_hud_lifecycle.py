@@ -4,9 +4,13 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import multiprocessing
+import os
+import socket
 import sys
 import tempfile
 import threading
+import time
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -18,6 +22,10 @@ sys.path.insert(0, str(ROOT))
 import ringer  # noqa: E402
 from ringer import PersistentHudServer  # noqa: E402
 from tests.test_hud_single_tab import config as base_config  # noqa: E402
+
+
+def run_hud_process(config: ringer.AppConfig, port: int) -> None:
+    raise SystemExit(ringer.run_persistent_hud(config, port=port, open_viewer=False))
 
 
 class HudLifecycleTests(unittest.TestCase):
@@ -37,6 +45,11 @@ class HudLifecycleTests(unittest.TestCase):
         port = server.start()
         self.addCleanup(server.stop)
         return server, port
+
+    def ephemeral_port(self) -> int:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+            probe.bind(("127.0.0.1", 0))
+            return int(probe.getsockname()[1])
 
     def test_probe_rejects_unrelated_200_and_accepts_ringside(self) -> None:
         class UnrelatedHandler(BaseHTTPRequestHandler):
@@ -88,6 +101,35 @@ class HudLifecycleTests(unittest.TestCase):
         result, output = self.capture(ringer.stop_persistent_hud, self.config, port=port)
         self.assertEqual(0, result)
         self.assertIn("nothing to stop", output)
+
+    def test_stop_ends_the_foreground_hud_process(self) -> None:
+        port = self.ephemeral_port()
+        process = multiprocessing.Process(
+            target=run_hud_process,
+            args=(self.config, port),
+        )
+        process.start()
+        self.addCleanup(process.join, 2)
+        self.addCleanup(process.terminate)
+
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and not ringer.hud_is_alive(port):
+            if not process.is_alive():
+                self.fail(f"foreground Ringside exited early with {process.exitcode}")
+            time.sleep(0.05)
+        self.assertTrue(ringer.hud_is_alive(port))
+        identity = ringer.hud_identity(port)
+        self.assertIsNotNone(identity)
+        self.assertEqual(process.pid, identity["pid"])
+
+        result, output = self.capture(ringer.stop_persistent_hud, self.config, port=port)
+        self.assertEqual(0, result)
+        self.assertIn("Ringside stopped", output)
+        process.join(5)
+        self.assertFalse(process.is_alive(), f"stopped Ringside process {process.pid} leaked")
+        self.assertEqual(0, process.exitcode)
+        with self.assertRaises(ProcessLookupError):
+            os.kill(process.pid, 0)
 
     def test_mismatched_recorded_pid_is_not_acted_on(self) -> None:
         server, port = self.start_ringside()
