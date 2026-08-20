@@ -1283,6 +1283,11 @@
     .run-status-bar{width:var(--rs-status-bar-width);height:var(--rs-status-bar-height);background:var(--rs-waiting)}.run-status-bar.working{background:var(--rs-working)}.run-status-bar.pass{background:var(--rs-pass)}.run-status-bar.fail{background:var(--rs-fail)}.run-status-bar.pilot{background:var(--rs-pilot)}.overview-project{display:block;overflow:hidden;color:var(--rs-label-muted);font:var(--rs-meta);text-overflow:ellipsis;white-space:nowrap}.overview-run-name{display:block;overflow:hidden;font:var(--rs-run-name);text-overflow:ellipsis;white-space:nowrap}
     .lane-strip{display:flex;gap:var(--rs-lane-gap);height:var(--rs-lane-strip-height)}.lane-segment{flex:1;min-width:1px;background:var(--rs-waiting)}.lane-segment.pass{background:var(--rs-pass)}.lane-segment.fail{background:var(--rs-fail)}.lane-segment.working{background:var(--rs-working)}.lane-segment.retry{background:var(--rs-pilot)}.overview-count{text-align:right;font:600 14px/1 var(--rs-mono);font-variant-numeric:tabular-nums}.overview-count small{color:var(--rs-label-muted);font-size:inherit;font-weight:400}.overview-outcome{text-align:right;font:500 12px/1 var(--rs-mono);font-variant-numeric:tabular-nums}.elapsed-cell{display:grid;gap:3px}.elapsed-track{height:var(--rs-elapsed-height);background:var(--rs-hairline-soft)}.elapsed-fill{display:block;height:100%;background:var(--rs-ink)}.died .elapsed-fill{background:var(--rs-fail)}.elapsed-label,.started-label{color:var(--rs-label-muted);font:var(--rs-micro);font-weight:400;font-variant-numeric:tabular-nums}.started-label{text-align:right;font-size:10px;color:var(--rs-body-muted)}
     .overview-legend{display:flex;gap:18px;padding:12px var(--rs-content-gutter);border-bottom:1px solid var(--rs-hairline);color:var(--rs-label-muted);font:500 9px/1 var(--rs-mono);text-transform:uppercase}.legend-item{display:inline-flex;align-items:center;gap:6px}.legend-swatch{width:8px;height:8px;background:var(--rs-waiting)}.legend-swatch.working{background:var(--rs-working)}.legend-swatch.pass{background:var(--rs-pass)}.legend-swatch.fail{background:var(--rs-fail)}.legend-swatch.pilot{background:var(--rs-pilot)}.legend-swatch.waiting{border:1.5px solid var(--rs-waiting);background:transparent}.legacy-page{min-height:auto}
+    .shell-view[hidden],.legacy-page[hidden]{display:none}.rail-review-badge{min-width:16px;padding:3px 5px;background:var(--rs-pilot);color:var(--rs-ink);font:700 8px/1 var(--rs-mono);letter-spacing:.1em;text-align:center}.view-title-row{min-height:76px;display:flex;align-items:flex-end;gap:20px;padding:0 var(--rs-content-gutter) 16px;border-bottom:2px solid var(--rs-ink)}.view-title-row h1{margin:0;font:700 26px/1 var(--rs-grotesk);letter-spacing:-.01em}.view-meta{margin:0;color:var(--rs-body-muted);font:400 10px/1.5 var(--rs-mono)}.view-sort{margin-left:auto;color:var(--rs-label-muted);font:600 9px/1.4 var(--rs-mono);letter-spacing:.1em;text-transform:uppercase}
+    .lane-wall-grid{display:grid;grid-template-columns:10px 150px minmax(150px,1fr) 100px minmax(180px,2fr) 90px;align-items:center;column-gap:16px}.lane-wall-columns{padding:8px var(--rs-content-gutter) 8px 16px;border-bottom:1px solid var(--rs-rule-strong);color:var(--rs-label-muted);font:600 9px/1.2 var(--rs-mono);letter-spacing:.12em;text-transform:uppercase}.lane-wall-row{min-height:59px;padding:12px var(--rs-content-gutter) 12px 16px;border-bottom:1px solid var(--rs-hairline)}.lane-wall-row.working{background:var(--rs-surface-active)}.lane-wall-row.pilot{background:var(--rs-pilot-tint)}.lane-wall-row.fail{background:var(--rs-fail-tint)}.lane-dot{width:8px;height:8px;background:var(--rs-waiting)}.lane-dot.waiting{border:1.5px solid var(--rs-waiting);background:transparent}.lane-dot.working{background:var(--rs-working)}.lane-dot.pass{background:var(--rs-pass)}.lane-dot.fail{background:var(--rs-fail)}.lane-dot.pilot,.lane-dot.retry{background:var(--rs-pilot)}.lane-name{font:600 12px/1.3 var(--rs-mono)}.lane-run,.lane-activity,.lane-elapsed{overflow:hidden;color:var(--rs-body-muted);font:400 10px/1.45 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}.lane-run b{display:block;color:var(--rs-ink);font-family:var(--rs-grotesk);font-size:11px}.lane-state{font:600 9px/1.3 var(--rs-mono);letter-spacing:.08em;text-transform:uppercase}.lane-held{color:var(--rs-pilot-text)}
+    .reviews-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;min-height:calc(100vh - 76px)}.review-evidence{min-width:0;padding:24px var(--rs-content-gutter)}.review-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid var(--rs-hairline);border-left:1px solid var(--rs-hairline)}.review-grid>div{min-height:86px;padding:14px;border-right:1px solid var(--rs-hairline);border-bottom:1px solid var(--rs-hairline)}.micro-label{display:block;margin-bottom:7px;color:var(--rs-label-muted);font:600 9px/1.4 var(--rs-mono);letter-spacing:.13em;text-transform:uppercase}.review-value{color:var(--rs-ink);font:400 11px/1.55 var(--rs-mono);overflow-wrap:anywhere}.round-block{margin-top:24px}.round-matrix{display:flex;gap:var(--rs-round-gap)}.round-dot{width:var(--rs-round-size);height:var(--rs-round-size);border:1px solid var(--rs-waiting);background:transparent}.round-dot.pass{border-color:var(--rs-pass);background:var(--rs-pass)}.round-dot.fail{border-color:var(--rs-fail);background:var(--rs-fail)}.round-dot.working{border-color:var(--rs-working);background:var(--rs-working)}.terminal-block{margin:24px 0 0;padding:14px 16px;background:var(--rs-terminal);color:var(--rs-terminal-ink);font:400 10px/1.6 var(--rs-mono);white-space:pre-wrap;max-height:210px;overflow:auto}.held-callout{margin-top:18px;padding:12px 14px;border-left:3px solid var(--rs-pilot);background:var(--rs-surface-active);color:var(--rs-body-strong-muted);font:400 11px/1.5 var(--rs-grotesk)}.decision-aside{display:flex;min-height:calc(100vh - 76px);flex-direction:column;padding:24px 20px;border-left:1px solid var(--rs-hairline);background:var(--rs-surface-active)}.decision-aside button{border-radius:0;font:600 10px/1 var(--rs-mono);letter-spacing:.04em;text-transform:uppercase}.decision-approve{width:100%;height:38px;border:0;background:var(--rs-ink);color:var(--rs-ground)}.decision-note-label{margin:22px 0 7px;color:var(--rs-pilot-text);font:600 10px/1.4 var(--rs-mono)}.decision-note{min-height:112px;padding:10px;border:1px solid var(--rs-waiting);border-radius:0;background:var(--rs-ground);color:var(--rs-ink);font:11px/1.5 var(--rs-mono);resize:vertical}.decision-revise{width:100%;min-height:38px;margin-top:8px;border:1px solid var(--rs-pilot-text);background:transparent;color:var(--rs-pilot-text)}.decision-aside button:disabled,.decision-aside textarea:disabled{opacity:.45}.decision-reject{align-self:flex-start;margin-top:20px;padding:0;border:0;background:transparent;color:var(--rs-fail);font-weight:400!important;text-decoration:underline;text-underline-offset:3px;text-transform:none!important}.decision-status{color:var(--rs-body-muted);font:10px/1.5 var(--rs-mono)}.decision-cli{margin-top:auto;padding-top:20px;border-top:1px solid var(--rs-hairline);color:var(--rs-label-muted);font:9px/1.65 var(--rs-mono);overflow-wrap:anywhere}
+    .slide-backdrop{position:fixed;z-index:50;inset:0;background:rgba(20,20,18,.18)}.run-slide{position:absolute;top:0;right:0;width:560px;max-width:80vw;height:100%;display:flex;flex-direction:column;border-left:1px solid var(--rs-ink);background:var(--rs-ground);box-shadow:-24px 0 48px rgba(20,20,18,.18);font-family:var(--rs-grotesk)}.slide-head{display:grid;grid-template-columns:4px 1fr auto;gap:14px;align-items:center;padding:14px 18px;border-bottom:2px solid var(--rs-ink)}.slide-mark{height:34px;background:var(--rs-working)}.slide-breadcrumb{color:var(--rs-label-muted);font:10px/1.4 var(--rs-mono)}.slide-title{font:700 20px/1.2 var(--rs-grotesk)}.slide-close{width:32px;height:32px;border:0;background:transparent;font-size:18px}.slide-stats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--rs-hairline)}.slide-stat{padding:16px;border-right:1px solid var(--rs-hairline)}.slide-stat:last-child{border:0}.slide-stat b{display:block;font:700 26px/1 var(--rs-mono)}.slide-stat span{color:var(--rs-label-muted);font:600 9px/1.5 var(--rs-mono);letter-spacing:.1em;text-transform:uppercase}.slide-body{flex:1;overflow:auto}.slide-lane{display:grid;grid-template-columns:8px 128px 84px minmax(0,1fr) 54px;gap:12px;align-items:center;width:100%;padding:11px 16px;border:0;border-bottom:1px solid var(--rs-hairline-soft);background:transparent;color:inherit;text-align:left}.slide-lane:hover{background:var(--rs-surface-hover)}.slide-lane[aria-selected="true"]{background:#eceae5}.slide-expanded{padding:18px;background:var(--rs-surface-active)}.slide-expanded .terminal-block{margin-top:14px}.slide-foot{display:flex;justify-content:space-between;gap:12px;padding:10px 16px;border-top:1px solid var(--rs-hairline);color:var(--rs-label-muted);font:9px/1.4 var(--rs-mono)}
+    @media(prefers-reduced-motion:no-preference){.slide-backdrop{animation:fadeIn .2s}.run-slide{animation:slideIn .28s cubic-bezier(.2,.8,.2,1)}}@keyframes slideIn{from{transform:translateX(40px)}}
     @media(prefers-reduced-motion:no-preference){.run-status-bar.working,.lane-segment.working,.rail-live.live{animation:pulse 1.4s ease-in-out infinite}}
     @media(max-width:950px){.overview-grid{grid-template-columns:10px minmax(170px,1.3fr) minmax(130px,1fr) 60px 80px 100px}.overview-grid>:last-child{display:none}}
     @media(max-width:700px){.overview-number{font-size:48px}.overview-unit{font-size:22px}.overview-stat{padding-inline:16px}.overview-grid{grid-template-columns:10px minmax(120px,1fr) 70px 80px}.overview-grid>:nth-child(3),.overview-grid>:nth-child(6),.overview-grid>:nth-child(7){display:none}}
@@ -1293,17 +1298,19 @@
   <aside class="ringside-rail" aria-label="Ringside navigation">
     <div class="rail-header"><span id="rail-live" class="rail-live" aria-hidden="true"></span><span class="rail-title">Ringside</span><span id="rail-build" class="rail-build">unknown</span></div>
     <nav class="rail-nav" aria-label="Dashboard views">
-      <button class="rail-nav-item" type="button" aria-current="page"><span>Runs</span><span id="rail-runs-count" class="rail-count">0</span></button>
-      <button class="rail-nav-item" type="button" aria-disabled="true"><span>Lanes</span><span id="rail-lanes-count" class="rail-count">0</span></button>
-      <button class="rail-nav-item" type="button" aria-disabled="true"><span>Reviews</span><span id="rail-reviews-count" class="rail-count">0</span></button>
-      <button class="rail-nav-item" type="button" aria-disabled="true"><span>Artifacts</span><span id="rail-artifacts-count" class="rail-count">0</span></button>
-      <button class="rail-nav-item" type="button" aria-disabled="true"><span>Models</span></button>
+      <button class="rail-nav-item" type="button" data-shell-view="runs" aria-current="page"><span>Runs</span><span id="rail-runs-count" class="rail-count">0</span></button>
+      <button class="rail-nav-item" type="button" data-shell-view="lanes"><span>Lanes</span><span id="rail-lanes-count" class="rail-count">0</span></button>
+      <button class="rail-nav-item" type="button" data-shell-view="reviews"><span>Reviews</span><span id="rail-reviews-count" class="rail-count rail-review-badge">0</span></button>
+      <button class="rail-nav-item" type="button" data-shell-view="artifacts"><span>Artifacts</span><span id="rail-artifacts-count" class="rail-count">0</span></button>
+      <button class="rail-nav-item" type="button" data-shell-view="models"><span>Models</span></button>
     </nav>
     <div id="rail-foot" class="rail-foot" aria-live="polite">0 swarms live</div>
   </aside>
   <div class="ringside-content">
-    <section id="runs-overview" class="runs-overview" aria-label="Runs overview" aria-live="polite"></section>
-  <div class="page legacy-page">
+    <section id="runs-overview" class="runs-overview shell-view" data-shell-panel="runs" aria-label="Runs overview" aria-live="polite"></section>
+    <section id="lanes-view" class="shell-view" data-shell-panel="lanes" aria-label="Lane wall" hidden></section>
+    <section id="reviews-view" class="shell-view" data-shell-panel="reviews" aria-label="Pilot reviews" hidden></section>
+  <div class="page legacy-page" data-shell-panel="legacy" hidden>
     <aside id="update-banner" class="update-banner" role="status" hidden>
       <span id="update-message"></span>
       <button id="dismiss-update" type="button" aria-label="Dismiss update notice">×</button>
@@ -1347,6 +1354,7 @@
     </main>
   </div>
   </div>
+  <div id="slide-root"></div>
   </div>
 
   <script>
@@ -1381,6 +1389,11 @@
       rendering: false,
       runOpen: {},
       focusedRunId: queryRun,
+      shellView: "runs",
+      panelOpen: false,
+      selectedRunId: "",
+      selectedLaneKey: "",
+      panelReturnFocus: null,
       restoreRunFromUrl: Boolean(queryRun),
       pilotDecisions: new Map(),
       pilotNotes: new Map()
@@ -1388,6 +1401,10 @@
 
     const els = {
       runsOverview: document.getElementById("runs-overview"),
+      lanesView: document.getElementById("lanes-view"),
+      reviewsView: document.getElementById("reviews-view"),
+      legacyPage: document.querySelector(".legacy-page"),
+      slideRoot: document.getElementById("slide-root"),
       railLive: document.getElementById("rail-live"),
       railBuild: document.getElementById("rail-build"),
       railRunsCount: document.getElementById("rail-runs-count"),
@@ -1816,12 +1833,21 @@
     function renderRunsOverview() {
       const staging = document.createElement("div");
       const liveRuns = runningNowRuns();
+      const recentCutoff = Date.now() - 86400000;
+      const recentRuns = state.runs.filter(run => {
+        const finished = parseTime(run.finished_at) || (parseTime(run.started_at) + numberOrZero(run.elapsed_s) * 1000);
+        return finished >= recentCutoff;
+      });
+      const bandRuns = liveRuns.length ? liveRuns : recentRuns;
       const liveTasks = liveRuns.flatMap(run => run.tasks);
+      const bandTasks = bandRuns.flatMap(run => run.tasks);
       const taskCounts = {working: 0, pass: 0, fail: 0, retry: 0, waiting: 0};
-      liveTasks.forEach(task => { taskCounts[taskKind(task)] += 1; });
+      bandTasks.forEach(task => { taskCounts[taskKind(task)] += 1; });
       const awaiting = state.runs.filter(run => run.pilot?.status === "awaiting" && !state.pilotDecisions.get(run.__id)?.result);
-      const failedLanes = liveTasks.filter(task => taskKind(task) === "fail").length;
-      const attention = failedLanes + awaiting.length;
+      const bandIds = new Set(bandRuns.map(run => run.__id));
+      const bandAwaiting = awaiting.filter(run => bandIds.has(run.__id));
+      const failedLanes = bandTasks.filter(task => taskKind(task) === "fail").length;
+      const attention = failedLanes + bandAwaiting.length;
 
       const stats = document.createElement("div");
       stats.className = "overview-stats";
@@ -1833,18 +1859,20 @@
         if (typeof label === "string") copy.textContent = label; else copy.append(...label);
         cell.append(value, copy); stats.appendChild(cell);
       };
-      stat(String(liveRuns.length), "Swarms live");
-      const laneNumber = [document.createTextNode(String(liveTasks.length)), Object.assign(document.createElement("span"), {className: "overview-unit", textContent: "lanes"})];
+      const scope = liveRuns.length ? "live now" : "last 24 hours";
+      stat(String(bandRuns.length), `Swarms · ${scope}`);
+      const laneNumber = [document.createTextNode(String(bandTasks.length)), Object.assign(document.createElement("span"), {className: "overview-unit", textContent: "lanes"})];
       const laneLabel = [
         Object.assign(document.createElement("span"), {className: "status-working", textContent: `${taskCounts.working} working`}), document.createTextNode(" · "),
         Object.assign(document.createElement("span"), {className: "status-pass", textContent: `${taskCounts.pass} pass`}), document.createTextNode(" · "),
         Object.assign(document.createElement("span"), {className: "status-waiting", textContent: `${taskCounts.waiting} waiting`})
       ];
+      laneLabel.push(document.createTextNode(` · ${scope}`));
       stat(laneNumber, laneLabel);
       const attentionParts = [];
       if (failedLanes) attentionParts.push(`${failedLanes} fail`);
-      if (awaiting.length) attentionParts.push(`${awaiting.length} pilot gate`);
-      stat(String(attention), attention ? `Need attention — ${attentionParts.join(" · ")}` : "No attention needed", attention ? "attention" : "");
+      if (bandAwaiting.length) attentionParts.push(`${bandAwaiting.length} pilot gate`);
+      stat(String(attention), attention ? `Need attention · ${scope} — ${attentionParts.join(" · ")}` : `No attention needed · ${scope}`, attention ? "attention" : "");
       staging.appendChild(stats);
 
       if (awaiting.length) {
@@ -1855,7 +1883,7 @@
         const strong = document.createElement("b"); strong.textContent = `${project.name} / ${run.run_name}`;
         copy.append(strong, document.createTextNode(` — pilot ${run.pilot?.task || "unknown"} waiting ${relativeAgo(run.pilot?.since)} · ${held} lane${held === 1 ? "" : "s"} held`));
         const review = document.createElement("button"); review.type = "button"; review.className = "overview-pilot-action"; review.textContent = "REVIEW NOW";
-        review.addEventListener("click", () => { focusRun(run.__id, false); requestAnimationFrame(() => els.pilotBanner.scrollIntoView({block: "start"})); });
+        review.addEventListener("click", () => { state.focusedRunId = run.__id; setShellView("reviews"); });
         strip.append(badge, copy, review); staging.appendChild(strip);
       }
 
@@ -1867,7 +1895,7 @@
         const isLive = run.state === "live"; const status = pilot ? "pilot" : (run.state === "died" || run.fail > 0 ? "fail" : (isLive ? "working" : "pass"));
         const row = document.createElement("button"); row.type = "button"; row.className = `overview-grid overview-row ${run.state}${pilot ? " pilot" : ""}`; row.dataset.key = `overview:${run.__id}`;
         row.setAttribute("aria-label", `${projectInfo(run).name}, ${run.run_name}, ${status}, ${run.done} of ${run.tasks.length} lanes done, ${run.pass} passed, ${run.fail} failed`);
-        row.addEventListener("click", () => focusRun(run.__id));
+        row.addEventListener("click", event => openRunPanel(run.__id, event.currentTarget));
         const bar = document.createElement("span"); bar.className = `run-status-bar ${status}`; bar.setAttribute("aria-hidden", "true");
         const identity = document.createElement("span"); const project = document.createElement("span"); project.className = "overview-project"; project.textContent = projectInfo(run).name; project.title = projectInfo(run).path; const name = document.createElement("span"); name.className = "overview-run-name"; name.textContent = run.run_name; identity.append(project, name);
         const lanes = document.createElement("span"); lanes.className = "lane-strip"; lanes.setAttribute("role", "img"); const counts = {pass:0,working:0,retry:0,fail:0,waiting:0}; run.tasks.forEach(task => { const kind = taskKind(task); counts[kind] += 1; const segment = document.createElement("span"); segment.className = `lane-segment ${kind}`; segment.setAttribute("aria-hidden", "true"); lanes.appendChild(segment); }); lanes.setAttribute("aria-label", `${counts.pass} pass, ${counts.working} working, ${counts.retry} retry, ${counts.fail} fail, ${counts.waiting} waiting`);
@@ -1883,6 +1911,73 @@
       els.railLive.classList.toggle("live", liveRuns.length > 0); els.railBuild.textContent = displayVersion(state.serverVersion); els.railRunsCount.textContent = String(state.runs.length); els.railLanesCount.textContent = String(liveTasks.length); els.railReviewsCount.textContent = String(awaiting.length); els.railArtifactsCount.textContent = String(state.artifacts.length); els.railFoot.textContent = `${liveRuns.length} swarm${liveRuns.length === 1 ? "" : "s"} live`;
     }
 
+    function reviewRuns() {
+      return state.runs.filter(run => run.pilot?.status === "awaiting" && !state.pilotDecisions.get(run.__id)?.result)
+        .sort((a, b) => parseTime(a.pilot?.since) - parseTime(b.pilot?.since));
+    }
+
+    function appendRoundMatrix(parent, task, label = "Rounds") {
+      const attempts = Math.max(1, Math.floor(numberOrZero(task?.attempts || task?.round || task?.rounds || 1)));
+      const limit = Math.max(attempts, Math.floor(numberOrZero(task?.max_attempts || task?.max_rounds || 5)), 5);
+      const wrap = document.createElement("div"); wrap.className = "round-block";
+      const micro = document.createElement("span"); micro.className = "micro-label"; micro.textContent = label;
+      const matrix = document.createElement("div"); matrix.className = "round-matrix"; matrix.setAttribute("role", "img"); matrix.setAttribute("aria-label", `${attempts} of ${limit} rounds attempted`);
+      for (let index = 0; index < limit; index += 1) { const dot = document.createElement("span"); dot.className = `round-dot${index < attempts ? ` ${taskKind(task)}` : ""}`; matrix.appendChild(dot); }
+      wrap.append(micro, matrix); parent.appendChild(wrap);
+    }
+
+    function terminalText(task) {
+      const tail = Array.isArray(task?.log_tail) ? task.log_tail : [];
+      return tail.slice(-12).join("\n") || taskActivity(task) || "No terminal output reported yet.";
+    }
+
+    function renderLanesView() {
+      const staging = document.createElement("div");
+      const live = runningNowRuns();
+      const source = live.length ? live : state.runs.slice(0, 1);
+      const entries = source.flatMap(run => run.tasks.map((task, index) => {
+        const key = taskKey(task, index); const pilot = run.pilot?.status === "awaiting" && key !== String(run.pilot?.task || ""); const kind = pilot ? "pilot" : taskKind(task);
+        const rank = kind === "fail" || kind === "pilot" || kind === "retry" ? 0 : (kind === "working" || kind === "waiting" ? 1 : 2);
+        return {run, task, key, kind, rank};
+      })).sort((a,b) => a.rank-b.rank || a.key.localeCompare(b.key));
+      const attention = entries.filter(entry => entry.rank === 0).length; const working = entries.filter(entry => entry.kind === "working").length;
+      const head = document.createElement("header"); head.className = "view-title-row"; head.innerHTML = `<h1 id="lanes-title">Lane wall</h1><p class="view-meta">${entries.length} lanes · ${working} working · ${attention} need attention</p><p class="view-sort">attention → working → pass</p>`; staging.appendChild(head);
+      const columns = document.createElement("div"); columns.className = "lane-wall-grid lane-wall-columns"; ["","Lane","Run","State","Activity","Elapsed"].forEach(text => columns.append(Object.assign(document.createElement("span"), {textContent:text}))); staging.appendChild(columns);
+      entries.forEach(entry => { const row=document.createElement("div"); row.className=`lane-wall-grid lane-wall-row ${entry.kind}`; row.dataset.key=`shell-lane:${entry.run.__id}:${entry.key}`; const dot=document.createElement("span"); dot.className=`lane-dot ${entry.kind}`; const lane=document.createElement("span"); lane.className="lane-name"; lane.textContent=entry.key; const run=document.createElement("span"); run.className="lane-run"; run.innerHTML=`<b></b>${projectInfo(entry.run).name}`; run.firstChild.textContent=entry.run.run_name; const status=document.createElement("span"); status.className=`lane-state status-${entry.kind === "pilot" ? "pilot" : entry.kind}`; status.textContent=entry.kind === "pilot" ? "review" : taskStateText(entry.kind); const activity=document.createElement("span"); activity.className=`lane-activity${entry.kind === "pilot" ? " lane-held" : ""}`; activity.textContent=entry.kind === "pilot" ? `Held while pilot ${entry.run.pilot?.task || "lane"} awaits review` : (taskActivity(entry.task) || "No activity reported"); const elapsed=document.createElement("span"); elapsed.className="lane-elapsed"; elapsed.textContent=formatDuration(entry.task.elapsed_s); row.append(dot,lane,run,status,activity,elapsed); staging.appendChild(row); });
+      if (!entries.length) staging.append(Object.assign(document.createElement("p"), {className:"held-callout",textContent:"No lanes have reported in yet."}));
+      morphChildren(els.lanesView, staging);
+    }
+
+    function renderReviewsView() {
+      const staging=document.createElement("div"); const queue=reviewRuns(); const run=queue.find(item=>item.__id===state.focusedRunId)||queue[0];
+      const head=document.createElement("header"); head.className="view-title-row"; const held=run?Math.max(0,run.tasks.length-1):0; head.innerHTML=`<h1 id="reviews-title">Pilot review</h1><p class="view-meta"></p><p class="view-sort status-pilot"></p>`; head.querySelector(".view-meta").textContent=run?`${projectInfo(run).name} / ${run.run_name} · pilot ${run.pilot?.task||"unknown"}`:"Queue clear"; head.querySelector(".view-sort").textContent=run?`waiting ${relativeAgo(run.pilot?.since)} · ${held} lanes held`:"0 waiting"; staging.appendChild(head);
+      if (!run) { staging.append(Object.assign(document.createElement("p"),{className:"held-callout",textContent:"Nothing needs review."})); morphChildren(els.reviewsView,staging); return; }
+      const pilotTask=String(run.pilot?.task||"unknown"); const task=run.tasks.find((item,index)=>taskKey(item,index)===pilotTask)||{}; const decision=state.pilotDecisions.get(run.__id)||{}; const locked=run.orchestrator_alive===false||decision.inFlight||Boolean(decision.result);
+      const layout=document.createElement("div"); layout.className="reviews-layout"; const evidence=document.createElement("section"); evidence.className="review-evidence"; const grid=document.createElement("div"); grid.className="review-grid";
+      [["Deliverable",pilotTask],["Check",String(task.check||task.verdict||taskStateText(taskKind(task)))],["Latest evidence",taskActivity(task)||String(task.output||task.result||"No evidence summary recorded")],["Revision",String(numberOrZero(run.pilot?.revisions))]].forEach(([label,value])=>{const item=document.createElement("div"); item.innerHTML=`<span class="micro-label"></span><span class="review-value"></span>`; item.firstChild.textContent=label; item.lastChild.textContent=value; grid.appendChild(item);}); evidence.appendChild(grid); appendRoundMatrix(evidence,task,"Pilot rounds"); const terminal=document.createElement("pre"); terminal.className="terminal-block"; terminal.textContent=terminalText(task); evidence.appendChild(terminal); const callout=document.createElement("div"); callout.className="held-callout"; callout.textContent=`${held} lane${held===1?" is":"s are"} held until this pilot review is cleared.`; evidence.appendChild(callout);
+      const aside=document.createElement("aside"); aside.className="decision-aside"; aside.setAttribute("aria-label","Clear this review item"); aside.append(Object.assign(document.createElement("span"),{className:"micro-label",textContent:"Clear this item"})); const approve=document.createElement("button"); approve.className="decision-approve"; approve.textContent=decision.result==="approve"?"APPROVED ✓":`APPROVE & RELEASE ${held} LANE${held===1?"":"S"}`; approve.disabled=locked; approve.addEventListener("click",()=>submitPilotDecision(run,"approve")); const label=document.createElement("label"); label.className="decision-note-label"; label.htmlFor=`review-note-${run.__id}`; label.textContent="Request changes note"; const note=document.createElement("textarea"); note.id=label.htmlFor; note.dataset.key=`review-note:${run.__id}`; note.className="decision-note"; note.value=state.pilotNotes.get(run.__id)||""; note.disabled=locked; const revise=document.createElement("button"); revise.className="decision-revise"; revise.textContent="SEND NOTE & RE-RUN PILOT"; revise.disabled=locked||!note.value.trim(); note.addEventListener("input",()=>{state.pilotNotes.set(run.__id,note.value); revise.disabled=locked||!note.value.trim();}); revise.addEventListener("click",()=>submitPilotDecision(run,"revise",note.value)); const reject=document.createElement("button"); reject.className="decision-reject"; reject.textContent="Reject & end the run"; reject.disabled=locked; reject.addEventListener("click",()=>submitPilotDecision(run,"reject")); const status=document.createElement("p"); status.className=`decision-status status-${decision.result||"waiting"}`; status.setAttribute("role","status"); status.setAttribute("aria-live","polite"); status.textContent=decision.result==="approve"?"Approved. Held lanes will resume.":decision.result==="revise"?"Changes requested. The pilot is re-running.":decision.result==="reject"?"Rejected. The run will end.":decision.error?`Decision not recorded: ${decision.error}`:decision.inFlight?"Recording decision…":"Awaiting a decision."; const cli=document.createElement("p"); cli.className="decision-cli"; cli.textContent=`Terminal equivalents\n./ringer.py approve ${run.__id}\n./ringer.py reject ${run.__id}`; aside.append(approve,label,note,revise,reject,status,cli); layout.append(evidence,aside); staging.appendChild(layout); morphChildren(els.reviewsView,staging);
+    }
+
+    function setShellView(view) {
+      state.shellView=view; document.querySelectorAll("[data-shell-view]").forEach(button=>button.setAttribute("aria-current",button.dataset.shellView===view?"page":"false")); els.runsOverview.hidden=view!=="runs"; els.lanesView.hidden=view!=="lanes"; els.reviewsView.hidden=view!=="reviews"; els.legacyPage.hidden=!(view==="artifacts"||view==="models");
+      if(view==="lanes") renderLanesView(); if(view==="reviews") renderReviewsView(); if(view==="artifacts"){setView("single"); loadArtifactFrame(true);} if(view==="models") renderLive();
+    }
+
+    function closeRunPanel() {
+      if (!state.panelOpen) return; state.panelOpen=false; state.selectedRunId=""; els.slideRoot.replaceChildren(); document.body.style.overflow=""; const target=state.panelReturnFocus; state.panelReturnFocus=null; if(target?.isConnected) target.focus();
+    }
+
+    function openRunPanel(runIdValue, trigger) {
+      const run=state.runs.find(item=>item.__id===runIdValue); if(!run)return; state.panelOpen=true; state.selectedRunId=runIdValue; state.selectedLaneKey=state.selectedLaneKey&&run.tasks.some((task,index)=>taskKey(task,index)===state.selectedLaneKey)?state.selectedLaneKey:taskKey(run.tasks[0]||{},0); state.panelReturnFocus=trigger||document.activeElement; document.body.style.overflow="hidden"; renderRunPanel(); requestAnimationFrame(()=>els.slideRoot.querySelector(".slide-close")?.focus());
+    }
+
+    function renderRunPanel() {
+      if(!state.panelOpen)return; const run=state.runs.find(item=>item.__id===state.selectedRunId); if(!run){closeRunPanel();return;} const staging=document.createElement("div"); const backdrop=document.createElement("div"); backdrop.className="slide-backdrop"; backdrop.addEventListener("click",event=>{if(event.target===backdrop)closeRunPanel();}); const dialog=document.createElement("section"); dialog.className="run-slide"; dialog.setAttribute("role","dialog"); dialog.setAttribute("aria-modal","true"); dialog.setAttribute("aria-labelledby","slide-title");
+      const head=document.createElement("header"); head.className="slide-head"; const mark=document.createElement("span"); mark.className="slide-mark"; const names=document.createElement("div"); names.innerHTML=`<div class="slide-breadcrumb"></div><div class="slide-title" id="slide-title"></div>`; names.firstChild.textContent=projectInfo(run).name; names.lastChild.textContent=run.run_name; const close=document.createElement("button"); close.type="button"; close.className="slide-close"; close.setAttribute("aria-label","Close run detail"); close.textContent="✕"; close.addEventListener("click",closeRunPanel); head.append(mark,names,close); dialog.appendChild(head);
+      const stats=document.createElement("div"); stats.className="slide-stats"; [[run.done,"Done"],[run.pass,"Pass"],[run.fail,"Fail"],[formatTokens(run.tokens).replace(" tok",""),"Tokens"]].forEach(([value,label])=>{const cell=document.createElement("div"); cell.className="slide-stat"; cell.innerHTML="<b></b><span></span>"; cell.firstChild.textContent=value; cell.lastChild.textContent=label; stats.appendChild(cell);}); dialog.appendChild(stats); const body=document.createElement("div"); body.className="slide-body";
+      run.tasks.forEach((task,index)=>{const key=taskKey(task,index); const kind=taskKind(task); const row=document.createElement("button"); row.type="button"; row.className="slide-lane"; row.dataset.key=`slide-lane:${key}`; row.setAttribute("role","option"); row.setAttribute("aria-selected",String(key===state.selectedLaneKey)); row.setAttribute("aria-label",`${key}, ${taskStateText(kind)}. Show lane detail.`); const dot=document.createElement("span"); dot.className=`lane-dot ${kind}`; const name=document.createElement("span"); name.className="lane-name"; name.textContent=key; const status=document.createElement("span"); status.className=`lane-state status-${kind}`; status.textContent=taskStateText(kind); const activity=document.createElement("span"); activity.className="lane-activity"; activity.textContent=taskActivity(task)||"No activity"; const elapsed=document.createElement("span"); elapsed.className="lane-elapsed"; elapsed.textContent=formatDuration(task.elapsed_s); row.append(dot,name,status,activity,elapsed); row.addEventListener("click",()=>{state.selectedLaneKey=key;renderRunPanel();requestAnimationFrame(()=>els.slideRoot.querySelector(`[data-key="slide-lane:${CSS.escape(key)}"]`)?.focus());}); body.appendChild(row); if(key===state.selectedLaneKey){const expanded=document.createElement("div"); expanded.className="slide-expanded"; appendRoundMatrix(expanded,task,`${key} rounds`); const caption=document.createElement("p"); caption.className="view-meta"; caption.textContent=`${taskStateText(kind)} · ${Math.max(1,numberOrZero(task.attempts||task.round||1))} attempt(s)`; const terminal=document.createElement("pre"); terminal.className="terminal-block"; terminal.textContent=terminalText(task); expanded.append(caption,terminal); body.appendChild(expanded);}}); dialog.appendChild(body); const foot=document.createElement("footer"); foot.className="slide-foot"; foot.innerHTML="<span></span><span>↑↓ lanes · esc close</span>"; foot.firstChild.textContent=`${run.__id} · ${formatDuration(elapsedForRun(run))}`; dialog.appendChild(foot); backdrop.appendChild(dialog); staging.appendChild(backdrop); morphChildren(els.slideRoot,staging);
+    }
+
     function renderTop() {
       const anyLive = runningNowRuns().length > 0;
       els.topDot.classList.toggle("live", anyLive);
@@ -1891,6 +1986,9 @@
       els.serverVersion.textContent = `build ${displayVersion(version)}`;
       els.serverVersion.title = version ? `Ringer build ${version}` : "Ringer build unknown";
       renderRunsOverview();
+      if (state.shellView === "lanes") renderLanesView();
+      if (state.shellView === "reviews") renderReviewsView();
+      if (state.panelOpen) renderRunPanel();
     }
 
     function effectiveFocusedRunId(liveRuns) {
@@ -2272,6 +2370,8 @@
       }
       renderLive();
       renderRunsOverview();
+      if (state.shellView === "reviews") renderReviewsView();
+      if (state.shellView === "lanes") renderLanesView();
     }
 
     function renderLaneWall(staging) {
@@ -3220,7 +3320,16 @@
       renderLive();
       loadArtifactFrame(true);
     });
+    document.querySelector(".rail-nav").addEventListener("click", event => {
+      const button=event.target.closest("[data-shell-view]"); if(button)setShellView(button.dataset.shellView);
+    });
     document.addEventListener("keydown", event => {
+      if (state.panelOpen) {
+        if (event.key === "Escape") { event.preventDefault(); closeRunPanel(); return; }
+        if (event.key === "Tab") { const focusable=[...els.slideRoot.querySelectorAll("button:not(:disabled),textarea:not(:disabled),select:not(:disabled),[href],[tabindex]:not([tabindex='-1'])")]; if(!focusable.length)return; const first=focusable[0],last=focusable[focusable.length-1]; if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();} }
+        if (event.key === "ArrowDown" || event.key === "ArrowUp") { const lanes=[...els.slideRoot.querySelectorAll(".slide-lane")]; const index=lanes.indexOf(document.activeElement); if(index>=0){event.preventDefault();lanes[(index+(event.key==="ArrowDown"?1:-1)+lanes.length)%lanes.length].click();} }
+        return;
+      }
       if (event.key === "Escape" && state.expanded.size) closeWorker();
     });
 
@@ -3232,6 +3341,7 @@
     renderRunningNow();
     renderLive();
     renderArtifacts();
+    setShellView("runs");
     fetchRuns();
     fetchLibrary();
     setInterval(tickClock, 1000);

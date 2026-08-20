@@ -22,25 +22,24 @@
     .tauri-hud body:before { display: none; }
     .tauri-hud .shell {
       height: 100%;
-      border-radius: 14px;
       overflow: hidden;
-      background:
-        radial-gradient(circle at 50% -20%, rgba(40,215,255,.14), transparent 24rem),
-        linear-gradient(180deg, rgba(8,10,15,.94), rgba(13,17,25,.97) 60%, rgba(8,10,15,.94));
-      box-shadow: 0 18px 50px rgba(0,0,0,.38);
+      background: #FFFFFF;
+      border: 1px solid #dddcd6;
     }
     .tauri-hud .topbar {
       min-height: 34px;
       padding-top: 5px;
       padding-bottom: 5px;
-      background: rgba(5,8,12,.50);
+      background: #FFFFFF;
+      border-bottom: 1px solid #dddcd6;
+      color: #141412;
     }
     .tauri-hud .hud-close {
-      color: rgba(255,255,255,.72);
+      color: #8a8983;
     }
     .tauri-hud .hud-close:hover {
-      background: #ff5f57;
-      color: rgba(60,0,0,.75);
+      background: #f94144;
+      color: #FFFFFF;
     }
   `;
   document.head.appendChild(style);
