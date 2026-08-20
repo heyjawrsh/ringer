@@ -5835,374 +5835,9 @@ def artifact_content_type(path: Path) -> str:
     return "application/octet-stream"
 
 
-def inject_models_tab_into_ringside_html(html: str) -> str:
-    if 'id="models-panel"' in html or 'id="artifacts-panel"' not in html:
-        return html
-    tabs = """
-    <nav class="tabs" id="ringside-tabs" aria-label="Ringside views">
-      <button type="button" class="tab" id="runs-tab" aria-selected="true">Runs</button>
-      <button type="button" class="tab" id="models-tab" aria-selected="false">Models</button>
-    </nav>
-"""
-    panel = """
-      <section id="models-panel" class="panel models-panel" hidden>
-        <div id="models-status" class="models-status mono">models not loaded</div>
-        <div id="models-table-wrap" class="models-table-wrap">
-          <div class="empty">No model results yet. Run './ringer.py models' for the local scoreboard docs.</div>
-        </div>
-      </section>
-"""
-    style = """
-    .models-panel {
-      min-height: calc(100vh - 83px);
-      padding: 0 clamp(12px, 2vw, 22px) clamp(20px, 3vw, 30px);
-    }
-    .models-status {
-      padding: 10px 0;
-      color: var(--muted);
-      font-size: 12px;
-      border-bottom: 1px solid var(--hairline);
-    }
-    .models-status.error { color: var(--fail); }
-    .models-table-wrap { overflow: auto; }
-    .models-table {
-      width: 100%;
-      /* 12 columns. The old 1500px floor forced a horizontal scrollbar on a
-         1440px window, so the scoreboard was always cramped and shoved
-         sideways. Control-room density gets the same columns under 1200px,
-         which fits a laptop viewport; narrower windows still scroll. */
-      min-width: 1200px;
-      border-collapse: collapse;
-      font-size: 11px;
-    }
-    .models-table th,
-    .models-table td {
-      padding: var(--row-pad-y) 8px;
-      border-bottom: 1px solid var(--rule);
-      vertical-align: middle;
-      text-align: left;
-    }
-    .models-table th {
-      color: var(--muted);
-      font-family: var(--mono);
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-    .models-table tbody .model-row:nth-of-type(odd) { background: var(--surface-alt); }
-    /* Every column except notes holds one atomic value — a lab, a harness, a
-       date. Letting them wrap made "OpenRouter API" and "July 18, 2026" break
-       across two lines while notes hogged the width. Keep them on one line and
-       give the freed space to notes, which is the only cell that wants it. */
-    .models-table td { white-space: nowrap; }
-    .models-table td.model-notes {
-      white-space: normal;
-      /* Cap at a readable measure rather than a narrow one: the atomic columns
-         no longer stretch, so notes takes the remainder, and a wider notes cell
-         means FEWER lines and shorter rows. 90ch is about the limit before long
-         line length hurts reading. */
-      max-width: 90ch;
-    }
-    .models-table .numeric {
-      text-align: right;
-      font-family: var(--mono);
-      white-space: nowrap;
-    }
-    .model-row { cursor: pointer; }
-    .model-row:hover,
-    .model-row.expanded { background: var(--surface); }
-    .model-name-cell { display: grid; gap: 1px; min-width: 150px; }
-    .model-display { color: var(--ink); font-weight: 700; }
-    .models-meta {
-      color: var(--muted);
-      font-family: var(--mono);
-      font-size: 10px;
-    }
-    .model-flag {
-      color: var(--muted);
-      font-size: 11px;
-      text-transform: uppercase;
-    }
-    .model-notes { min-width: 190px; color: var(--muted); line-height: 1.5; }
-    .tier-badge {
-      display: inline-flex;
-      align-items: center;
-      min-height: 22px;
-      padding: 2px 7px;
-      border: 1px solid var(--hairline);
-      border-radius: 5px;
-      color: var(--ink);
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-    }
-    .tier-badge.proven {
-      border-color: color-mix(in srgb, var(--pass) 48%, var(--hairline));
-      color: var(--pass);
-    }
-    .tier-badge.probation {
-      border-color: color-mix(in srgb, var(--accent) 48%, var(--hairline));
-      color: var(--accent);
-    }
-    .model-breakdown td {
-      padding: 0;
-      background: color-mix(in srgb, var(--surface) 72%, transparent);
-    }
-    .breakdown-grid {
-      display: grid;
-      grid-template-columns: minmax(120px, 1fr) repeat(5, minmax(70px, auto));
-      gap: 0;
-      padding: 8px 10px 10px 46px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-    .breakdown-grid > div {
-      padding: 5px 8px;
-      border-bottom: 1px solid var(--hairline);
-      min-width: 0;
-    }
-    .breakdown-head {
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-    }
-    @media (max-width: 760px) {
-      .breakdown-grid {
-        grid-template-columns: minmax(110px, 1fr) repeat(2, minmax(64px, auto));
-        padding-left: 10px;
-      }
-      .breakdown-grid .optional { display: none; }
-    }
-"""
-    script = r"""
-    function installModelsView() {
-      const MODELS_REFRESH_MS = 30000;
-      const VIEW_KEY = "ringside-view";
-      const runsPanel = document.getElementById("artifacts-panel");
-      const modelsPanel = document.getElementById("models-panel");
-      const runsTab = document.getElementById("runs-tab");
-      const modelsTab = document.getElementById("models-tab");
-      const status = document.getElementById("models-status");
-      const wrap = document.getElementById("models-table-wrap");
-      if (!runsPanel || !modelsPanel || !runsTab || !modelsTab || !status || !wrap) return;
-      let payload = null;
-      let expandedModel = null;
-      let lastFetch = 0;
-      let inFlight = false;
-      let activeView = "runs";
-
-      function html(value) {
-        return String(value ?? "")
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#39;");
-      }
-
-      function numberOrZeroLocal(value) {
-        const number = Number(value);
-        return Number.isFinite(number) ? number : 0;
-      }
-
-      function percent(value) {
-        const number = Number(value);
-        return Number.isFinite(number) ? `${Math.round(number * 100)}%` : "0%";
-      }
-
-      function modelDuration(value) {
-        if (value === null || value === undefined || value === "") return "";
-        const total = Math.max(0, Math.round(numberOrZeroLocal(value) / 1000));
-        const hours = Math.floor(total / 3600);
-        const minutes = Math.floor((total % 3600) / 60);
-        const seconds = total % 60;
-        if (hours) return `${hours}h${String(minutes).padStart(2, "0")}m${String(seconds).padStart(2, "0")}s`;
-        if (minutes) return `${minutes}m${String(seconds).padStart(2, "0")}s`;
-        return `${seconds}s`;
-      }
-
-      function modelDate(value) {
-        const text = String(value || "").trim();
-        if (!text) return "unknown";
-        const match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
-        if (match) {
-          const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-          return date.toLocaleDateString("en-US", {month: "long", day: "numeric", year: "numeric"});
-        }
-        const stamp = Date.parse(text);
-        return Number.isFinite(stamp)
-          ? new Date(stamp).toLocaleDateString("en-US", {month: "long", day: "numeric", year: "numeric"})
-          : text;
-      }
-
-      function safeClass(value) {
-        return String(value || "unknown").toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "") || "unknown";
-      }
-
-      function groupsFor(bucketId) {
-        const groups = Array.isArray(payload?.groups) ? payload.groups : [];
-        return groups.filter(group => String(group?.display_bucket_id || "") === bucketId);
-      }
-
-      function breakdown(bucketId) {
-        const groups = groupsFor(bucketId);
-        if (!groups.length) return '<div class="empty">No per-task breakdown recorded for this model.</div>';
-        const cells = [
-          '<div class="breakdown-head">Task type</div>',
-          '<div class="breakdown-head">Tasks</div>',
-          '<div class="breakdown-head">First</div>',
-          '<div class="breakdown-head optional">Pass</div>',
-          '<div class="breakdown-head optional">Attempts</div>',
-          '<div class="breakdown-head optional">Last used</div>',
-        ];
-        groups.forEach(group => {
-          cells.push(
-            `<div>${html(group.task_type || "(untyped)")}</div>`,
-            `<div>${numberOrZeroLocal(group.tasks).toLocaleString()}</div>`,
-            `<div>${html(percent(group.first_try_pass_rate))}</div>`,
-            `<div class="optional">${html(percent(group.pass_rate))}</div>`,
-            `<div class="optional">${numberOrZeroLocal(group.attempts).toLocaleString()}</div>`,
-            `<div class="optional">${html(modelDate(group.last_seen))}</div>`,
-          );
-        });
-        return `<div class="breakdown-grid mono">${cells.join("")}</div>`;
-      }
-
-      function renderModels() {
-        const rows = Array.isArray(payload?.rollup) ? payload.rollup : [];
-        const error = String(payload?.error || "").trim();
-        status.classList.toggle("error", Boolean(error));
-        status.textContent = error ? `models unavailable: ${error}` : `updated ${modelDate(payload?.generated_at)}`;
-        if (!rows.length) {
-          wrap.innerHTML = '<div class="empty">No model results yet. Run \'./ringer.py models\' for the local scoreboard docs.</div>';
-          return;
-        }
-        const body = [];
-        rows.forEach((row, index) => {
-          const bucketId = String(row.display_bucket_id || `bucket-${index}`);
-          const expanded = expandedModel === bucketId;
-          const tierClass = safeClass(row.tier);
-          const marker = row.misrouted ? "misrouted" : (row.unregistered ? "unregistered" : "");
-          const tier = row.unattributed || row.misrouted ? "not ranked" : (row.tier || "unknown");
-          const notes = Array.isArray(row.notes) ? row.notes.join("\n\n") : "";
-          body.push(
-            `<tr class="model-row${expanded ? " expanded" : ""}" data-model="${html(bucketId)}" tabindex="0">`,
-            '<td><span class="model-name-cell">',
-            `<span class="model-display">${html(row.model_display || row.model || "unknown")}</span>`,
-            marker ? `<span class="model-flag">${html(marker)}</span>` : "",
-            '</span></td>',
-            `<td>${html(row.lab || "(unknown)")}</td>`,
-            `<td>${html(row.harness || "unknown")}</td>`,
-            `<td>${html(row.access || "unknown")}</td>`,
-            `<td><span class="tier-badge ${html(tierClass)}">${html(tier)}</span></td>`,
-            `<td class="numeric">${numberOrZeroLocal(row.tasks).toLocaleString()}</td>`,
-            `<td class="numeric">${html(percent(row.first_try_pass_rate))}</td>`,
-            `<td class="numeric">${html(percent(row.pass_rate))}</td>`,
-            `<td class="numeric">${row.median_tokens === null || row.median_tokens === undefined ? "" : numberOrZeroLocal(row.median_tokens).toLocaleString()}</td>`,
-            `<td>${html(modelDuration(row.median_duration_ms))}</td>`,
-            `<td>${html(modelDate(row.last_seen))}</td>`,
-            `<td class="model-notes" title="${html(notes)}">${html(row.latest_note || "")}</td>`,
-            '</tr>',
-          );
-          if (expanded) body.push(`<tr class="model-breakdown"><td colspan="12">${breakdown(bucketId)}</td></tr>`);
-        });
-        wrap.innerHTML = [
-          '<table class="models-table">',
-          '<thead><tr>',
-          '<th>Model</th><th>Lab</th><th>Harness</th><th>API/Plan</th><th>Tier</th>',
-          '<th class="numeric">Tasks</th><th class="numeric">First try</th><th class="numeric">Pass</th>',
-          '<th class="numeric">Tokens (median)</th><th>Speed (median)</th><th>Last used</th><th>Notes</th>',
-          '</tr></thead>',
-          `<tbody>${body.join("")}</tbody>`,
-          '</table>',
-        ].join("");
-      }
-
-      async function fetchModels(force) {
-        const now = Date.now();
-        if (inFlight || (!force && lastFetch && now - lastFetch < MODELS_REFRESH_MS)) return;
-        inFlight = true;
-        status.textContent = payload ? "refreshing models..." : "loading models...";
-        try {
-          const response = await fetch(`/api/models?t=${Date.now()}`, {cache: "no-store"});
-          payload = await response.json();
-          lastFetch = Date.now();
-        } catch (error) {
-          payload = {generated_at: new Date().toISOString(), groups: [], rollup: [], error: error?.message || "models unavailable"};
-        } finally {
-          inFlight = false;
-          renderModels();
-        }
-      }
-
-      function selectView(view, persist = true) {
-        activeView = view === "models" ? "models" : "runs";
-        runsPanel.hidden = activeView === "models";
-        modelsPanel.hidden = activeView !== "models";
-        runsTab.setAttribute("aria-selected", String(activeView === "runs"));
-        modelsTab.setAttribute("aria-selected", String(activeView === "models"));
-        if (persist) {
-          localStorage.setItem(VIEW_KEY, activeView);
-          // `tab` already means live-vs-artifacts, so the Runs/Models nav gets
-          // its own param. Without this the Models tab had no URL at all: it
-          // could not be linked and did not survive a reload.
-          const params = new URLSearchParams(window.location.search);
-          if (activeView === "models") params.set("panel", "models");
-          else params.delete("panel");
-          const search = params.toString();
-          window.history.replaceState(
-            window.history.state,
-            "",
-            `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`
-          );
-        }
-        if (activeView === "models") fetchModels(true);
-      }
-
-      runsTab.addEventListener("click", () => selectView("runs"));
-      modelsTab.addEventListener("click", () => selectView("models"));
-      wrap.addEventListener("click", event => {
-        const row = event.target.closest(".model-row");
-        if (!row) return;
-        const model = row.getAttribute("data-model") || "";
-        expandedModel = expandedModel === model ? null : model;
-        renderModels();
-      });
-      wrap.addEventListener("keydown", event => {
-        if (event.key !== "Enter" && event.key !== " ") return;
-        const row = event.target.closest(".model-row");
-        if (!row) return;
-        event.preventDefault();
-        const model = row.getAttribute("data-model") || "";
-        expandedModel = expandedModel === model ? null : model;
-        renderModels();
-      });
-      setInterval(() => {
-        if (activeView === "models") fetchModels(false);
-      }, MODELS_REFRESH_MS);
-      const urlPanel = new URLSearchParams(window.location.search).get("panel");
-      selectView(
-        urlPanel === "models" || urlPanel === "runs"
-          ? urlPanel
-          : (localStorage.getItem(VIEW_KEY) === "models" ? "models" : "runs"),
-        false
-      );
-    }
-
-"""
-    html = html.replace("    main {\n", style + "    main {\n", 1)
-    html = html.replace("    <main>\n", tabs + "\n    <main>\n", 1)
-    html = html.replace("    </main>\n", panel + "    </main>\n", 1)
-    html = html.replace("    tickClock();\n", script + "    installModelsView();\n    tickClock();\n", 1)
-    return html
-
-
 def read_ringside_html() -> str:
     try:
-        return inject_models_tab_into_ringside_html(RINGSIDE_HTML_PATH.read_text(encoding="utf-8"))
+        return RINGSIDE_HTML_PATH.read_text(encoding="utf-8")
     except OSError:
         return """<!doctype html>
 <html lang="en">
@@ -13736,6 +13371,33 @@ def start_hud_update_maintenance(
         return None
 
 
+def spawn_detached_hud(config: AppConfig, *, port: int) -> tuple[bool, Exception | None]:
+    """Spawn Ringside in a new session and confirm that it answers."""
+    spawn_error: Exception | None = None
+    log_path = config.state_dir / "hud.log"
+    try:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with log_path.open("ab") as log_file:
+            command = [sys.executable, str(Path(__file__).resolve()), "hud"]
+            if config.path is not None:
+                command.extend(["--config", str(config.path)])
+            command.extend(["--no-open", "--port", str(port)])
+            subprocess.Popen(
+                command,
+                stdout=log_file,
+                stderr=log_file,
+                stdin=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+    except Exception as exc:
+        spawn_error = exc
+    for _ in range(20):
+        if hud_is_alive(port):
+            return True, spawn_error
+        time.sleep(0.15)
+    return hud_is_alive(port), spawn_error
+
+
 def ensure_hud_running(config: AppConfig, *, open_browser: bool) -> None:
     """Make sure the persistent Ringside page is up before a run starts.
 
@@ -13746,29 +13408,9 @@ def ensure_hud_running(config: AppConfig, *, open_browser: bool) -> None:
     url = f"http://127.0.0.1:{port}"
     already_alive = hud_is_alive(port)
     spawn_error: Exception | None = None
+    verified_alive = already_alive
     if not already_alive:
-        log_path = config.state_dir / "hud.log"
-        try:
-            log_path.parent.mkdir(parents=True, exist_ok=True)
-            with log_path.open("ab") as log_file:
-                command = [sys.executable, str(Path(__file__).resolve()), "hud"]
-                if config.path is not None:
-                    command.extend(["--config", str(config.path)])
-                command.extend(["--no-open", "--port", str(port)])
-                subprocess.Popen(
-                    command,
-                    stdout=log_file,
-                    stderr=log_file,
-                    stdin=subprocess.DEVNULL,
-                    start_new_session=True,
-                )
-        except Exception as exc:
-            spawn_error = exc
-        for _ in range(20):
-            if hud_is_alive(port):
-                break
-            time.sleep(0.15)
-    verified_alive = hud_is_alive(port)
+        verified_alive, spawn_error = spawn_detached_hud(config, port=port)
     if open_browser and not already_alive and verified_alive:
         open_in_browser(url)
     if verified_alive:
@@ -13779,6 +13421,24 @@ def ensure_hud_running(config: AppConfig, *, open_browser: bool) -> None:
             f"Ringside could not be started{detail}. See log: {config.state_dir / 'hud.log'}",
             flush=True,
         )
+
+
+def restart_persistent_hud(config: AppConfig, *, port: int | None) -> int:
+    chosen_port = port if port is not None else config.hud_port
+    stopped = stop_persistent_hud(config, port=chosen_port)
+    if stopped != 0:
+        return stopped
+    verified_alive, spawn_error = spawn_detached_hud(config, port=chosen_port)
+    if verified_alive:
+        print(f"Ringside restarted on port {chosen_port}.", flush=True)
+        return 0
+    detail = f": {spawn_error}" if spawn_error is not None else ""
+    print(
+        f"Ringside restart failed: no live instance answered on port {chosen_port}{detail}. "
+        f"See log: {config.state_dir / 'hud.log'}",
+        flush=True,
+    )
+    return 1
 
 
 def stop_persistent_hud(config: AppConfig, *, port: int | None) -> int:
@@ -14310,9 +13970,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.hud_action == "stop":
                 return stop_persistent_hud(config, port=args.port)
             if args.hud_action == "restart":
-                stopped = stop_persistent_hud(config, port=args.port)
-                if stopped != 0:
-                    return stopped
+                return restart_persistent_hud(config, port=args.port)
             return run_persistent_hud(
                 config,
                 port=args.port,

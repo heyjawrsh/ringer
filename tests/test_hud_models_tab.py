@@ -148,7 +148,7 @@ class HudModelsTabTests(unittest.TestCase):
         self.assertIn("Models", dashboard_html)
         self.assertTrue("/api/models" in dashboard_html or "/api/models" in hud_js)
 
-    def test_start_background_returns_usable_port(self) -> None:
+    def test_authored_dashboard_is_served_and_models_api_remains_available(self) -> None:
         write_jsonl(self.log_path, [attempt(run_id="run-1", task_key="a", task_type="code-feature")])
         _server, port = self.start_server()
 
@@ -156,12 +156,15 @@ class HudModelsTabTests(unittest.TestCase):
         self.assertGreater(port, 0)
         with urlopen(f"http://127.0.0.1:{port}/", timeout=5) as response:
             page = response.read().decode("utf-8")
-        self.assertIn('id="models-tab"', page)
-        self.assertIn("/api/models", page)
-        for column in MODEL_SCOREBOARD_COLUMNS:
-            self.assertIn(f">{column}<", page)
+        self.assertEqual((ROOT / "dashboard" / "ringside.html").read_text(encoding="utf-8"), page)
+        self.assertNotIn('id="models-panel"', page)
+        self.assertNotIn('id="ringside-tabs"', page)
+        self.assertNotIn('id="models-status"', page)
         with urlopen(f"http://127.0.0.1:{port}/api/models", timeout=5) as response:
             self.assertEqual(200, response.status)
+            payload = json.loads(response.read().decode("utf-8"))
+        self.assertEqual(list(MODEL_SCOREBOARD_COLUMNS), payload["columns"])
+        self.assertIn("groups", payload)
 
 
 if __name__ == "__main__":

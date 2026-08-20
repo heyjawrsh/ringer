@@ -10,6 +10,7 @@ import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -99,6 +100,32 @@ class HudLifecycleTests(unittest.TestCase):
         self.assertIn("not stopped", output)
         self.assertTrue(ringer.hud_is_alive(port))
         server.stop()
+
+    def test_detached_spawn_closes_stdin_starts_session_and_waits_for_health(self) -> None:
+        port = 43123
+        process = mock.Mock()
+        with mock.patch.object(ringer.subprocess, "Popen", return_value=process) as popen, mock.patch.object(
+            ringer, "hud_is_alive", side_effect=[False, True]
+        ), mock.patch.object(ringer.time, "sleep"):
+            alive, error = ringer.spawn_detached_hud(self.config, port=port)
+
+        self.assertTrue(alive)
+        self.assertIsNone(error)
+        command = popen.call_args.args[0]
+        self.assertEqual(["--no-open", "--port", str(port)], command[-3:])
+        self.assertIs(ringer.subprocess.DEVNULL, popen.call_args.kwargs["stdin"])
+        self.assertTrue(popen.call_args.kwargs["start_new_session"])
+
+    def test_restart_returns_failure_when_detached_replacement_is_not_live(self) -> None:
+        port = 43124
+        with mock.patch.object(ringer, "stop_persistent_hud", return_value=0), mock.patch.object(
+            ringer, "spawn_detached_hud", return_value=(False, None)
+        ):
+            result, output = self.capture(ringer.restart_persistent_hud, self.config, port=port)
+
+        self.assertEqual(1, result)
+        self.assertIn("restart failed", output)
+        self.assertIn("no live instance", output)
 
 
 if __name__ == "__main__":

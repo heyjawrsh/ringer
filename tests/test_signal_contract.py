@@ -23,7 +23,6 @@ from ringer import (  # noqa: E402
     Manifest,
     MODEL_SCOREBOARD_COLUMNS,
     build_models_api_payload,
-    inject_models_tab_into_ringside_html,
     lint_manifest,
     load_model_identity_registry,
     run_models_command,
@@ -167,7 +166,7 @@ source = "fixture"
             notes_path=self.notes_path,
         )
 
-    def test_all_three_surfaces_emit_contract_columns_in_order(self) -> None:
+    def test_cli_html_and_api_emit_contract_columns_in_order(self) -> None:
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
             self.assertEqual(0, run_models_command(self.config, self.args()))
@@ -186,11 +185,6 @@ source = "fixture"
         positions = [header.index(f">{column}<") for column in MODEL_SCOREBOARD_COLUMNS]
         self.assertEqual(sorted(positions), positions)
 
-        ringside = ringer.read_ringside_html()
-        ringside_header = ringside[ringside.index("'<th>Model") :]
-        ringside_header = ringside_header[: ringside_header.index("</tr></thead>")]
-        positions = [ringside_header.index(f">{column}<") for column in MODEL_SCOREBOARD_COLUMNS]
-        self.assertEqual(sorted(positions), positions)
         self.assertEqual(list(MODEL_SCOREBOARD_COLUMNS), self.payload()["columns"])
 
     def test_chart_rows_hide_slugs_and_notes_are_fresh(self) -> None:

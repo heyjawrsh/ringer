@@ -431,11 +431,12 @@ Ringside is a local web page — no install, no account, nothing leaves your mac
 ./ringer.py hud                 # or open it any time → http://127.0.0.1:8700
 ./ringer.py hud status          # report the running instance, version, PID, and code root
 ./ringer.py hud stop            # gracefully stop the recorded instance
-./ringer.py hud restart         # gracefully stop it and start the current code
+./ringer.py hud restart         # gracefully stop it, then start detached on the current code
 ```
 
 All three lifecycle verbs accept `--port`; `status` is read-only and exits
-successfully when no Ringside is running.
+successfully when no Ringside is running. `restart` returns after the detached
+replacement answers its health probe; it exits nonzero if that cannot be confirmed.
 
 The top of the page is the run's live results document: what the job is, a progress bar of rounds, and "The work" — every deliverable each worker filed, with a plain-English line saying what the check proved and the raw check output one click away. Below it, the agents: expand a worker to see the exact brief it was handed, which engine and model are typing, and its live work stream. Past runs stay in a versioned library, and a swarm whose orchestrator *died* without finishing gets its own unmissable state — the failure mode every dashboard forgets.
 
@@ -449,6 +450,10 @@ The decision endpoint refuses such a request too, so neither the page nor the CL
 - **Violations on the card.** When a task records ownership or contract violations, the kind and its detail now appear on that task's card on the results page — instead of living only in the run state JSON.
 
 Multiple swarms at once is the designed-for case: run three batches under three identities and Ringside shows all three, live. `--browser` opens a simpler per-run fallback dashboard, and `--no-dashboard` runs headless.
+
+The Models view in Ringside is owned by the dashboard rail and reads the stable
+`/api/models` endpoint directly. `./ringer.py models --open` remains the separate
+standalone scoreboard page.
 
 Each run-state JSON records two top-level provenance fields. `project` is the absolute resolved manifest `repo` path, or the resolved `workdir` when `repo` is omitted. `ringer_version` identifies the Ringer code that produced the state. Older state files lack these fields; Ringside treats that provenance as unknown and continues to load them.
 
