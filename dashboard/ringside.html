@@ -1291,6 +1291,16 @@
     @media(prefers-reduced-motion:no-preference){.run-status-bar.working,.lane-segment.working,.rail-live.live{animation:pulse 1.4s ease-in-out infinite}}
     @media(max-width:950px){.overview-grid{grid-template-columns:10px minmax(170px,1.3fr) minmax(130px,1fr) 60px 80px 100px}.overview-grid>:last-child{display:none}}
     @media(max-width:700px){.overview-number{font-size:48px}.overview-unit{font-size:22px}.overview-stat{padding-inline:16px}.overview-grid{grid-template-columns:10px minmax(120px,1fr) 70px 80px}.overview-grid>:nth-child(3),.overview-grid>:nth-child(6),.overview-grid>:nth-child(7){display:none}}
+    /* Finalised artifact, model, and system-state views. */
+    .artifacts-view{height:100vh;display:grid;grid-template-columns:260px minmax(0,1fr);font-family:var(--rs-grotesk)}
+    .artifact-list-pane{min-width:0;overflow:auto;border-right:1px solid var(--rs-hairline)}.artifact-list-head{height:52px;display:flex;align-items:center;padding:0 16px;border-bottom:2px solid var(--rs-ink);font:700 12px/1 var(--rs-mono);letter-spacing:.12em;text-transform:uppercase}
+    .artifact-list-new{list-style:none;margin:0;padding:0}.artifact-list-button{width:100%;min-height:54px;display:grid;grid-template-columns:4px minmax(0,1fr);gap:12px;align-items:center;padding:9px 14px 9px 0;border:0;border-bottom:1px solid var(--rs-hairline);border-radius:0;background:var(--rs-ground);color:var(--rs-ink);text-align:left}.artifact-list-button:hover{background:var(--rs-surface-hover)}.artifact-list-button[aria-selected="true"]{background:var(--rs-surface-active);box-shadow:inset -3px 0 0 var(--rs-ink)}.artifact-list-bar{width:4px;height:34px;background:var(--rs-waiting)}.artifact-list-bar.live{background:var(--rs-working)}.artifact-list-bar.pass{background:var(--rs-pass)}.artifact-list-bar.fail,.artifact-list-bar.died{background:var(--rs-fail)}.artifact-list-name{display:block;overflow:hidden;font:600 12px/1.35 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}.artifact-list-meta{display:block;margin-top:3px;overflow:hidden;color:var(--rs-label-muted);font:400 9px/1.35 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}
+    .artifact-stage{min-width:0;min-height:0;display:grid;grid-template-rows:52px minmax(0,1fr) 48px}.artifact-stage-toolbar{display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:2px solid var(--rs-ink)}.artifact-working-dot{width:8px;height:8px;background:var(--rs-working)}.artifact-stage-name{font:600 12px/1.2 var(--rs-mono)}.artifact-stage-meta{color:var(--rs-label-muted);font:400 9px/1.3 var(--rs-mono)}.artifact-stage-controls{margin-left:auto;display:flex}.artifact-stage-controls button,.artifact-stage-controls select{height:28px;padding:0 9px;border:1px solid var(--rs-hairline);border-right:0;border-radius:0;background:var(--rs-surface-active);color:var(--rs-body-strong-muted);font:500 9px/1 var(--rs-mono)}.artifact-stage-controls>*:last-child{border-right:1px solid var(--rs-hairline)}.artifact-stage-body{min-height:0;background:var(--rs-surface-active)}.artifact-stage-body iframe{width:100%;height:100%;min-height:300px;display:block;border:0;background:var(--rs-ground)}.artifact-stage-message{height:100%;display:grid;place-items:center;color:var(--rs-label-muted);font:400 11px var(--rs-mono)}.artifact-summary{display:flex;align-items:center;gap:14px;padding:0 16px;border-top:1px solid var(--rs-hairline);font:500 10px/1 var(--rs-mono)}.artifact-summary .lane-strip{width:min(340px,34%);height:8px}.artifact-detail-link{margin-left:auto;border:0;background:transparent;color:var(--rs-working);font:600 10px/1 var(--rs-mono)}
+    .models-view{font-family:var(--rs-grotesk)}.models-table{width:100%;border-collapse:collapse;table-layout:fixed}.models-table col:nth-child(1){width:auto}.models-table col:nth-child(2){width:92px}.models-table col:nth-child(4),.models-table col:nth-child(5){width:80px}.models-table col:nth-child(6){width:90px}.models-table th{padding:8px 8px;border-bottom:1px solid var(--rs-rule-strong);color:var(--rs-label-muted);font:600 9px/1.2 var(--rs-mono);letter-spacing:.12em;text-align:left;text-transform:uppercase}.models-table th:first-child,.models-table td:first-child{padding-left:var(--rs-content-gutter)}.models-table th:last-child,.models-table td:last-child{padding-right:var(--rs-content-gutter)}.models-table td{height:58px;padding:10px 8px;border-bottom:1px solid var(--rs-hairline);vertical-align:middle}.models-table tbody tr:hover{background:var(--rs-surface-hover)}.model-display-name{display:block;font:600 13px/1.3 var(--rs-grotesk)}.model-slug{display:block;overflow:hidden;color:var(--rs-label-muted);font:400 9px/1.3 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}.tier-badge-new{display:inline-block;padding:3px 6px;border:1px solid currentColor;color:var(--rs-label-muted);font:700 8px/1 var(--rs-mono);letter-spacing:.1em;text-transform:uppercase}.tier-badge-new.proven{color:var(--rs-pass-text)}.tier-badge-new.probation{color:var(--rs-pilot-text)}.win-cell{display:grid;gap:4px}.win-track{height:6px;background:var(--rs-hairline-soft)}.win-fill{display:block;height:100%;background:var(--rs-waiting)}.win-fill.proven{background:var(--rs-pass)}.win-fill.probation{background:var(--rs-pilot)}.win-caption{color:var(--rs-label-muted);font:400 9px/1 var(--rs-mono)}.model-number{text-align:right;font:500 13px/1 var(--rs-mono)}.models-message{margin:24px var(--rs-content-gutter);padding:14px;border-left:3px solid var(--rs-fail);background:var(--rs-surface-active);color:var(--rs-body-strong-muted);font:400 11px/1.5 var(--rs-mono)}
+    .system-region{font-family:var(--rs-grotesk)}.system-bar{min-height:42px;display:flex;align-items:center;gap:10px;padding:8px var(--rs-content-gutter);border-bottom:1px solid var(--rs-hairline);background:var(--rs-surface-active);font:400 10px/1.4 var(--rs-mono)}.system-bar.reconnecting,.system-bar.build-mismatch{border-left:3px solid var(--rs-waiting)}.system-bar.build-mismatch{border-left-color:var(--rs-pilot)}.system-bar.update-state{border-left:3px solid var(--rs-working)}.system-pulse{width:8px;height:8px;background:var(--rs-waiting)}.system-label{font-weight:700;letter-spacing:.08em}.system-note{color:var(--rs-label-muted)}.system-action,.system-dismiss{margin-left:auto;padding:5px 9px;border:1px solid var(--rs-ink);border-radius:0;background:transparent;font:600 9px/1 var(--rs-mono)}.system-dismiss{border:0;font-size:15px}.build-chip{padding:3px 6px;border:1px solid var(--rs-pilot-text);color:var(--rs-pilot-text);font:700 8px/1 var(--rs-mono);letter-spacing:.08em;text-transform:uppercase}.empty-swarms{min-height:330px;display:grid;place-content:center;justify-items:center;gap:8px;text-align:center}.empty-zero{color:var(--rs-waiting);font:700 34px/1 var(--rs-mono)}.empty-label{font:600 10px/1 var(--rs-mono);letter-spacing:.14em}.empty-cli{margin-top:5px;padding:7px 10px;background:var(--rs-surface-active);color:var(--rs-body-muted);font:400 10px/1 var(--rs-mono)}
+    .models-table{table-layout:auto}.models-table tr{display:grid;grid-template-columns:minmax(200px,1.2fr) 92px minmax(140px,1fr) 80px 80px 90px;column-gap:16px}.models-table colgroup{display:none}.models-table th,.models-table td{padding-left:0;padding-right:0}
+    @media(prefers-reduced-motion:no-preference){.artifact-working-dot,.system-pulse{animation:pulse 1.4s ease-in-out infinite}.models-table tbody tr{animation:fadeUp .3s ease both}.models-table tbody tr:nth-child(2){animation-delay:.05s}.models-table tbody tr:nth-child(3){animation-delay:.1s}.models-view,.artifacts-view{animation:fadeIn .25s ease}}
+    @media(max-width:760px){.artifacts-view{grid-template-columns:180px minmax(0,1fr)}.artifact-summary .lane-strip{display:none}.models-table col:nth-child(2){width:76px}.models-table th:nth-child(4),.models-table td:nth-child(4),.models-table th:nth-child(5),.models-table td:nth-child(5){display:none}}
   </style>
 </head>
 <body>
@@ -1310,6 +1320,8 @@
     <section id="runs-overview" class="runs-overview shell-view" data-shell-panel="runs" aria-label="Runs overview" aria-live="polite"></section>
     <section id="lanes-view" class="shell-view" data-shell-panel="lanes" aria-label="Lane wall" hidden></section>
     <section id="reviews-view" class="shell-view" data-shell-panel="reviews" aria-label="Pilot reviews" hidden></section>
+    <section id="artifacts-view" class="shell-view" data-shell-panel="artifacts" aria-label="Artifact preview" hidden></section>
+    <section id="models-view" class="shell-view" data-shell-panel="models" aria-label="Models scoreboard" hidden></section>
   <div class="page legacy-page" data-shell-panel="legacy" hidden>
     <aside id="update-banner" class="update-banner" role="status" hidden>
       <span id="update-message"></span>
@@ -1360,6 +1372,16 @@
   <script>
   (() => {
     const TAB_KEY = "ringside-tab";
+    // The rail's view is persisted the same way the legacy tab is: a URL param
+    // so a view can be linked and reloaded, backed by localStorage so the page
+    // reopens where you left it. Without this a reload always dropped you back
+    // on Runs, which the handoff's State Management section rules out.
+    const SHELL_VIEW_KEY = "ringside-shell-view";
+    const SHELL_VIEWS = ["runs", "lanes", "reviews", "artifacts", "models"];
+    function normalizeShellView(value) {
+      const view = String(value || "").trim().toLowerCase();
+      return SHELL_VIEWS.includes(view) ? view : "";
+    }
     const ARTIFACT_KEY = "ringside-artifact-selection";
     const query = new URLSearchParams(window.location.search);
     const queryTab = normalizeTab(query.get("tab"));
@@ -1389,7 +1411,9 @@
       rendering: false,
       runOpen: {},
       focusedRunId: queryRun,
-      shellView: "runs",
+      shellView: normalizeShellView(query.get("shell"))
+        || normalizeShellView(localStorage.getItem(SHELL_VIEW_KEY))
+        || "runs",
       panelOpen: false,
       selectedRunId: "",
       selectedLaneKey: "",
@@ -1398,11 +1422,14 @@
       pilotDecisions: new Map(),
       pilotNotes: new Map()
     };
+    Object.assign(state, {models: null, modelsError: "", modelsFetched: false, modelsFetching: false, artifactLoading: false, updateDismissed: false});
 
     const els = {
       runsOverview: document.getElementById("runs-overview"),
       lanesView: document.getElementById("lanes-view"),
       reviewsView: document.getElementById("reviews-view"),
+      artifactsView: document.getElementById("artifacts-view"),
+      modelsView: document.getElementById("models-view"),
       legacyPage: document.querySelector(".legacy-page"),
       slideRoot: document.getElementById("slide-root"),
       railLive: document.getElementById("rail-live"),
@@ -1558,6 +1585,36 @@
       parent.appendChild(warning);
     }
 
+    function appendSystemStates(parent) {
+      const region = document.createElement("div");
+      region.className = "system-region";
+      region.dataset.key = "system-region";
+      region.setAttribute("aria-live", "polite");
+      if (state.runError || state.libraryError) {
+        const bar = document.createElement("div"); bar.className = "system-bar reconnecting"; bar.setAttribute("role", "status");
+        const dot = document.createElement("span"); dot.className = "system-pulse"; dot.setAttribute("aria-hidden", "true");
+        const label = document.createElement("span"); label.className = "system-label"; label.textContent = "RECONNECTING…";
+        const note = document.createElement("span"); note.className = "system-note"; note.textContent = `Latest data may be stale · ${state.runError || state.libraryError}`;
+        const retry = document.createElement("button"); retry.type = "button"; retry.className = "system-action"; retry.textContent = "RETRY NOW"; retry.addEventListener("click", () => { fetchRuns(); fetchLibrary(); if (state.shellView === "models") fetchModels(true); });
+        bar.append(dot, label, note, retry); region.appendChild(bar);
+      }
+      const behind = numberOrZero(state.update?.behind); const reason = String(state.update?.reason || "").trim(); const dismissed = sessionStorage.getItem("ringside-dismissed-update") === updateKey(state.update);
+      if (behind > 0 && reason && !dismissed) {
+        const bar = document.createElement("div"); bar.className = "system-bar update-state"; bar.setAttribute("role", "status");
+        const prose = document.createElement("span"); prose.append("Ringer update available · ", Object.assign(document.createElement("b"), {textContent: `${behind} commit${behind === 1 ? "" : "s"} behind`}), document.createTextNode(` · ${reason}`));
+        const close = document.createElement("button"); close.type = "button"; close.className = "system-dismiss"; close.setAttribute("aria-label", "Dismiss update notice"); close.textContent = "✕"; close.addEventListener("click", () => { sessionStorage.setItem("ringside-dismissed-update", updateKey(state.update)); renderTop(); });
+        bar.append(prose, close); region.appendChild(bar);
+      }
+      const mismatch = state.runs.find(hasBuildMismatch);
+      if (mismatch) {
+        const bar = document.createElement("div"); bar.className = "system-bar build-mismatch"; bar.setAttribute("role", "status");
+        const chip = document.createElement("span"); chip.className = "build-chip"; chip.textContent = `build ${displayVersion(mismatch.ringer_version)}`;
+        const prose = document.createElement("span"); prose.textContent = `${mismatch.run_name} was produced by a different Ringer build than this server (${displayVersion(state.serverVersion)}).`;
+        bar.append(chip, prose); region.appendChild(bar);
+      }
+      if (region.childElementCount) parent.appendChild(region);
+    }
+
     function taskKey(task, index = 0) {
       return String(task.key || task.id || task.name || `task-${index}`);
     }
@@ -1692,6 +1749,7 @@
       const params = new URLSearchParams(window.location.search);
       params.set("tab", state.tab);
       params.set("view", state.view);
+      params.set("shell", state.shellView);
       if (state.focusedRunId) {
         params.set("run", state.focusedRunId);
       } else {
@@ -1849,6 +1907,12 @@
       const failedLanes = bandTasks.filter(task => taskKind(task) === "fail").length;
       const attention = failedLanes + bandAwaiting.length;
 
+      appendSystemStates(staging);
+      if (!state.runs.length && !state.runError) {
+        const empty = document.createElement("div"); empty.className = "empty-swarms";
+        empty.innerHTML = '<span class="empty-zero">0</span><span class="empty-label">NO SWARMS LIVE</span><span class="empty-cli">./ringer.py run manifest.json</span>';
+        staging.appendChild(empty); morphChildren(els.runsOverview, staging); return;
+      }
       const stats = document.createElement("div");
       stats.className = "overview-stats";
       const stat = (number, label, className = "") => {
@@ -1933,6 +1997,7 @@
 
     function renderLanesView() {
       const staging = document.createElement("div");
+      appendSystemStates(staging);
       const live = runningNowRuns();
       const source = live.length ? live : state.runs.slice(0, 1);
       const entries = source.flatMap(run => run.tasks.map((task, index) => {
@@ -1950,6 +2015,7 @@
 
     function renderReviewsView() {
       const staging=document.createElement("div"); const queue=reviewRuns(); const run=queue.find(item=>item.__id===state.focusedRunId)||queue[0];
+      appendSystemStates(staging);
       const head=document.createElement("header"); head.className="view-title-row"; const held=run?Math.max(0,run.tasks.length-1):0; head.innerHTML=`<h1 id="reviews-title">Pilot review</h1><p class="view-meta"></p><p class="view-sort status-pilot"></p>`; head.querySelector(".view-meta").textContent=run?`${projectInfo(run).name} / ${run.run_name} · pilot ${run.pilot?.task||"unknown"}`:"Queue clear"; head.querySelector(".view-sort").textContent=run?`waiting ${relativeAgo(run.pilot?.since)} · ${held} lanes held`:"0 waiting"; staging.appendChild(head);
       if (!run) { staging.append(Object.assign(document.createElement("p"),{className:"held-callout",textContent:"Nothing needs review."})); morphChildren(els.reviewsView,staging); return; }
       const pilotTask=String(run.pilot?.task||"unknown"); const task=run.tasks.find((item,index)=>taskKey(item,index)===pilotTask)||{}; const decision=state.pilotDecisions.get(run.__id)||{}; const locked=run.orchestrator_alive===false||decision.inFlight||Boolean(decision.result);
@@ -1958,9 +2024,43 @@
       const aside=document.createElement("aside"); aside.className="decision-aside"; aside.setAttribute("aria-label","Clear this review item"); aside.append(Object.assign(document.createElement("span"),{className:"micro-label",textContent:"Clear this item"})); const approve=document.createElement("button"); approve.className="decision-approve"; approve.textContent=decision.result==="approve"?"APPROVED ✓":`APPROVE & RELEASE ${held} LANE${held===1?"":"S"}`; approve.disabled=locked; approve.addEventListener("click",()=>submitPilotDecision(run,"approve")); const label=document.createElement("label"); label.className="decision-note-label"; label.htmlFor=`review-note-${run.__id}`; label.textContent="Request changes note"; const note=document.createElement("textarea"); note.id=label.htmlFor; note.dataset.key=`review-note:${run.__id}`; note.className="decision-note"; note.value=state.pilotNotes.get(run.__id)||""; note.disabled=locked; const revise=document.createElement("button"); revise.className="decision-revise"; revise.textContent="SEND NOTE & RE-RUN PILOT"; revise.disabled=locked||!note.value.trim(); note.addEventListener("input",()=>{state.pilotNotes.set(run.__id,note.value); revise.disabled=locked||!note.value.trim();}); revise.addEventListener("click",()=>submitPilotDecision(run,"revise",note.value)); const reject=document.createElement("button"); reject.className="decision-reject"; reject.textContent="Reject & end the run"; reject.disabled=locked; reject.addEventListener("click",()=>submitPilotDecision(run,"reject")); const status=document.createElement("p"); status.className=`decision-status status-${decision.result||"waiting"}`; status.setAttribute("role","status"); status.setAttribute("aria-live","polite"); status.textContent=decision.result==="approve"?"Approved. Held lanes will resume.":decision.result==="revise"?"Changes requested. The pilot is re-running.":decision.result==="reject"?"Rejected. The run will end.":decision.error?`Decision not recorded: ${decision.error}`:decision.inFlight?"Recording decision…":"Awaiting a decision."; const cli=document.createElement("p"); cli.className="decision-cli"; cli.textContent=`Terminal equivalents\n./ringer.py approve ${run.__id}\n./ringer.py reject ${run.__id}`; aside.append(approve,label,note,revise,reject,status,cli); layout.append(evidence,aside); staging.appendChild(layout); morphChildren(els.reviewsView,staging);
     }
 
+    function artifactRun(artifact = selectedArtifact()) {
+      return artifact ? state.runs.find(run => run.__id === artifact.current_run_id) || state.runs.find(run => run.run_name === artifact.label) || null : null;
+    }
+
+    function buildLaneStrip(run) {
+      const strip=document.createElement("span"); strip.className="lane-strip"; strip.setAttribute("role","img"); const counts={pass:0,working:0,retry:0,fail:0,waiting:0}; run.tasks.forEach(task=>{const kind=taskKind(task);counts[kind]=(counts[kind]||0)+1;const segment=document.createElement("span");segment.className=`lane-segment ${kind}`;segment.setAttribute("aria-hidden","true");strip.appendChild(segment);});strip.setAttribute("aria-label",`${counts.pass} pass, ${counts.working} working, ${counts.retry} retry, ${counts.fail} fail, ${counts.waiting} waiting`);return strip;
+    }
+
+    function renderArtifactsView() {
+      syncArtifactSelection();
+      const staging = document.createElement("div"); appendSystemStates(staging); const shell = document.createElement("div"); shell.className = "artifacts-view"; shell.dataset.key = "artifacts-shell";
+      const pane = document.createElement("aside"); pane.className = "artifact-list-pane"; pane.setAttribute("aria-label", "Artifacts");
+      const paneHead = document.createElement("div"); paneHead.className = "artifact-list-head"; paneHead.textContent = `Artifacts · ${state.artifacts.length}`; pane.appendChild(paneHead);
+      const list = document.createElement("ul"); list.className = "artifact-list-new"; list.setAttribute("role", "listbox"); list.setAttribute("aria-label", "Available artifacts");
+      state.artifacts.forEach(artifact => { const li = document.createElement("li"); const button = document.createElement("button"); button.type = "button"; button.className = "artifact-list-button"; button.dataset.key = `artifact-new:${artifact.name}`; button.setAttribute("role", "option"); button.setAttribute("aria-selected", String(artifact.name === state.artifactName)); button.setAttribute("aria-label", `${artifact.label}, ${artifact.state}, updated ${relativeAgo(artifact.updated_at)}`); const bar = document.createElement("span"); bar.className = `artifact-list-bar ${artifactStateClass(artifact.state)}`; bar.setAttribute("aria-hidden", "true"); const copy = document.createElement("span"); const name = document.createElement("span"); name.className = "artifact-list-name"; name.textContent = artifact.label; const meta = document.createElement("span"); meta.className = "artifact-list-meta"; meta.textContent = `${artifact.state} · ${relativeAgo(artifact.updated_at)}`; copy.append(name, meta); button.append(bar, copy); button.addEventListener("click", () => { state.artifactName = artifact.name; state.artifactManual = true; state.artifactVersion = "live"; sessionStorage.setItem(ARTIFACT_KEY, artifact.name); renderArtifactsView(); }); li.appendChild(button); list.appendChild(li); }); pane.appendChild(list); shell.appendChild(pane);
+      const stage = document.createElement("section"); stage.className = "artifact-stage"; const artifact = selectedArtifact(); const run = artifactRun(artifact); const target = selectedArtifactTarget();
+      const toolbar = document.createElement("header"); toolbar.className = "artifact-stage-toolbar"; const dot = document.createElement("span"); dot.className = "artifact-working-dot"; dot.setAttribute("aria-hidden", "true"); const title = document.createElement("span"); title.className = "artifact-stage-name"; title.textContent = artifact?.label || "No artifact selected"; const meta = document.createElement("span"); meta.className = "artifact-stage-meta"; meta.textContent = artifact ? `${projectInfo(run || {project: artifact.project}).name} · ${artifact.state}` : "waiting for the artifact library"; const controls = document.createElement("div"); controls.className = "artifact-stage-controls";
+      const version = document.createElement("select"); version.setAttribute("aria-label", "Artifact version"); [{key:"live",label:"version: live"}, ...(artifact?.versions || []).map((item,index)=>({key:item.key,label:`version: ${artifact.versions.length-index}`}))].forEach(item => { const option=document.createElement("option"); option.value=item.key; option.textContent=item.label; version.appendChild(option); }); version.value = state.artifactVersion; version.disabled = !artifact; version.addEventListener("change", () => { state.artifactVersion = version.value; renderArtifactsView(); });
+      const folder = document.createElement("button"); folder.type = "button"; folder.textContent = "open folder"; folder.disabled = !artifact; folder.addEventListener("click", () => els.openFolder.click()); const refresh = document.createElement("button"); refresh.type = "button"; refresh.textContent = "↻"; refresh.setAttribute("aria-label", "Refresh artifact"); refresh.disabled = !artifact; refresh.addEventListener("click", () => { state.artifactLoading = true; renderArtifactsView(); window.setTimeout(() => { state.artifactLoading = false; renderArtifactsView(); }, 420); }); controls.append(version, folder, refresh); toolbar.append(dot, title, meta, controls); stage.appendChild(toolbar);
+      const body = document.createElement("div"); body.className = "artifact-stage-body"; if (state.artifactLoading) { const message=document.createElement("div"); message.className="artifact-stage-message"; message.textContent="re-rendering artifact…"; body.appendChild(message); } else if (target?.src) { const frame=document.createElement("iframe"); frame.dataset.key=`artifact-frame:${target.key}`; frame.title=`Artifact: ${artifact.label}`; frame.src=target.src; body.appendChild(frame); } else { const message=document.createElement("div"); message.className="artifact-stage-message"; message.textContent=state.libraryError?"Artifact library unavailable.":"No artifacts yet."; body.appendChild(message); } stage.appendChild(body);
+      const summary = document.createElement("footer"); summary.className = "artifact-summary"; if (run) { summary.appendChild(buildLaneStrip(run)); const counts=document.createElement("span"); counts.append(document.createTextNode(`${run.done}/${run.tasks.length} · `), Object.assign(document.createElement("span"),{className:"status-pass",textContent:String(run.pass)}), document.createTextNode("·"), Object.assign(document.createElement("span"),{className:"status-fail",textContent:String(run.fail)}), document.createTextNode(` · ${formatTokens(run.tokens)} · ${formatDuration(elapsedForRun(run))}`)); summary.appendChild(counts); const detail=document.createElement("button"); detail.type="button"; detail.className="artifact-detail-link"; detail.textContent="open run detail →"; detail.addEventListener("click",()=>openRunPanel(run.__id,detail)); summary.appendChild(detail); } else { summary.textContent = "No linked run telemetry."; } stage.appendChild(summary); shell.appendChild(stage); staging.appendChild(shell); preserveScroll(() => morphChildren(els.artifactsView, staging));
+    }
+
+    function compactTokens(value) { const count=numberOrZero(value); return count >= 1000000 ? `${(count/1000000).toFixed(1)}m` : count >= 1000 ? `${Math.round(count/1000)}k` : String(Math.round(count)); }
+    function renderModelsView() {
+      const staging=document.createElement("div"); const view=document.createElement("div"); view.className="models-view"; view.dataset.key="models-shell"; appendSystemStates(view); const rows=Array.isArray(state.models?.rollup)?state.models.rollup:[]; const verdicts=rows.reduce((sum,row)=>sum+numberOrZero(row.tasks),0); const head=document.createElement("header"); head.className="view-title-row"; const title=document.createElement("h1"); title.id="models-title"; title.textContent="Models"; const meta=document.createElement("p"); meta.className="view-meta"; meta.textContent=state.modelsFetching?"local scoreboard · refreshing…":state.models?`local scoreboard · ${verdicts} verdicts · refreshed ${relativeAgo(state.models.generated_at)}`:"local scoreboard"; head.append(title,meta); view.appendChild(head);
+      if(state.modelsError){const error=document.createElement("p");error.className="models-message";error.setAttribute("role","status");error.textContent=`Models scoreboard unavailable: ${state.modelsError}`;view.appendChild(error);} else if(!state.modelsFetched){const message=document.createElement("p");message.className="models-message";message.textContent="Loading model scoreboard…";view.appendChild(message);} else if(!rows.length){const message=document.createElement("p");message.className="models-message";message.textContent="No model results yet. Run ./ringer.py models to build the local scoreboard.";view.appendChild(message);} else {const table=document.createElement("table");table.className="models-table";table.setAttribute("aria-labelledby","models-title");const caption=document.createElement("caption");caption.textContent="Local model performance scoreboard";caption.style.cssText="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)";table.appendChild(caption);const cols=document.createElement("colgroup");for(let i=0;i<6;i++)cols.appendChild(document.createElement("col"));table.appendChild(cols);const thead=document.createElement("thead");const hr=document.createElement("tr");["Model","Tier","Win rate","Pass","Fail","Avg tok"].forEach((label,index)=>{const th=document.createElement("th");th.scope="col";th.textContent=label;if(index>2)th.style.textAlign="right";hr.appendChild(th);});thead.appendChild(hr);table.appendChild(thead);const tbody=document.createElement("tbody");rows.forEach((row,index)=>{const tr=document.createElement("tr");tr.dataset.key=`model:${row.display_bucket_id||row.model||index}`;const tasks=Math.max(0,Math.round(numberOrZero(row.tasks)));const rate=Math.max(0,Math.min(1,numberOrZero(row.pass_rate)));const pass=Math.round(tasks*rate);const fail=Math.max(0,tasks-pass);const rawTier=String(row.tier||"new").toLowerCase();const tier=rawTier==="proven"||rawTier==="probation"?rawTier:"new";const identity=document.createElement("td");identity.innerHTML='<span class="model-display-name"></span><span class="model-slug"></span>';identity.firstChild.textContent=row.model_display||row.model||"unknown";identity.lastChild.textContent=row.model||"model route unavailable";const tierCell=document.createElement("td");const badge=document.createElement("span");badge.className=`tier-badge-new ${tier}`;badge.textContent=tier;tierCell.appendChild(badge);const win=document.createElement("td");win.className="win-cell";const track=document.createElement("span");track.className="win-track";track.setAttribute("role","meter");track.setAttribute("aria-valuemin","0");track.setAttribute("aria-valuemax","100");track.setAttribute("aria-valuenow",String(Math.round(rate*100)));track.setAttribute("aria-label",`${Math.round(rate*100)} percent win rate`);const fill=document.createElement("span");fill.className=`win-fill ${tier}`;fill.style.width=`${rate*100}%`;track.appendChild(fill);const winText=document.createElement("span");winText.className="win-caption";winText.textContent=`${Math.round(rate*100)}% · ${tasks} runs`;win.append(track,winText);const numberCell=value=>{const td=document.createElement("td");td.className="model-number";td.textContent=value;return td;};tr.append(identity,tierCell,win,numberCell(String(pass)),numberCell(String(fail)),numberCell(row.median_tokens==null?"—":compactTokens(row.median_tokens)));tbody.appendChild(tr);});table.appendChild(tbody);view.appendChild(table);} staging.appendChild(view);preserveScroll(()=>morphChildren(els.modelsView,staging));
+    }
+
+    async function fetchModels(force=false){if(state.modelsFetching||(!force&&state.shellView!=="models"))return;state.modelsFetching=true;renderModelsView();try{const response=await fetch("/api/models",{cache:"no-store"});if(!response.ok)throw new Error(`HTTP ${response.status}`);const payload=await response.json();state.models=payload;state.modelsError=String(payload?.error||"").trim();state.modelsFetched=true;}catch(error){state.modelsError=error?.message||"scoreboard unavailable";state.modelsFetched=true;}state.modelsFetching=false;if(state.shellView==="models")renderModelsView();}
+
     function setShellView(view) {
-      state.shellView=view; document.querySelectorAll("[data-shell-view]").forEach(button=>button.setAttribute("aria-current",button.dataset.shellView===view?"page":"false")); els.runsOverview.hidden=view!=="runs"; els.lanesView.hidden=view!=="lanes"; els.reviewsView.hidden=view!=="reviews"; els.legacyPage.hidden=!(view==="artifacts"||view==="models");
-      if(view==="lanes") renderLanesView(); if(view==="reviews") renderReviewsView(); if(view==="artifacts"){setView("single"); loadArtifactFrame(true);} if(view==="models") renderLive();
+      state.shellView=view;
+      try { localStorage.setItem(SHELL_VIEW_KEY, view); } catch (_) { /* private mode */ }
+      replaceUrlState();
+      document.querySelectorAll("[data-shell-view]").forEach(button=>button.setAttribute("aria-current",button.dataset.shellView===view?"page":"false")); els.runsOverview.hidden=view!=="runs"; els.lanesView.hidden=view!=="lanes"; els.reviewsView.hidden=view!=="reviews"; els.artifactsView.hidden=view!=="artifacts"; els.modelsView.hidden=view!=="models"; els.legacyPage.hidden=true;
+      if(view==="lanes") renderLanesView(); if(view==="reviews") renderReviewsView(); if(view==="artifacts")renderArtifactsView(); if(view==="models"){renderModelsView();fetchModels();}
     }
 
     function closeRunPanel() {
@@ -1988,6 +2088,8 @@
       renderRunsOverview();
       if (state.shellView === "lanes") renderLanesView();
       if (state.shellView === "reviews") renderReviewsView();
+      if (state.shellView === "artifacts") renderArtifactsView();
+      if (state.shellView === "models") renderModelsView();
       if (state.panelOpen) renderRunPanel();
     }
 
@@ -2062,6 +2164,7 @@
       renderRunningNow();
       renderArtifacts();
       renderArtifactControls();
+      if (state.shellView === "artifacts") renderArtifactsView();
       renderLive();
       loadArtifactFrame(true);
       if (!scrollToRun) return;
@@ -3079,7 +3182,7 @@
       // fall back to the flat name for entries written before namespacing.
       const src = artifact.live_path
         ? artifactPathHref(artifact.live_path)
-        : artifactLiveHref(artifact.name);
+        : artifactLiveHref(artifact.label);
       return {
         artifact,
         version: null,
@@ -3341,12 +3444,15 @@
     renderRunningNow();
     renderLive();
     renderArtifacts();
-    setShellView("runs");
+    // Honour the restored view rather than forcing Runs, or the URL param and
+    // the stored preference are both silently discarded at boot.
+    setShellView(state.shellView);
     fetchRuns();
     fetchLibrary();
     setInterval(tickClock, 1000);
     setInterval(fetchRuns, 1000);
     setInterval(fetchLibrary, 2000);
+    setInterval(() => { if (state.modelsFetched) fetchModels(true); }, 30000);
   })();
   </script>
 </body>
