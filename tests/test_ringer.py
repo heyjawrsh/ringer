@@ -37,6 +37,11 @@ class RingerCliTests(unittest.TestCase):
                 "write_wrong_file": ["-c", "printf done > wrong.txt"],
                 "sleep_then_write": ["-c", "echo $$ > worker.pid; sleep 30; printf done > out.txt"],
                 "ignore_term": ["-c", "trap '' TERM; echo $$ > worker.pid; while :; do sleep 1; done"],
+                "observe_term": [
+                    "-c",
+                    "trap 'printf received > term.received' TERM; "
+                    "echo $$ > worker.pid; while :; do :; done",
+                ],
                 "spec_shell": ["-c", "{spec}"],
                 "token_printer": ["-c", "printf done > out.txt; echo 'tokens used: 1,234'"],
             }
@@ -240,7 +245,8 @@ class RingerCliTests(unittest.TestCase):
         rows = self.read_rows()
         self.assertEqual([row["verdict"] for row in rows], ["TIMEOUT", "TIMEOUT"])
         self.assertIn("retry=true", rows[1]["notes"])
-        self.assertIn("worker_returncode=-15", rows[0]["notes"])
+        for row in rows:
+            self.assertIn("worker_terminated=true", row["notes"])
 
     def test_sigterm_cleans_up_active_worker_and_finishes_state(self) -> None:
         manifest = self.write_manifest(
@@ -309,7 +315,7 @@ class RingerCliTests(unittest.TestCase):
                 "resignal",
                 {
                     "key": "term",
-                    "engine": "ignore_term",
+                    "engine": "observe_term",
                     "spec": "Ignore SIGTERM until killed.",
                     "expect_files": ["out.txt"],
                     "timeout_s": 30,
@@ -341,6 +347,7 @@ class RingerCliTests(unittest.TestCase):
             stderr=subprocess.STDOUT,
         )
         worker_pid_path = self.root / "work-resignal" / "term" / "worker.pid"
+        term_received_path = self.root / "work-resignal" / "term" / "term.received"
         try:
             deadline = time.time() + 10
             while time.time() < deadline and not worker_pid_path.exists():
@@ -348,9 +355,12 @@ class RingerCliTests(unittest.TestCase):
             self.assertTrue(worker_pid_path.exists())
             worker_pid = int(worker_pid_path.read_text(encoding="utf-8").strip())
             proc.send_signal(signal.SIGTERM)
-            # The worker traps TERM, so cleanup is held in the 1s TERM->KILL
-            # escalation window; a second signal lands mid-cleanup.
-            time.sleep(0.3)
+            # Receipt of TERM by the worker proves cleanup has entered the
+            # existing TERM-to-KILL escalation window.
+            deadline = time.time() + 10
+            while time.time() < deadline and not term_received_path.exists():
+                time.sleep(0.01)
+            self.assertTrue(term_received_path.exists())
             proc.send_signal(signal.SIGTERM)
             stdout, _ = proc.communicate(timeout=15)
         finally:
