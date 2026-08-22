@@ -412,7 +412,11 @@ class ScoreboardPageTests(unittest.TestCase):
         self.assertNotRegex(html, r"""@import\s+["']https?://""")
         self.assertNotIn("<script", html.lower())
         self.assertIn("--ground: #FFFFFF", html)
-        self.assertNotIn("prefers-color-scheme", html)
+        self.assertIn(
+            "@media (prefers-color-scheme: dark) {\n    :root {\n"
+            "      color-scheme: dark;\n      --ground: #16181c;",
+            html,
+        )
 
     def test_notes_section_parser_matches_heading_and_missing_section_falls_back(self) -> None:
         sections = parse_model_notes_sections(self.notes_path)

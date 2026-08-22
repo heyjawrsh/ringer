@@ -234,20 +234,22 @@ class PlainEnglishArtifactTests(unittest.TestCase):
         self.assertIn('title="running-task"', final_html)
         self.assertEqual(2, final_html.count(">view the work log</a>"))
 
-    def test_theme_override_blocks_are_present(self) -> None:
+    def test_generated_page_follows_machine_color_preference(self) -> None:
         html = render_status_html(
             self.state([self.task("A", "running", attempts=1)]),
             renderer=self.renderer,
         )
 
-        # Generated pages are light-only now, so the data-theme overrides are
-        # deliberately gone. Assert the replacement contract rather than simply
-        # dropping the check: the light token block must be present, and the
-        # dual-theme machinery must be absent rather than merely unasserted.
+        # Generated pages retain light defaults and follow the machine's dark
+        # preference, without exposing a manual data-theme override.
         self.assertIn(":root", html)
         self.assertIn("--ground: #FFFFFF", html)
         self.assertNotIn('data-theme="dark"', html)
-        self.assertNotIn("prefers-color-scheme", html)
+        self.assertIn(
+            "@media (prefers-color-scheme: dark) {\n    :root {\n"
+            "      color-scheme: dark;\n      --ground: #16181c;",
+            html,
+        )
 
     def test_final_report_all_pass_briefing(self) -> None:
         html = render_final_report_html(

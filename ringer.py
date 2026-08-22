@@ -99,7 +99,7 @@ RESERVED_FIXTURE_MODELS = frozenset(
 UNATTRIBUTED_MODEL_DISPLAY = "(unattributed legacy rows)"
 CSP_META_TAG = (
     '<meta http-equiv="Content-Security-Policy" '
-    'content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data:">'
+    'content="default-src \'none\'; style-src \'unsafe-inline\'; script-src \'unsafe-inline\'; img-src data:">'
 )
 DASHBOARD_HTML_PATH = Path(__file__).resolve().parent / "dashboard" / "dashboard.html"
 RINGSIDE_HTML_PATH = Path(__file__).resolve().parent / "dashboard" / "ringside.html"
@@ -108,11 +108,6 @@ MINIMAL_DASHBOARD_HTML = """<!doctype html>
 <head><meta charset="utf-8"><title>ringer dashboard</title></head>
 <body style="font-family: system-ui, sans-serif; background:#080a0f; color:#eef4ff;">
 <main id="app">dashboard/dashboard.html is missing</main>
-<script>
-function update(states) {
-  document.getElementById("app").textContent = JSON.stringify(states, null, 2);
-}
-</script>
 </body>
 </html>
 """
@@ -4219,6 +4214,34 @@ ARTIFACT_BASE_CSS = """
     --sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
     --gutter-w: 6px;
     --row-pad-y: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --ground: #16181c;
+      --surface: #1b1e23;
+      --surface-alt: #1b1e23;
+      --ink: #f0efec;
+      --muted: #8b8a84;
+      --label-muted: #8b8a84;
+      --hairline: #2a2d32;
+      --hairline-soft: #55595e;
+      --rule: #3d4147;
+      --accent: #7e9fc4;
+      --readout: #f0efec;
+      --pass-text: #a3cb82;
+      --pass: #a3cb82;
+      --fail: #ff5a57;
+      --pilot-text: #f9c74f;
+      --pilot: #f9c74f;
+      --waiting: #3d4147;
+      --quote-bg: #251b1c;
+      --working: #7e9fc4;
+      --terminal: #1b1e23;
+      --terminal-ink: #f0efec;
+    }
+    :root .work-group:has(.glyph.retry) { background: #24211a; }
+    :root .work-group:has(.glyph.fail) { background: #251b1c; }
   }
   * { box-sizing: border-box; }
   html, body {
