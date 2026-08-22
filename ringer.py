@@ -4110,17 +4110,17 @@ def scan_run_states(state_dir: Path) -> list[dict[str, Any]]:
 
 
 STATUS_COLORS = {
-    "pass": "var(--pass)",
+    "pass": "var(--pass-text)",
     "fail": "var(--fail)",
     "error": "var(--fail)",
     "timeout": "var(--fail)",
-    "running": "var(--running)",
-    "retrying": "var(--running)",
-    "verifying": "var(--running)",
+    "running": "var(--working)",
+    "retrying": "var(--working)",
+    "verifying": "var(--working)",
     "queued": "var(--waiting)",
     "died": "var(--fail)",
-    "live": "var(--running)",
-    "finished": "var(--pass)",
+    "live": "var(--working)",
+    "finished": "var(--pass-text)",
 }
 
 
@@ -4205,14 +4205,14 @@ ARTIFACT_BASE_CSS = """
     --rule: #b9b8b0;
     --accent: #577590;
     --readout: #141412;
-    --pass: #5f9a3e;
-    --pass-fill: #90be6d;
+    --pass-text: #5f9a3e;
+    --pass: #90be6d;
     --fail: #f94144;
-    --pilot: #c28e0e;
-    --pilot-fill: #f9c74f;
+    --pilot-text: #c28e0e;
+    --pilot: #f9c74f;
     --waiting: #c9c8c1;
     --quote-bg: #fdefee;
-    --running: #577590;
+    --working: #577590;
     --terminal: #353531;
     --terminal-ink: #e8e7e2;
     --mono: ui-monospace, Menlo, monospace;
@@ -4258,9 +4258,9 @@ ARTIFACT_BASE_CSS = """
     border-radius: 0;
     background: var(--accent);
   }
-  .live-dot.pass { background: var(--pass-fill); }
+  .live-dot.pass { background: var(--pass); }
   .live-dot.fail { background: var(--fail); }
-  .live-dot.retry { background: var(--pilot-fill); }
+  .live-dot.retry { background: var(--pilot); }
   .live-dot.waiting { background: var(--waiting); }
   @media (prefers-reduced-motion: no-preference) {
     .live-dot.is-live { animation: pulse 1.4s ease-in-out infinite; }
@@ -4303,7 +4303,7 @@ ARTIFACT_BASE_CSS = """
     letter-spacing: -.025em;
     line-height: 1.2;
   }
-  .briefing .n-pass { color: var(--pass); }
+  .briefing .n-pass { color: var(--pass-text); }
   .briefing .n-fail { color: var(--fail); }
   .rounds {
     display: flex;
@@ -4321,9 +4321,9 @@ ARTIFACT_BASE_CSS = """
     background: var(--waiting);
     opacity: .55;
   }
-  .rounds .pass { background: var(--pass-fill); opacity: 1; }
+  .rounds .pass { background: var(--pass); opacity: 1; }
   .rounds .working { background: var(--accent); opacity: 1; }
-  .rounds .retry { background: var(--pilot-fill); opacity: 1; }
+  .rounds .retry { background: var(--pilot); opacity: 1; }
   .rounds .fail { background: var(--fail); opacity: 1; }
   @media (prefers-reduced-motion: no-preference) {
     .rounds .working, .rounds .retry { animation: pulse 1.4s ease-in-out infinite; }
@@ -4581,10 +4581,10 @@ ARTIFACT_BASE_CSS = """
     height: auto;
     border-radius: 0;
   }
-  .glyph.pass { background: var(--pass-fill); }
+  .glyph.pass { background: var(--pass); }
   .glyph.working { background: var(--accent); }
   .glyph.retry, .glyph.fail { background: var(--fail); }
-  .glyph.retry { background: var(--pilot-fill); }
+  .glyph.retry { background: var(--pilot); }
   .glyph.waiting {
     background: var(--waiting);
     border: 0;
@@ -4624,9 +4624,9 @@ ARTIFACT_BASE_CSS = """
   .worker .state.retry::after { content: "RETRY"; }
   .worker .state.fail::after { content: "FAIL"; }
   .worker .state.waiting::after { content: "WAIT"; }
-  .state.pass { color: var(--pass); }
+  .state.pass { color: var(--pass-text); }
   .state.working { color: var(--accent); }
-  .state.retry { color: var(--pilot); }
+  .state.retry { color: var(--pilot-text); }
   .state.fail { color: var(--fail); }
   .state.waiting { color: var(--waiting); }
   .worker .time {
@@ -4745,7 +4745,7 @@ ARTIFACT_BASE_CSS = """
   .run-links .muted {
     color: var(--muted);
   }
-  .state-pass { --state-color: var(--pass); }
+  .state-pass { --state-color: var(--pass-text); }
   .state-fail { --state-color: var(--fail); }
   .state-running { --state-color: var(--accent); }
   .state-waiting { --state-color: var(--waiting); }
@@ -8824,13 +8824,13 @@ MODEL_SCOREBOARD_CSS = """
   }
   .tier-badge.proven {
     background: transparent;
-    border-color: var(--pass);
-    color: var(--pass);
+    border-color: var(--pass-text);
+    color: var(--pass-text);
   }
   .tier-badge.probation {
     background: transparent;
-    border-color: var(--pilot);
-    color: var(--pilot);
+    border-color: var(--pilot-text);
+    color: var(--pilot-text);
   }
   .num {
     text-align: right;
@@ -8857,7 +8857,7 @@ MODEL_SCOREBOARD_CSS = """
     display: block;
     height: 100%;
     border-radius: 0;
-    background: var(--pass-fill);
+    background: var(--pass);
   }
   .detail-row td {
     padding: 0;
