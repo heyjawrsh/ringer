@@ -4193,6 +4193,7 @@ ARTIFACT_BASE_CSS = """
     --surface: #FFFFFF;
     --surface-alt: #F4F3F0;
     --ink: #141412;
+    --rule-ink: #141412;
     --muted: #6d6c66;
     --label-muted: #8a8983;
     --hairline: #dddcd6;
@@ -4221,7 +4222,8 @@ ARTIFACT_BASE_CSS = """
       --ground: #16181c;
       --surface: #1b1e23;
       --surface-alt: #1b1e23;
-      --ink: #f0efec;
+      --ink: #a8a7a2;
+      --rule-ink: #1D2026;
       --muted: #8b8a84;
       --label-muted: #8b8a84;
       --hairline: #2a2d32;
@@ -4521,7 +4523,7 @@ ARTIFACT_BASE_CSS = """
     margin: 0;
     padding: 9px 14px 9px calc(var(--gutter-w) + 14px);
     border: 1px solid var(--hairline);
-    border-bottom: 2px solid var(--ink);
+    border-bottom: 2px solid var(--rule-ink);
     color: var(--label-muted);
     font-family: var(--mono);
     background: var(--surface-alt);
@@ -8711,7 +8713,7 @@ MODEL_SCOREBOARD_CSS = """
     align-items: end;
     margin-bottom: clamp(14px, 2.5vw, 22px);
     padding-bottom: 14px;
-    border-bottom: 2px solid var(--ink);
+    border-bottom: 2px solid var(--rule-ink);
   }
   .scoreboard-title {
     margin: 0;
@@ -8740,7 +8742,7 @@ MODEL_SCOREBOARD_CSS = """
     text-decoration: none;
     border-bottom: 1px solid var(--hairline);
   }
-  .source-link:hover { border-bottom-color: var(--ink); }
+  .source-link:hover { border-bottom-color: var(--rule-ink); }
   .watchlist {
     border-top: 1px solid var(--hairline);
     border-bottom: 1px solid var(--hairline);

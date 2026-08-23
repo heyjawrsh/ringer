@@ -935,6 +935,7 @@
       --surface-active: #F4F3F0;
       --surface-hover: #f8f7f4;
       --ink: #141412;
+      --rule-ink: #141412;
       --body-muted: #6d6c66;
       --label-muted: #8a8983;
       --hairline: #dddcd6;
@@ -973,7 +974,8 @@
         --ground: #16181c;
         --surface-active: #1b1e23;
         --surface-hover: #202329;
-        --ink: #f0efec;
+        --ink: #a8a7a2;
+        --rule-ink: #1D2026;
         --body-muted: #b0afa9;
         --label-muted: #8b8a84;
         --hairline: #2a2d32;
@@ -1012,7 +1014,8 @@
       --ground: #16181c;
       --surface-active: #1b1e23;
       --surface-hover: #202329;
-      --ink: #f0efec;
+      --ink: #a8a7a2;
+      --rule-ink: #1D2026;
       --body-muted: #b0afa9;
       --label-muted: #8b8a84;
       --hairline: #2a2d32;
@@ -1051,6 +1054,7 @@
       --surface-active: #F4F3F0;
       --surface-hover: #f8f7f4;
       --ink: #141412;
+      --rule-ink: #141412;
       --body-muted: #6d6c66;
       --label-muted: #8a8983;
       --hairline: #dddcd6;
@@ -1093,7 +1097,7 @@
       min-height: 52px;
       gap: 12px;
       padding: 0 16px;
-      border-bottom: 2px solid var(--ink);
+      border-bottom: 2px solid var(--rule-ink);
       background: var(--ground);
     }
     .top-dot, .dot, .artifact-state-dot, .artifact-head-dot {
@@ -1143,14 +1147,14 @@
       text-transform: uppercase;
     }
     .toolbar button + button { border-left: 0; }
-    .toolbar button:hover, .toolbar select:hover { border-color: var(--ink); color: var(--ink); }
-    .toolbar button.active { border-color: var(--ink); background: var(--ink); color: var(--ground); }
+    .toolbar button:hover, .toolbar select:hover { border-color: var(--rule-ink); color: var(--ink); }
+    .toolbar button.active { border-color: var(--rule-ink); background: var(--ink); color: var(--ground); }
     .toolbar input[type="search"] { text-transform: none; letter-spacing: 0; font-weight: 400; }
     .toolbar input[type="search"]::placeholder { color: var(--label-muted); }
     .settings-panel {
       top: 100%; right: 16px; width: 264px;
       gap: 12px; padding: 14px;
-      border: 1px solid var(--ink);
+      border: 1px solid var(--rule-ink);
       background: var(--ground);
     }
     .settings-title, .drawer-label {
@@ -1277,7 +1281,7 @@
       border: 1px solid var(--hairline); background: var(--surface-active); color: var(--ink);
       font: 500 10px ui-monospace, Menlo, monospace;
     }
-    .artifact-refresh:hover, .artifact-version-select:hover { border-color: var(--ink); }
+    .artifact-refresh:hover, .artifact-version-select:hover { border-color: var(--rule-ink); }
     .artifact-version-bar {
       border-bottom: 1px solid var(--hairline); color: var(--body-muted); background: var(--pilot-tint);
       font: 400 10px ui-monospace, Menlo, monospace;
@@ -1290,7 +1294,7 @@
     .artifact-frame-wrap, .artifact-frame-wrap iframe, .artifact-empty { background: var(--ground); }
     .artifact-empty { color: var(--label-muted); font: 400 10px ui-monospace, Menlo, monospace; }
     .models-view { background: var(--ground); }
-    .models-state { min-height: 44px; padding: 15px 28px; border-bottom: 2px solid var(--ink); }
+    .models-state { min-height: 44px; padding: 15px 28px; border-bottom: 2px solid var(--rule-ink); }
     .models-state.error { color: var(--fail); }
     .models-table th, .models-table td { padding: 13px 16px; border-bottom: 1px solid var(--hairline); }
     .models-table th {
