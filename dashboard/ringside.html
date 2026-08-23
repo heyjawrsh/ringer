@@ -8,6 +8,7 @@
   <style>
     :root {
       /* Ringside redesign: shipped light-theme primitives. */
+      color-scheme: light;
       --rs-ground: #FFFFFF; --rs-surface-active: #F4F3F0; --rs-surface-hover: #f8f7f4;
       --rs-ink: #141412; --rs-rule-ink: #141412; --rs-body-muted: #6d6c66; --rs-body-strong-muted: #3a3935; --rs-label-muted: #8a8983;
       --rs-hairline: #dddcd6; --rs-hairline-soft: #e7e6e0; --rs-rule-strong: #b9b8b0;
@@ -21,6 +22,7 @@
     }
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
+        color-scheme: dark;
         --rs-ground:#16181c;--rs-surface-active:#1b1e23;--rs-surface-hover:#202329;
         --rs-ink:#a8a7a2;--rs-rule-ink:#1D2026;--rs-body-muted:#8b8a84;--rs-body-strong-muted:#b8b7b1;--rs-label-muted:#8b8a84;
         --rs-hairline:#2a2d32;--rs-hairline-soft:#24272c;--rs-rule-strong:#55595e;
@@ -30,6 +32,7 @@
       }
     }
     :root[data-theme="dark"] {
+      color-scheme: dark;
       --rs-ground:#16181c;--rs-surface-active:#1b1e23;--rs-surface-hover:#202329;
       --rs-ink:#a8a7a2;--rs-rule-ink:#1D2026;--rs-body-muted:#8b8a84;--rs-body-strong-muted:#b8b7b1;--rs-label-muted:#8b8a84;
       --rs-hairline:#2a2d32;--rs-hairline-soft:#24272c;--rs-rule-strong:#55595e;
@@ -38,6 +41,7 @@
       --rs-fail:#ff5a57;--rs-fail-tint:#251b1c;--rs-pilot:#f9c74f;--rs-pilot-text:#f9c74f;--rs-pilot-tint:#24211a;--rs-waiting:#3d4147;
     }
     :root[data-theme="light"] {
+      color-scheme: light;
       --rs-ground: #FFFFFF; --rs-surface-active: #F4F3F0; --rs-surface-hover: #f8f7f4;
       --rs-ink: #141412; --rs-rule-ink: #141412; --rs-body-muted: #6d6c66; --rs-body-strong-muted: #3a3935; --rs-label-muted: #8a8983;
       --rs-hairline: #dddcd6; --rs-hairline-soft: #e7e6e0; --rs-rule-strong: #b9b8b0;
@@ -51,6 +55,7 @@
     button, select { color: inherit; font: inherit; }
     button { cursor: pointer; }
     [hidden] { display: none !important; }
+    .visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
     @keyframes pulse { 50% { opacity: .35; } }
     .ringside-shell{min-height:100vh;display:grid;grid-template-columns:var(--rs-rail-width) minmax(0,1fr);background:var(--rs-ground);color:var(--rs-ink)}
     .ringside-rail{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;border-right:1px solid var(--rs-hairline);background:var(--rs-ground);font-family:var(--rs-grotesk)}
@@ -82,7 +87,7 @@
     .review-queue{padding:14px var(--rs-content-gutter);border-bottom:1px solid var(--rs-hairline);background:var(--rs-ground)}.review-queue-head{display:flex;align-items:center;justify-content:space-between}.review-queue-title{margin:0;color:var(--rs-label-muted);font:600 9px/1.4 var(--rs-mono);letter-spacing:.13em;text-transform:uppercase}.review-queue-count{padding:3px 6px;background:var(--rs-pilot);color:var(--rs-ink);font:700 8px/1 var(--rs-mono)}.review-queue-list{display:flex;gap:8px;overflow-x:auto;margin:10px 0 0;padding:0;list-style:none}.review-queue-list li{flex:0 0 min(260px,30vw)}.review-queue-item{width:100%;padding:9px 11px;border:1px solid var(--rs-hairline);border-radius:0;background:var(--rs-ground);color:var(--rs-body-muted);text-align:left}.review-queue-item:hover{background:var(--rs-surface-hover)}.review-queue-item[aria-current="true"]{border-color:var(--rs-rule-ink);background:var(--rs-surface-active);box-shadow:inset -3px 0 0 var(--rs-ink);color:var(--rs-ink)}.review-queue-run,.review-queue-meta{display:block;overflow:hidden;font:10px/1.5 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}.review-queue-run{font-weight:700}.review-queue-meta{color:var(--rs-label-muted)}
     /* Finalised artifact, model, and system-state views. */
     .artifacts-view{height:100vh;display:grid;grid-template-columns:260px minmax(0,1fr);font-family:var(--rs-grotesk)}
-    .artifact-list-pane{min-width:0;overflow:auto;border-right:1px solid var(--rs-hairline)}.artifact-list-head{height:52px;display:flex;align-items:center;padding:0 16px;border-bottom:2px solid var(--rs-rule-ink);font:700 12px/1 var(--rs-mono);letter-spacing:.12em;text-transform:uppercase}
+    .artifact-list-pane{min-width:0;overflow:auto;border-right:1px solid var(--rs-hairline);scrollbar-color:var(--rs-rule-strong) var(--rs-hairline-soft);scrollbar-width:thin}.artifact-list-head{height:52px;display:flex;align-items:center;gap:8px;padding:0 10px 0 16px;border-bottom:2px solid var(--rs-rule-ink);font:700 12px/1 var(--rs-mono);letter-spacing:.12em;text-transform:uppercase}.artifact-list-title{white-space:nowrap}.artifact-sort{min-width:0;margin-left:auto;padding:3px 18px 3px 5px;border:1px solid var(--rs-hairline);border-radius:0;background:var(--rs-ground);color:var(--rs-body-muted);font:600 8px/1.2 var(--rs-mono);letter-spacing:0;text-transform:none}
     .artifact-list-new{list-style:none;margin:0;padding:0}.artifact-list-button{width:100%;min-height:54px;display:grid;grid-template-columns:4px minmax(0,1fr);gap:12px;align-items:center;padding:9px 14px 9px 0;border:0;border-bottom:1px solid var(--rs-hairline);border-radius:0;background:var(--rs-ground);color:var(--rs-ink);text-align:left}.artifact-list-button:hover{background:var(--rs-surface-hover)}.artifact-list-button[aria-selected="true"]{background:var(--rs-surface-active);box-shadow:inset -3px 0 0 var(--rs-ink)}.artifact-list-bar{width:4px;height:34px;background:var(--rs-waiting)}.artifact-list-bar.live{background:var(--rs-working)}.artifact-list-bar.pass{background:var(--rs-pass)}.artifact-list-bar.fail,.artifact-list-bar.died{background:var(--rs-fail)}.artifact-list-name{display:block;overflow:hidden;font:600 12px/1.35 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}.artifact-list-meta{display:block;margin-top:3px;overflow:hidden;color:var(--rs-label-muted);font:400 9px/1.35 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}
     .artifact-stage{min-width:0;min-height:0;display:grid;grid-template-rows:52px minmax(0,1fr) 48px}.artifact-stage-toolbar{display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:2px solid var(--rs-rule-ink)}.artifact-working-dot{width:8px;height:8px;background:var(--rs-working)}.artifact-stage-name{font:600 12px/1.2 var(--rs-mono)}.artifact-stage-meta{color:var(--rs-label-muted);font:400 9px/1.3 var(--rs-mono)}.artifact-stage-controls{margin-left:auto;display:flex}.artifact-stage-controls button,.artifact-stage-controls select{height:28px;padding:0 9px;border:1px solid var(--rs-hairline);border-right:0;border-radius:0;background:var(--rs-surface-active);color:var(--rs-body-strong-muted);font:500 9px/1 var(--rs-mono)}.artifact-stage-controls>*:last-child{border-right:1px solid var(--rs-hairline)}.artifact-stage-body{min-height:0;background:var(--rs-surface-active)}.artifact-stage-body iframe{width:100%;height:100%;min-height:300px;display:block;border:0;background:var(--rs-ground)}.artifact-stage-message{height:100%;display:grid;place-items:center;color:var(--rs-label-muted);font:400 11px var(--rs-mono)}.artifact-summary{display:flex;align-items:center;gap:14px;padding:0 16px;border-top:1px solid var(--rs-hairline);font:500 10px/1 var(--rs-mono)}.artifact-summary .lane-strip{width:min(340px,34%);height:8px}.artifact-detail-link{margin-left:auto;border:0;background:transparent;color:var(--rs-working);font:600 10px/1 var(--rs-mono)}
     .models-view{font-family:var(--rs-grotesk)}.models-table{width:100%;border-collapse:collapse;table-layout:fixed}.models-table col:nth-child(1){width:auto}.models-table col:nth-child(2){width:92px}.models-table col:nth-child(4),.models-table col:nth-child(5){width:80px}.models-table col:nth-child(6){width:90px}.models-table th{padding:8px 8px;border-bottom:1px solid var(--rs-rule-strong);color:var(--rs-label-muted);font:600 9px/1.2 var(--rs-mono);letter-spacing:.12em;text-align:left;text-transform:uppercase}.models-table th:first-child,.models-table td:first-child{padding-left:var(--rs-content-gutter)}.models-table th:last-child,.models-table td:last-child{padding-right:var(--rs-content-gutter)}.models-table td{height:58px;padding:10px 8px;border-bottom:1px solid var(--rs-hairline);vertical-align:middle}.models-table tbody tr:hover{background:var(--rs-surface-hover)}.model-display-name{display:block;font:600 13px/1.3 var(--rs-grotesk)}.model-slug{display:block;overflow:hidden;color:var(--rs-label-muted);font:400 9px/1.3 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}.tier-badge-new{display:inline-block;padding:3px 6px;border:1px solid currentColor;color:var(--rs-label-muted);font:700 8px/1 var(--rs-mono);letter-spacing:.1em;text-transform:uppercase}.tier-badge-new.proven{color:var(--rs-pass-text)}.tier-badge-new.probation{color:var(--rs-pilot-text)}.win-cell{display:grid;gap:4px}.win-track{height:6px;background:var(--rs-hairline-soft)}.win-fill{display:block;height:100%;background:var(--rs-waiting)}.win-fill.proven{background:var(--rs-pass)}.win-fill.probation{background:var(--rs-pilot)}.win-caption{color:var(--rs-label-muted);font:400 9px/1 var(--rs-mono)}.model-number{text-align:right;font:500 13px/1 var(--rs-mono)}.models-message{margin:24px var(--rs-content-gutter);padding:14px;border-left:3px solid var(--rs-fail);background:var(--rs-surface-active);color:var(--rs-body-strong-muted);font:400 11px/1.5 var(--rs-mono)}
@@ -118,6 +123,7 @@
     <section id="runs-overview" class="runs-overview shell-view" data-shell-panel="runs" aria-label="Runs overview" aria-live="polite"></section>
     <section id="lanes-view" class="shell-view" data-shell-panel="lanes" aria-label="Lane wall" hidden></section>
     <section id="reviews-view" class="shell-view" data-shell-panel="reviews" aria-label="Pilot reviews" hidden></section>
+    <template id="artifact-sort-label-template"><label class="visually-hidden" for="artifact-sort">Sort artifacts</label></template>
     <section id="artifacts-view" class="shell-view" data-shell-panel="artifacts" aria-label="Artifact preview" hidden></section>
     <section id="models-view" class="shell-view" data-shell-panel="models" aria-label="Models scoreboard" hidden></section>
   </div>
@@ -180,6 +186,12 @@
       return migratedShell;
     }
     const ARTIFACT_KEY = "ringside-artifact-selection";
+    const ARTIFACT_SORT_KEY = "ringside-artifact-sort";
+    const ARTIFACT_SORTS = ["recent", "oldest", "name-asc", "name-desc"];
+    function storedArtifactSort() {
+      try { const value = localStorage.getItem(ARTIFACT_SORT_KEY); return ARTIFACT_SORTS.includes(value) ? value : "recent"; }
+      catch (_) { return "recent"; }
+    }
     const migratedShellView = migrateLegacyParams();
     const query = new URLSearchParams(window.location.search);
     const queryRun = String(query.get("run") || "").trim();
@@ -198,6 +210,7 @@
       artifactName: sessionStorage.getItem(ARTIFACT_KEY) || "",
       artifactManual: Boolean(sessionStorage.getItem(ARTIFACT_KEY)),
       artifactVersion: "live",
+      artifactSort: storedArtifactSort(),
       rendering: false,
       focusedRunId: queryRun,
       shellView: migratedShellView
@@ -718,6 +731,22 @@
       return artifact ? state.runs.find(run => run.__id === artifact.current_run_id) || state.runs.find(run => run.run_name === artifact.label) || null : null;
     }
 
+    function sortedArtifacts(artifacts) {
+      const direction = state.artifactSort === "oldest" || state.artifactSort === "name-asc" ? 1 : -1;
+      return [...artifacts].sort((left, right) => {
+        if (state.artifactSort === "name-asc" || state.artifactSort === "name-desc") {
+          return direction * String(left.label || "").localeCompare(String(right.label || ""), undefined, {sensitivity: "base"});
+        }
+        const leftTime = Date.parse(left.updated_at);
+        const rightTime = Date.parse(right.updated_at);
+        const leftValid = Number.isFinite(leftTime);
+        const rightValid = Number.isFinite(rightTime);
+        if (leftValid !== rightValid) return leftValid ? -1 : 1;
+        if (leftValid && leftTime !== rightTime) return direction * (leftTime - rightTime);
+        return String(left.label || "").localeCompare(String(right.label || ""), undefined, {sensitivity: "base"});
+      });
+    }
+
     function buildLaneStrip(run) {
       const strip=document.createElement("span"); strip.className="lane-strip"; strip.setAttribute("role","img"); const counts={pass:0,working:0,retry:0,fail:0,waiting:0}; run.tasks.forEach(task=>{const kind=taskKind(task);counts[kind]=(counts[kind]||0)+1;const segment=document.createElement("span");segment.className=`lane-segment ${kind}`;segment.setAttribute("aria-hidden","true");strip.appendChild(segment);});strip.setAttribute("aria-label",`${counts.pass} pass, ${counts.working} working, ${counts.retry} retry, ${counts.fail} fail, ${counts.waiting} waiting`);return strip;
     }
@@ -726,9 +755,9 @@
       syncArtifactSelection();
       const staging = document.createElement("div"); appendSystemStates(staging); const shell = document.createElement("div"); shell.className = "artifacts-view"; shell.dataset.key = "artifacts-shell";
       const pane = document.createElement("aside"); pane.className = "artifact-list-pane"; pane.setAttribute("aria-label", "Artifacts");
-      const paneHead = document.createElement("div"); paneHead.className = "artifact-list-head"; paneHead.textContent = `Artifacts · ${state.artifacts.length}`; pane.appendChild(paneHead);
+      const paneHead = document.createElement("div"); paneHead.className = "artifact-list-head"; const paneTitle=document.createElement("span"); paneTitle.className="artifact-list-title"; paneTitle.textContent=`Artifacts · ${state.artifacts.length}`; const sortLabel=document.getElementById("artifact-sort-label-template").content.firstElementChild.cloneNode(true); const sort=document.createElement("select"); sort.id="artifact-sort"; sort.className="artifact-sort"; [{key:"recent",label:"Recent first"},{key:"oldest",label:"Oldest first"},{key:"name-asc",label:"Name A–Z"},{key:"name-desc",label:"Name Z–A"}].forEach(item=>{const option=document.createElement("option");option.value=item.key;option.textContent=item.label;sort.appendChild(option);}); sort.value=state.artifactSort; sort.addEventListener("change",event=>{const value=event.currentTarget.value;state.artifactSort=ARTIFACT_SORTS.includes(value)?value:"recent";try{localStorage.setItem(ARTIFACT_SORT_KEY,state.artifactSort);}catch(_){}renderArtifactsView();}); paneHead.append(paneTitle,sortLabel,sort); pane.appendChild(paneHead);
       const list = document.createElement("ul"); list.className = "artifact-list-new"; list.setAttribute("role", "listbox"); list.setAttribute("aria-label", "Available artifacts");
-      state.artifacts.forEach(artifact => { const li = document.createElement("li"); const button = document.createElement("button"); button.type = "button"; button.className = "artifact-list-button"; button.dataset.key = `artifact-new:${artifact.name}`; button.setAttribute("role", "option"); button.setAttribute("aria-selected", String(artifact.name === state.artifactName)); button.setAttribute("aria-label", `${artifact.label}, ${artifact.state}, updated ${relativeAgo(artifact.updated_at)}`); const bar = document.createElement("span"); bar.className = `artifact-list-bar ${artifactStateClass(artifact.state)}`; bar.setAttribute("aria-hidden", "true"); const copy = document.createElement("span"); const name = document.createElement("span"); name.className = "artifact-list-name"; name.textContent = artifact.label; const meta = document.createElement("span"); meta.className = "artifact-list-meta"; meta.textContent = `${artifact.state} · ${relativeAgo(artifact.updated_at)}`; copy.append(name, meta); button.append(bar, copy); button.addEventListener("click", () => { state.artifactName = artifact.name; state.artifactManual = true; state.artifactVersion = "live"; sessionStorage.setItem(ARTIFACT_KEY, artifact.name); renderArtifactsView(); }); li.appendChild(button); list.appendChild(li); }); pane.appendChild(list); shell.appendChild(pane);
+      sortedArtifacts(state.artifacts).forEach(artifact => { const li = document.createElement("li"); li.dataset.key=`artifact-row:${artifact.name}`; const button = document.createElement("button"); button.type = "button"; button.className = "artifact-list-button"; button.dataset.artifactName=artifact.name; button.setAttribute("role", "option"); button.setAttribute("aria-selected", String(artifact.name === state.artifactName)); button.setAttribute("aria-label", `${artifact.label}, ${artifact.state}, updated ${relativeAgo(artifact.updated_at)}`); const bar = document.createElement("span"); bar.className = `artifact-list-bar ${artifactStateClass(artifact.state)}`; bar.setAttribute("aria-hidden", "true"); const copy = document.createElement("span"); const name = document.createElement("span"); name.className = "artifact-list-name"; name.textContent = artifact.label; const meta = document.createElement("span"); meta.className = "artifact-list-meta"; meta.textContent = `${artifact.state} · ${relativeAgo(artifact.updated_at)}`; copy.append(name, meta); button.append(bar, copy); button.addEventListener("click", event => { const artifactName=event.currentTarget.dataset.artifactName; if(!state.artifacts.some(item=>item.name===artifactName))return; state.artifactName = artifactName; state.artifactManual = true; state.artifactVersion = "live"; sessionStorage.setItem(ARTIFACT_KEY, artifactName); renderArtifactsView(); }); li.appendChild(button); list.appendChild(li); }); pane.appendChild(list); shell.appendChild(pane);
       const stage = document.createElement("section"); stage.className = "artifact-stage"; const artifact = selectedArtifact(); const run = artifactRun(artifact); const target = selectedArtifactTarget();
       const toolbar = document.createElement("header"); toolbar.className = "artifact-stage-toolbar"; const dot = document.createElement("span"); dot.className = "artifact-working-dot"; dot.setAttribute("aria-hidden", "true"); const title = document.createElement("span"); title.className = "artifact-stage-name"; title.textContent = artifact?.label || "No artifact selected"; const meta = document.createElement("span"); meta.className = "artifact-stage-meta"; meta.textContent = artifact ? `${projectInfo(run || {project: artifact.project}).name} · ${artifact.state}` : "waiting for the artifact library"; const controls = document.createElement("div"); controls.className = "artifact-stage-controls";
       const version = document.createElement("select"); version.setAttribute("aria-label", "Artifact version"); [{key:"live",label:"version: live"}, ...(artifact?.versions || []).map((item,index)=>({key:item.key,label:`version: ${artifact.versions.length-index}`}))].forEach(item => { const option=document.createElement("option"); option.value=item.key; option.textContent=item.label; version.appendChild(option); }); version.value = state.artifactVersion; version.disabled = !artifact; version.addEventListener("change", () => { state.artifactVersion = version.value; renderArtifactsView(); });
