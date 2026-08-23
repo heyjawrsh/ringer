@@ -240,16 +240,23 @@ class PlainEnglishArtifactTests(unittest.TestCase):
             renderer=self.renderer,
         )
 
-        # Generated pages retain light defaults and follow the machine's dark
-        # preference, without exposing a manual data-theme override.
+        # Generated pages retain light defaults, follow the machine when no
+        # override is set, and expose a real dark block for the parent frame.
         self.assertIn(":root", html)
         self.assertIn("--ground: #FFFFFF", html)
-        self.assertNotIn('data-theme="dark"', html)
         self.assertIn(
-            "@media (prefers-color-scheme: dark) {\n    :root {\n"
-            "      color-scheme: dark;\n      --ground: #16181c;",
+            ':root[data-theme="dark"] {\n    color-scheme: dark;\n'
+            '    --ground: #16181c;\n    --surface: #1b1e23;\n'
+            '    --surface-alt: #1b1e23;\n    --ink: #a8a7a2;\n'
+            '    --rule-ink: #1D2026;',
             html,
         )
+        self.assertIn(
+            ':root:not([data-theme="light"]) {\n      color-scheme: dark;\n'
+            "      --ground: #16181c;",
+            html,
+        )
+        self.assertIn("@media (prefers-color-scheme: dark)", html)
 
     def test_final_report_all_pass_briefing(self) -> None:
         html = render_final_report_html(

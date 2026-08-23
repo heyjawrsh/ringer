@@ -90,7 +90,13 @@ class ArtifactWrapperTests(unittest.TestCase):
         wrapper_html = log_wrapper.read_text(encoding="utf-8")
         self.assertIn(ARTIFACT_BASE_CSS, wrapper_html)
         self.assertIn("--ground: #FFFFFF", wrapper_html)
-        self.assertNotIn('data-theme=', wrapper_html)
+        self.assertIn(
+            ':root[data-theme="dark"] {\n    color-scheme: dark;\n'
+            '    --ground: #16181c;\n    --surface: #1b1e23;\n'
+            '    --surface-alt: #1b1e23;\n    --ink: #a8a7a2;\n'
+            '    --rule-ink: #1D2026;',
+            wrapper_html,
+        )
         self.assertIn("<title>Work log</title>", wrapper_html)
         self.assertIn('<h1 class="briefing">Work log</h1>', wrapper_html)
         self.assertIn('<header class="corner">', wrapper_html)
