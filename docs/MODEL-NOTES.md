@@ -2079,3 +2079,50 @@ RULES:
     shot); check CPU across WebKit processes (ruled out a render loop); read the
     webview console. Only then read code. I inverted this at first and burned
     several turns on hypotheses that measurement killed in seconds.
+
+## 2026-08-20 — taste_mthfl_com, multi-source extraction (3 rounds, 8 lanes)
+
+**GPT-5.6 Sol · medium (Codex)** — 6 lanes: contract freeze, three extractors,
+verifier generalization, corpus migration. 5/6 first-try; the one retry was MY
+spec's ambiguity, not the model's error (its first validator resolved
+`evidence.index` against the filesystem and required `viewport.user_agent`,
+neither of which the pinned contract said either way — the retry relaxed both
+correctly). Medium continues to beat high on this workload: it moved this repo's
+code-feature line to 30 tasks / 60% first-try / 90% pass at 56k median tokens,
+against high's 68 tasks / 54% / 72% at 92k. Keep spending high elsewhere.
+  · Worth reusing: the specs pinned the CONTRACT (required keys, id forms, index
+    columns) and left the internals free. Every lane's check then delegated
+    manifest validity to the validator a previous lane had written, so the
+    checks stayed contract-independent and the lanes could not drift apart.
+  · All three extractor lanes independently reported real contract frictions in
+    notes.md rather than working around them — dpr not being knowable from a
+    bare image, one `original_filename` slot for a directory of images. Two
+    became a follow-up amendment lane. Specs that say "if the contract and this
+    brief disagree, the contract wins, and say so in notes.md" are what produced
+    that instead of silent divergence.
+
+**zai-coding-plan/glm-5.2 (OpenCode)** — 1 docs lane, first-try pass: README +
+AGENTS + CLAUDE for a repo whose whole thesis is not overclaiming. It invented
+no tools, and CLAUDE.md came back as a 7-line import rather than a second copy.
+Cheap and correct on docs; the scoreboard's docs numbers hold up.
+
+**poolside/laguna-s-2.1:free (OpenCode) — AUDITION, PASSED with a caveat.**
+First attempt died instantly with OpenCode's `Error: Unexpected error / database
+is locked` while a SECOND opencode lane (glm-5.2) ran concurrently. That is a
+harness finding, not a model verdict: two concurrent opencode lanes contend on
+the shared SQLite state DB, and one of them loses. Re-run SOLO it passed on
+attempt 1 — a four-file surgical change (loosen a JSON validator, amend a spec
+doc, update an extractor) that my check gated hard in both directions. But it
+took ~19 minutes and five separate passes over the same markdown file, versus
+Codex medium's ~3-7 minutes for comparably sized lanes. Verdict: usable and free
+for mechanical, well-gated work with no deadline; do not put it on a critical
+path, and do not schedule it alongside another opencode lane.
+
+**INFRASTRUCTURE — two things cost wall-clock and neither was a model:**
+  · `~/.config/ringer/config.toml` had `[engines.opencode] bin` pointing at
+    `/Users/jawrsh/_WORK/Repositories/ringer/...`, a path that no longer exists
+    (storage reorg leftover). A whole round aborted at pre-flight before
+    spawning. Repointed to `~/Work/Repositories/ringer/...`. Worth a periodic
+    `test -x` over every engine bin in the config.
+  · Do not run two `opencode` lanes concurrently until the state-DB contention
+    above is fixed — serialize them, or give each its own state dir.
