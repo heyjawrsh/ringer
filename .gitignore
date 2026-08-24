@@ -18,3 +18,6 @@ hud/icons/icon.iconset/
 
 # Playwright MCP scratch snapshots
 .playwright-mcp/
+
+# Claude Code worktree isolation scratch (tooling, not project content)
+.claude/worktrees/
