@@ -952,6 +952,17 @@ when picking the `model` field. Ringer's config can only pin ONE default
   provenance inference (named the top committer as creator without flagging the
   GitHub-handle mismatch). Fine for low-stakes summarize-with-evidence lanes;
   probation earned, keep auditing before trusting analysis-heavy tasks.
+- 2026-08-17 — persona-review x1 (jawrsh-hiring-review, recruiter-screen lane):
+  FAILED BOTH ATTEMPTS, 79k tokens, 340s — the slowest and most expensive lane
+  in the run while all three GLM-5.2 lanes passed. Substance was fine (five real
+  findings, correct LIVE-FACTS use, one insight no other lane found), so this
+  was NOT a reasoning failure: it cited sources as bare filenames ("CvPage.tsx
+  lines 8-11") where the spec demanded repo paths, so the check's "at least 4
+  real repo paths" floor caught it at 2 — and the retry, with that exact
+  failure text injected, did not fix the citation format. This repeats the
+  2026-07-17 blemish: malformed citations are this model's signature failure.
+  Do not route it to lanes whose check asserts on citation FORM; it can find
+  the evidence but cannot reliably dress it. Probation held, not promoted.
 
 ## headroom/z-ai/glm-5.2 (opencode via Headroom proxy — A/B experiment lane)
 
