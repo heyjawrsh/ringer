@@ -690,6 +690,27 @@ when picking the `model` field. Ringer's config can only pin ONE default
 
 ## Process lessons (cross-model)
 
+- 2026-08-16 (dotfiles Phase 6) — I MADE THE SAME QUOTING MISTAKE TWICE IN ONE
+  SESSION, and the second time it cost a worker two attempts. `git ls-files`
+  quotes any path containing non-ASCII, so `"config/warp/themes/custom/
+  OjosCiberneticos.yaml"` split on "/" yields a directory literally named
+  `"config`. In Phase 1 that nearly untracked a theme the owner had authored; I
+  caught it, fixed it with `-c core.quotePath=false`, and then wrote a fresh
+  check in Phase 6 with the identical bug. The lane read as FAIL/2 on the
+  scoreboard; re-running the corrected check against the worker's own exported
+  patch passed first time. The work was always fine.
+  · RULE: any check that derives structure from `git ls-files` must use
+    `git -c core.quotePath=false ls-files`, or strip surrounding quotes. Add it
+    to the reflex list next to "accept every dress" and "strip rg's path:N:text".
+  · META-RULE, which is the more useful one: a lesson learned inside a run does
+    not transfer to the next check I write in the same run unless I encode it
+    somewhere executable. Three of this session's check bugs were re-inventions
+    of a fix I had already made an hour earlier. A shared helper (check_helpers
+    already exists) is the only durable fix; a note to self is not.
+  · Worker credit: codex produced a correct links.toml (37 entries, 19
+    create=true, 2 optional) that omitted ~/.claude with the reasoning in a
+    comment, exactly as specified, and was failed by my arithmetic.
+
 - 2026-08-16 (pilot-changes-requested, build round) — A LANE THAT OWNS `tests/**`
   CAN EDIT THE TEST THAT WOULD HAVE CAUGHT IT, AND EVERY GATE STAYS GREEN.
   codex built the pilot `revise` feature and, in passing, dropped
