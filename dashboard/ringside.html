@@ -96,6 +96,39 @@
     @media(prefers-reduced-motion:no-preference){.artifact-working-dot,.system-pulse{animation:pulse 1.4s ease-in-out infinite}.models-table tbody tr{animation:fadeUp .3s ease both}.models-table tbody tr:nth-child(2){animation-delay:.05s}.models-table tbody tr:nth-child(3){animation-delay:.1s}.models-view,.artifacts-view{animation:fadeIn .25s ease}}
     @media(max-width:760px){.artifacts-view{grid-template-columns:180px minmax(0,1fr)}.artifact-summary .lane-strip{display:none}.models-slice-bar{align-items:flex-start;flex-direction:column}.models-slice-control{width:100%;margin-left:0}.models-slice-select{min-width:0;flex:1}.models-table tr{grid-template-columns:minmax(150px,1fr) minmax(128px,.8fr) 118px;column-gap:10px}.models-table th:nth-child(2),.models-table td:nth-child(2),.models-table th:nth-child(5),.models-table td:nth-child(5),.models-table th:nth-child(6),.models-table td:nth-child(6){display:none}}
   </style>
+  <style>
+    .time-canvas-view{min-width:0;background:var(--rs-ground);color:var(--rs-ink);font-family:var(--rs-grotesk)}
+    .canvas-census{display:grid;grid-template-columns:1.2fr repeat(3,minmax(120px,.7fr));border-bottom:2px solid var(--rs-rule-ink)}
+    .canvas-census-cell{min-width:0;padding:22px var(--rs-content-gutter) 18px;border-right:1px solid var(--rs-hairline)}.canvas-census-cell:last-child{border-right:0}
+    .canvas-census-label{display:block;color:var(--rs-label-muted);font:600 9px/1.2 var(--rs-mono);letter-spacing:.14em;text-transform:uppercase}
+    .canvas-census-value{display:block;margin-top:8px;overflow:hidden;color:var(--rs-ink);font:700 24px/1 var(--rs-mono);font-variant-numeric:tabular-nums;text-overflow:ellipsis;white-space:nowrap}
+    .canvas-census-note{display:block;margin-top:8px;color:var(--rs-body-muted);font:400 9px/1.35 var(--rs-mono)}
+    .canvas-wall{padding:0 var(--rs-content-gutter)}
+    .canvas-axis,.canvas-lane-track,.canvas-footer{display:grid;grid-template-columns:minmax(190px,230px) minmax(320px,1fr) minmax(170px,210px);column-gap:18px}
+    .canvas-axis{min-height:58px;align-items:end;border-bottom:1px solid var(--rs-rule-strong)}.canvas-axis-intro{padding-bottom:11px}
+    .canvas-kicker{display:block;color:var(--rs-ink);font:700 8px/1.3 var(--rs-mono);letter-spacing:.14em;text-transform:uppercase}.canvas-axis-sub{display:block;margin-top:5px;color:var(--rs-body-muted);font:400 9px/1.2 var(--rs-mono)}
+    .canvas-axis-stage{position:relative;height:44px;overflow:hidden}.canvas-tick{position:absolute;inset-block:0;border-left:1px solid var(--rs-hairline-soft);transform:translateX(-.5px)}.canvas-tick.major{border-left-color:var(--rs-rule-strong)}
+    .canvas-tick-label{position:absolute;left:5px;bottom:10px;color:var(--rs-label-muted);font:500 8px/1 var(--rs-mono);font-variant-numeric:tabular-nums;white-space:nowrap}.canvas-tick.end .canvas-tick-label{right:5px;left:auto}
+    .canvas-now-head{position:absolute;inset-block:0;width:0;border-left:1px solid var(--rs-working);transition:left 240ms ease}.canvas-now-head span{position:absolute;top:2px;left:6px;color:var(--rs-working);font:800 8px/1 var(--rs-mono);letter-spacing:.12em}.canvas-now-head.near-edge span{right:6px;left:auto}
+    .canvas-timeout-head{height:44px;display:flex;align-items:center;justify-content:flex-end;padding-bottom:10px;color:var(--rs-body-muted);font:700 9px/1 var(--rs-mono);letter-spacing:.06em;text-align:right}.canvas-timeout-head.in-domain{color:var(--rs-ink)}
+    .canvas-lane-track{position:relative;min-height:118px;border-bottom:1px solid var(--rs-hairline)}.canvas-lane-meta{min-width:0;padding:14px 0 12px}
+    .canvas-lane-top{display:flex;align-items:center;justify-content:space-between;gap:10px}.canvas-lane-key{overflow:hidden;font:700 12px/1.2 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}
+    .canvas-status{display:inline-flex;flex:none;align-items:center;gap:6px;font:700 8px/1 var(--rs-mono);letter-spacing:.1em;text-transform:uppercase}.canvas-status::before{width:6px;height:6px;background:currentColor;content:""}.canvas-status.working{color:var(--rs-working)}.canvas-status.pass{color:var(--rs-pass-text)}.canvas-status.fail{color:var(--rs-fail)}.canvas-status.retry{color:var(--rs-pilot-text)}.canvas-status.waiting{color:var(--rs-label-muted)}.canvas-status.waiting::before{border:1px solid var(--rs-waiting);background:transparent}
+    .canvas-route{display:block;margin-top:8px;overflow:hidden;color:var(--rs-body-muted);font:400 9px/1.3 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}.canvas-route code{color:var(--rs-ink);font:inherit}
+    .canvas-lane-stats{display:flex;flex-wrap:wrap;gap:5px 12px;margin-top:10px;color:var(--rs-body-muted);font:500 8px/1.2 var(--rs-mono);font-variant-numeric:tabular-nums}.canvas-lane-stats strong{color:var(--rs-ink)}
+    .canvas-track-plot{position:relative;min-width:0;overflow:hidden}.canvas-grid-line,.canvas-baseline,.canvas-now-line,.canvas-timeout-line,.canvas-spawn-line,.canvas-retry-line,.canvas-queue-gap{position:absolute;pointer-events:none}
+    .canvas-grid-line{inset-block:0;border-left:1px solid var(--rs-hairline-soft)}.canvas-grid-line.major{border-left-color:var(--rs-hairline)}.canvas-baseline{right:0;bottom:25px;left:0;border-top:1px solid var(--rs-rule-strong)}
+    .canvas-now-line{inset-block:0;width:0;border-left:1px solid var(--rs-working);opacity:.5;transition:left 240ms ease}.canvas-timeout-line{inset-block:0;width:0;border-left:1px dashed var(--rs-body-muted)}.canvas-spawn-line{bottom:20px;height:11px;border-left:1px solid var(--rs-ink)}.canvas-retry-line{top:8px;bottom:25px;border-left:1px dashed var(--rs-pilot-text)}.canvas-queue-gap{bottom:25px;left:0;border-top:1px dashed var(--rs-rule-strong)}
+    .canvas-trace{position:absolute;right:0;bottom:25px;left:0;width:100%;height:calc(100% - 35px);overflow:hidden}.canvas-trace polyline{fill:none;vector-effect:non-scaling-stroke;stroke-width:2;stroke-linecap:square;stroke-linejoin:miter}.canvas-trace polyline.working{stroke:var(--rs-working)}.canvas-trace polyline.pass{stroke:var(--rs-pass-text)}.canvas-trace polyline.fail{stroke:var(--rs-fail)}.canvas-trace polyline.retry{stroke:var(--rs-pilot-text)}
+    .canvas-endpoint{vector-effect:non-scaling-stroke;stroke:var(--rs-ground);stroke-width:1.5}.canvas-endpoint.working{fill:var(--rs-working)}.canvas-endpoint.pass{fill:var(--rs-pass-text)}.canvas-endpoint.fail{fill:var(--rs-fail)}.canvas-endpoint.retry{fill:var(--rs-pilot-text)}
+    .canvas-collecting{position:absolute;top:14px;left:10px;color:var(--rs-label-muted);font:600 8px/1.3 var(--rs-mono);letter-spacing:.1em;text-transform:uppercase}
+    .canvas-track-foot{position:absolute;right:0;bottom:7px;left:0;display:flex;justify-content:space-between;gap:14px;color:var(--rs-label-muted);font:600 7px/1 var(--rs-mono);letter-spacing:.08em;text-transform:uppercase;pointer-events:none}.canvas-track-foot span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.canvas-burn-rank{color:var(--rs-ink)}
+    .canvas-lane-note{min-width:0;padding:14px 0 12px 14px;border-left:1px solid var(--rs-hairline)}.canvas-note-kicker{display:block;color:var(--rs-label-muted);font:700 8px/1 var(--rs-mono);letter-spacing:.14em;text-transform:uppercase}.canvas-note-main{display:block;margin-top:7px;color:var(--rs-ink);font:600 10px/1.25 var(--rs-mono)}.canvas-note-sub{display:block;margin-top:7px;color:var(--rs-body-muted);font:400 8px/1.35 var(--rs-mono)}.canvas-note-sub.fail,.canvas-note-main.fail{color:var(--rs-fail)}
+    .canvas-footer{padding:11px 0 16px;color:var(--rs-body-muted);font:500 8px/1.35 var(--rs-mono);letter-spacing:.05em}.canvas-footer strong{color:var(--rs-ink)}.canvas-legend{display:flex;flex-wrap:wrap;gap:8px 17px}.canvas-legend-item{display:inline-flex;align-items:center;gap:6px}.canvas-legend-line{width:18px;border-top:2px solid var(--rs-ink)}.canvas-legend-line.flat{border-top-color:var(--rs-working)}.canvas-legend-line.gap{border-top:1px dashed var(--rs-rule-strong)}.canvas-window{text-align:right;font-variant-numeric:tabular-nums}.canvas-empty{margin:24px var(--rs-content-gutter);color:var(--rs-body-muted);font:400 11px/1.5 var(--rs-mono)}
+    @media(prefers-reduced-motion:no-preference){.canvas-rescaled .canvas-axis-stage,.canvas-rescaled .canvas-track-plot{animation:canvasWindowGrow 280ms ease-out}@keyframes canvasWindowGrow{from{opacity:.58;transform:scaleX(.985);transform-origin:left center}to{opacity:1;transform:scaleX(1);transform-origin:left center}}}
+    @media(prefers-reduced-motion:reduce){.canvas-now-head,.canvas-now-line{transition:none}}
+    @media(max-width:980px){.canvas-axis,.canvas-lane-track,.canvas-footer{grid-template-columns:180px minmax(280px,1fr) 165px;column-gap:12px}.canvas-census{grid-template-columns:repeat(2,minmax(0,1fr))}.canvas-census-cell:nth-child(2){border-right:0}.canvas-census-cell:nth-child(-n+2){border-bottom:1px solid var(--rs-hairline)}}
+  </style>
 </head>
 <body>
   <div class="ringside-shell">
@@ -104,6 +137,7 @@
     <nav class="rail-nav" aria-label="Dashboard views">
       <button class="rail-nav-item" type="button" data-shell-view="runs" aria-current="page"><span>Runs</span><span id="rail-runs-count" class="rail-count">0</span></button>
       <button class="rail-nav-item" type="button" data-shell-view="lanes"><span>Lanes</span><span id="rail-lanes-count" class="rail-count">0</span></button>
+      <button class="rail-nav-item" type="button" data-shell-view="canvas"><span>Canvas</span></button>
       <button class="rail-nav-item" type="button" data-shell-view="reviews"><span>Reviews</span><span id="rail-reviews-count" class="rail-count rail-review-badge">0</span></button>
       <button class="rail-nav-item" type="button" data-shell-view="artifacts"><span>Artifacts</span><span id="rail-artifacts-count" class="rail-count">0</span></button>
       <button class="rail-nav-item" type="button" data-shell-view="models"><span>Models</span></button>
@@ -122,6 +156,7 @@
   <div class="ringside-content">
     <section id="runs-overview" class="runs-overview shell-view" data-shell-panel="runs" aria-label="Runs overview" aria-live="polite"></section>
     <section id="lanes-view" class="shell-view" data-shell-panel="lanes" aria-label="Lane wall" hidden></section>
+    <section id="canvas-view" class="time-canvas-view shell-view" data-shell-panel="canvas" data-token-max="1" data-samples="0" aria-label="Time Canvas" hidden></section>
     <section id="reviews-view" class="shell-view" data-shell-panel="reviews" aria-label="Pilot reviews" hidden></section>
     <template id="artifact-sort-label-template"><label class="visually-hidden" for="artifact-sort">Sort artifacts</label></template>
     <section id="artifacts-view" class="shell-view" data-shell-panel="artifacts" aria-label="Artifact preview" hidden></section>
@@ -170,7 +205,7 @@
       if (focus) document.querySelector(`[data-theme-choice="${themeChoice}"]`)?.focus();
     }
     applyThemeChoice();
-    const SHELL_VIEWS = ["runs", "lanes", "reviews", "artifacts", "models"];
+    const SHELL_VIEWS = ["runs", "lanes", "canvas", "reviews", "artifacts", "models"];
     function normalizeShellView(value) {
       const view = String(value || "").trim().toLowerCase();
       return SHELL_VIEWS.includes(view) ? view : "";
@@ -233,6 +268,8 @@
       panelReturnFocus: null,
       restoreRunFromUrl: Boolean(queryRun),
       activityChanges: new Map(),
+      canvasSamples: new Map(),
+      canvasAxisMax: new Map(),
       pilotDecisions: new Map(),
       pilotNotes: new Map()
     };
@@ -241,6 +278,7 @@
     const els = {
       runsOverview: document.getElementById("runs-overview"),
       lanesView: document.getElementById("lanes-view"),
+      canvasView: document.getElementById("canvas-view"),
       reviewsView: document.getElementById("reviews-view"),
       artifactsView: document.getElementById("artifacts-view"),
       modelsView: document.getElementById("models-view"),
@@ -395,6 +433,7 @@
           ...run,
           __index: index,
           __id: runId(run, index),
+          __reported_elapsed_s: Number.isFinite(Number(run.elapsed_s)) ? Math.max(0, Number(run.elapsed_s)) : elapsedForRun({...run, state: stateName}),
           state: stateName,
           run_name: String(run.run_name || "ringer"),
           identity: String(run.identity || "unknown"),
@@ -525,6 +564,110 @@
       for (const key of state.activityChanges.keys()) {
         if (!present.has(key)) state.activityChanges.delete(key);
       }
+    }
+
+    const CANVAS_SAMPLE_LIMIT = 900;
+    const CANVAS_HEADROOM = 1.18;
+    const CANVAS_STEPS = [120, 300, 600, 900, 1800, 2700, 3600];
+
+    function updateCanvasSamples(runs) {
+      const presentRuns = new Set(runs.map(run => run.__id));
+      runs.forEach(run => {
+        let buffer = state.canvasSamples.get(run.__id);
+        if (!buffer) {
+          buffer = {samples: [], retryEvents: new Map()};
+          state.canvasSamples.set(run.__id, buffer);
+        }
+        const lanes = new Map();
+        run.tasks.forEach((task, index) => {
+          const key = taskKey(task, index);
+          lanes.set(key, {
+            tokens: Math.max(0, numberOrZero(task.tokens)),
+            attempts: Math.max(0, Math.floor(numberOrZero(task.attempts)))
+          });
+        });
+        const atS = canvasElapsed(run);
+        const previous = buffer.samples[buffer.samples.length - 1];
+        if (previous) {
+          lanes.forEach((lane, key) => {
+            const prior = previous.lanes.get(key);
+            if (!prior || lane.attempts === prior.attempts) return;
+            const events = buffer.retryEvents.get(key) || [];
+            if (!events.length || events[events.length - 1].atS !== atS) {
+              events.push({atS, from: prior.attempts, to: lane.attempts});
+              buffer.retryEvents.set(key, events.slice(-32));
+            }
+          });
+        }
+        buffer.samples.push({atS, lanes});
+        if (buffer.samples.length > CANVAS_SAMPLE_LIMIT) {
+          buffer.samples.splice(0, buffer.samples.length - CANVAS_SAMPLE_LIMIT);
+        }
+      });
+      for (const runIdValue of state.canvasSamples.keys()) {
+        if (!presentRuns.has(runIdValue)) state.canvasSamples.delete(runIdValue);
+      }
+      for (const runIdValue of state.canvasAxisMax.keys()) {
+        if (!presentRuns.has(runIdValue)) state.canvasAxisMax.delete(runIdValue);
+      }
+    }
+
+    function canvasRun() {
+      const live = runningNowRuns();
+      return live.find(run => run.__id === state.focusedRunId)
+        || state.runs.find(run => run.__id === state.focusedRunId)
+        || live[0]
+        || state.runs[0]
+        || null;
+    }
+
+    function canvasBudget(run) {
+      return Math.max(0, ...run.tasks.map(task => Math.floor(numberOrZero(task.timeout_s))));
+    }
+
+    function canvasElapsed(run) {
+      return Math.max(0, numberOrZero(run.__reported_elapsed_s ?? run.elapsed_s));
+    }
+
+    function canvasAxisDomain(run) {
+      const elapsed = Math.ceil(canvasElapsed(run));
+      const budget = canvasBudget(run);
+      const desired = Math.max(1, elapsed * CANVAS_HEADROOM);
+      const steps = CANVAS_STEPS.filter(step => !budget || step <= budget);
+      if (budget && !steps.includes(budget)) steps.push(budget);
+      steps.sort((left, right) => left - right);
+      const fitted = steps.find(step => step >= desired);
+      if (fitted) return {axisMax: fitted, budget, steps};
+      if (budget) return {axisMax: budget, budget, steps};
+      const axisMax = Math.ceil(desired / 3600) * 3600;
+      return {axisMax: Math.max(120, axisMax), budget: 0, steps: [...steps, Math.max(120, axisMax)]};
+    }
+
+    function canvasTokenMax(run, buffer) {
+      let highest = Math.max(0, ...run.tasks.map(task => numberOrZero(task.tokens)));
+      buffer?.samples.forEach(sample => sample.lanes.forEach(lane => { highest = Math.max(highest, lane.tokens); }));
+      if (highest <= 0) return 1;
+      const target = highest * 1.08;
+      const magnitude = 10 ** Math.floor(Math.log10(target));
+      const factors = [1, 1.25, 1.5, 2, 2.5, 5, 7.5, 10];
+      return Math.max(1, Math.ceil((factors.find(factor => factor * magnitude >= target) || 10) * magnitude));
+    }
+
+    function canvasTime(seconds) {
+      const total = Math.max(0, Math.round(numberOrZero(seconds)));
+      const hours = Math.floor(total / 3600);
+      const minutes = Math.floor((total % 3600) / 60);
+      const secs = total % 60;
+      if (hours) return minutes ? `${hours}h ${minutes}m` : `${hours}h`;
+      if (minutes) return secs ? `${minutes}m ${String(secs).padStart(2, "0")}s` : `${minutes}m`;
+      return `${secs}s`;
+    }
+
+    function canvasTickEvery(axisMax) {
+      if (axisMax <= 600) return 120;
+      if (axisMax <= 1800) return 300;
+      if (axisMax <= 3600) return 600;
+      return 900;
     }
 
     function laneStaleness(run, task, key) {
@@ -975,6 +1118,326 @@
       morphChildren(els.lanesView, staging);
     }
 
+    function renderCanvasView() {
+      const staging = document.createElement("div");
+      appendSystemStates(staging);
+      const run = canvasRun();
+      if (!run) {
+        els.canvasView.dataset.tokenMax = "1";
+        els.canvasView.dataset.samples = "0";
+        const head = document.createElement("header");
+        head.className = "view-title-row";
+        head.dataset.key = "canvas-head";
+        head.innerHTML = '<h1 id="canvas-title">Time Canvas</h1><p class="view-meta">Observed token traces on run-relative time</p><p class="view-sort">fitted window</p>';
+        const empty = document.createElement("p");
+        empty.className = "canvas-empty";
+        empty.dataset.key = "canvas-empty";
+        empty.textContent = "No run telemetry is available for the canvas yet.";
+        staging.append(head, empty);
+        morphChildren(els.canvasView, staging);
+        return;
+      }
+
+      const buffer = state.canvasSamples.get(run.__id) || {samples: [], retryEvents: new Map()};
+      const samples = buffer.samples.length;
+      const {axisMax, budget, steps} = canvasAxisDomain(run);
+      const previousAxis = state.canvasAxisMax.get(run.__id);
+      const rescaled = Boolean(previousAxis && previousAxis !== axisMax);
+      state.canvasAxisMax.set(run.__id, axisMax);
+      const tokenMax = canvasTokenMax(run, buffer);
+      const elapsed = canvasElapsed(run);
+      const nowPercent = Math.min(100, (elapsed / axisMax) * 100);
+      const tickEvery = canvasTickEvery(axisMax);
+      const highestTokens = Math.max(0, ...run.tasks.map(task => numberOrZero(task.tokens)));
+      const nextStep = steps[steps.indexOf(axisMax) + 1];
+      els.canvasView.dataset.tokenMax = String(tokenMax);
+      els.canvasView.dataset.samples = String(samples);
+
+      const head = document.createElement("header");
+      head.className = "view-title-row";
+      head.dataset.key = "canvas-head";
+      const title = document.createElement("h1");
+      title.id = "canvas-title";
+      title.textContent = "Time Canvas";
+      const meta = document.createElement("p");
+      meta.className = "view-meta";
+      meta.textContent = `${projectInfo(run).name} / ${run.run_name} · ${run.tasks.length} lanes`;
+      const sort = document.createElement("p");
+      sort.className = "view-sort";
+      sort.textContent = run.state === "live" ? "run active · observed each poll" : "run complete · observed samples";
+      head.append(title, meta, sort);
+      staging.appendChild(head);
+
+      const census = document.createElement("section");
+      census.className = "canvas-census";
+      census.dataset.key = `canvas-census:${run.__id}`;
+      census.setAttribute("aria-label", `${run.run_name} Time Canvas summary`);
+      const addCensus = (label, value, note) => {
+        const cell = document.createElement("div");
+        cell.className = "canvas-census-cell";
+        const labelNode = document.createElement("span");
+        labelNode.className = "canvas-census-label";
+        labelNode.textContent = label;
+        const valueNode = document.createElement("span");
+        valueNode.className = "canvas-census-value";
+        valueNode.textContent = value;
+        const noteNode = document.createElement("span");
+        noteNode.className = "canvas-census-note";
+        noteNode.textContent = note;
+        cell.append(labelNode, valueNode, noteNode);
+        census.appendChild(cell);
+      };
+      addCensus("Run", run.run_name, `${projectInfo(run).name} · max parallel ${Math.max(0, Math.floor(numberOrZero(run.max_parallel))) || "—"}`);
+      addCensus("Elapsed", canvasTime(elapsed), run.state === "live" ? "run-relative now" : "final observed time");
+      addCensus("Tokens so far", formatTokens(run.tokens).replace(" tok", ""), `shared lane scale · 0—${tokenMax.toLocaleString()}`);
+      addCensus("Observed samples", String(samples), samples < 2 ? "collecting history · no trace yet" : "real poll snapshots · buffer capped at 900");
+      staging.appendChild(census);
+
+      const wall = document.createElement("section");
+      wall.className = `canvas-wall${rescaled ? " canvas-rescaled" : ""}`;
+      wall.dataset.key = `canvas-wall:${run.__id}`;
+      wall.setAttribute("aria-label", `${run.run_name} lanes on a shared run-relative time and token scale`);
+      const axis = document.createElement("div");
+      axis.className = "canvas-axis";
+      axis.dataset.key = `canvas-axis:${run.__id}`;
+      axis.dataset.axisMaxS = String(Math.round(axisMax));
+      axis.setAttribute("aria-label", `Fitted run-relative axis from zero to ${canvasTime(axisMax)}; now ${canvasTime(elapsed)}${budget ? `; timeout ${canvasTime(budget)}` : "; no timeout reported"}`);
+      const axisIntro = document.createElement("div");
+      axisIntro.className = "canvas-axis-intro";
+      axisIntro.dataset.key = "canvas-axis-intro";
+      axisIntro.append(
+        Object.assign(document.createElement("span"), {className: "canvas-kicker", textContent: "Trace height = tokens"}),
+        Object.assign(document.createElement("span"), {className: "canvas-axis-sub", textContent: "one vertical scale across every lane"})
+      );
+      const axisStage = document.createElement("div");
+      axisStage.className = "canvas-axis-stage";
+      axisStage.dataset.key = "canvas-axis-stage";
+      axisStage.setAttribute("aria-hidden", "true");
+      const tickValues = [];
+      for (let tick = 0; tick <= axisMax; tick += tickEvery) tickValues.push(tick);
+      if (tickValues[tickValues.length - 1] !== axisMax) tickValues.push(axisMax);
+      tickValues.forEach((tick, index) => {
+        const tickNode = document.createElement("span");
+        const end = tick === axisMax;
+        tickNode.className = `canvas-tick${index % 2 === 0 || end ? " major" : ""}${end ? " end" : ""}`;
+        tickNode.dataset.key = `canvas-axis-tick:${tick}`;
+        tickNode.style.left = `${(tick / axisMax) * 100}%`;
+        const tickLabel = document.createElement("span");
+        tickLabel.className = "canvas-tick-label";
+        tickLabel.textContent = canvasTime(tick);
+        tickNode.appendChild(tickLabel);
+        axisStage.appendChild(tickNode);
+      });
+      const nowHead = document.createElement("span");
+      nowHead.className = `canvas-now-head${nowPercent > 86 ? " near-edge" : ""}`;
+      nowHead.dataset.key = "canvas-now-head";
+      nowHead.style.left = `${nowPercent}%`;
+      nowHead.appendChild(Object.assign(document.createElement("span"), {textContent: "NOW"}));
+      axisStage.appendChild(nowHead);
+      const timeoutHead = document.createElement("div");
+      timeoutHead.className = `canvas-timeout-head${budget && budget <= axisMax ? " in-domain" : ""}`;
+      timeoutHead.dataset.key = "canvas-timeout-head";
+      timeoutHead.textContent = budget ? (budget <= axisMax ? `timeout marker · ${canvasTime(budget)}` : `→ timeout ${canvasTime(budget)}`) : "timeout not reported";
+      axis.append(axisIntro, axisStage, timeoutHead);
+      wall.appendChild(axis);
+
+      run.tasks.forEach((task, index) => {
+        const key = taskKey(task, index);
+        const kind = taskKind(task);
+        const statusText = taskStateText(kind);
+        const taskTokens = Math.max(0, numberOrZero(task.tokens));
+        const taskElapsed = Math.max(0, numberOrZero(task.elapsed_s));
+        const laneStart = Math.max(0, Math.round(elapsed - taskElapsed));
+        const attempts = Math.max(0, Math.floor(numberOrZero(task.attempts)));
+        const maxAttempts = Math.max(attempts, Math.floor(numberOrZero(task.max_attempts)));
+        const timeout = Math.max(0, Math.floor(numberOrZero(task.timeout_s)));
+        const retryEvents = buffer.retryEvents.get(key) || [];
+        const points = buffer.samples.flatMap(sample => {
+          const lane = sample.lanes.get(key);
+          if (!lane || sample.atS < laneStart || sample.atS > axisMax) return [];
+          return [{atS: sample.atS, tokens: lane.tokens}];
+        });
+        const pointText = points.map(point => {
+          const x = Math.max(0, Math.min(1000, (point.atS / axisMax) * 1000));
+          const y = Math.max(4, Math.min(96, 96 - (point.tokens / tokenMax) * 90));
+          return `${x.toFixed(2)},${y.toFixed(2)}`;
+        }).join(" ");
+        const lastPoint = points[points.length - 1];
+        const cause = laneCause(task);
+        const activity = taskActivity(task) || "No activity reported";
+        const traceState = points.length < 2 ? "collecting observed history" : `${points.length} observed points`;
+        const retrySummary = retryEvents.length
+          ? `${retryEvents.length} retry boundary${retryEvents.length === 1 ? "" : "ies"} observed`
+          : attempts > 1 ? "multi-attempt; retry boundary was not observed" : "single attempt observed";
+        const lane = document.createElement("article");
+        lane.className = "canvas-lane-track";
+        lane.dataset.key = `canvas-lane:${run.__id}:${key}`;
+        lane.dataset.laneStartS = String(laneStart);
+        lane.setAttribute("aria-label", `${key}, ${statusText}, spawned ${canvasTime(laneStart)} after run start, ${formatTokens(taskTokens)}, ${traceState}, ${retrySummary}, ${cause.label}. ${activity}`);
+
+        const laneMeta = document.createElement("div");
+        laneMeta.className = "canvas-lane-meta";
+        laneMeta.dataset.key = `canvas-lane-meta:${key}`;
+        const laneTop = document.createElement("div");
+        laneTop.className = "canvas-lane-top";
+        const laneKeyNode = document.createElement("span");
+        laneKeyNode.className = "canvas-lane-key";
+        laneKeyNode.textContent = key;
+        const status = document.createElement("span");
+        status.className = `canvas-status ${kind}`;
+        status.textContent = statusText;
+        laneTop.append(laneKeyNode, status);
+        const route = document.createElement("span");
+        route.className = "canvas-route";
+        route.append(document.createTextNode(`${String(task.engine || "engine not reported")} · `), Object.assign(document.createElement("code"), {textContent: String(task.model || "model not reported")}));
+        const stats = document.createElement("span");
+        stats.className = "canvas-lane-stats";
+        const laneStatValues = [
+          [`${canvasTime(taskElapsed)} / ${timeout ? canvasTime(timeout) : "no timeout"}`, "elapsed"],
+          [formatTokens(taskTokens), "tokens"],
+          [`${attempts || "—"}/${maxAttempts || "—"}`, "attempt"]
+        ];
+        laneStatValues.forEach(([value, label]) => {
+          const stat = document.createElement("span");
+          const strong = document.createElement("strong");
+          strong.textContent = value;
+          stat.append(strong, document.createTextNode(` ${label}`));
+          stats.appendChild(stat);
+        });
+        laneMeta.append(laneTop, route, stats);
+
+        const plot = document.createElement("div");
+        plot.className = "canvas-track-plot";
+        plot.dataset.key = `canvas-plot:${key}`;
+        plot.setAttribute("aria-hidden", "true");
+        tickValues.forEach(tick => {
+          const line = document.createElement("span");
+          line.className = `canvas-grid-line${tick % (tickEvery * 2) === 0 ? " major" : ""}`;
+          line.dataset.key = `canvas-grid:${key}:${tick}`;
+          line.style.left = `${(tick / axisMax) * 100}%`;
+          plot.appendChild(line);
+        });
+        const baseline = document.createElement("span");
+        baseline.className = "canvas-baseline";
+        baseline.dataset.key = `canvas-baseline:${key}`;
+        plot.appendChild(baseline);
+        if (laneStart > 0) {
+          const queueGap = document.createElement("span");
+          queueGap.className = "canvas-queue-gap";
+          queueGap.dataset.key = `canvas-queue-gap:${key}`;
+          queueGap.style.width = `${Math.min(100, (laneStart / axisMax) * 100)}%`;
+          plot.appendChild(queueGap);
+        }
+        const spawnLine = document.createElement("span");
+        spawnLine.className = "canvas-spawn-line";
+        spawnLine.dataset.key = `canvas-spawn:${key}`;
+        spawnLine.style.left = `${Math.min(100, (laneStart / axisMax) * 100)}%`;
+        plot.appendChild(spawnLine);
+        const nowLine = document.createElement("span");
+        nowLine.className = "canvas-now-line";
+        nowLine.dataset.key = `canvas-now:${key}`;
+        nowLine.style.left = `${nowPercent}%`;
+        plot.appendChild(nowLine);
+        if (timeout && timeout <= axisMax) {
+          const timeoutLine = document.createElement("span");
+          timeoutLine.className = "canvas-timeout-line";
+          timeoutLine.dataset.key = `canvas-timeout:${key}`;
+          timeoutLine.style.left = `${(timeout / axisMax) * 100}%`;
+          plot.appendChild(timeoutLine);
+        }
+        retryEvents.filter(event => event.atS >= laneStart && event.atS <= axisMax).forEach((event, eventIndex) => {
+          const retry = document.createElement("span");
+          retry.className = "canvas-retry-line";
+          retry.dataset.key = `canvas-retry:${key}:${eventIndex}:${event.atS}`;
+          retry.style.left = `${(event.atS / axisMax) * 100}%`;
+          plot.appendChild(retry);
+        });
+        if (points.length >= 2) {
+          const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+          svg.setAttribute("class", "canvas-trace");
+          svg.setAttribute("viewBox", "0 0 1000 100");
+          svg.setAttribute("preserveAspectRatio", "none");
+          svg.dataset.key = `canvas-trace:${key}`;
+          const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+          polyline.setAttribute("class", kind);
+          polyline.setAttribute("points", pointText);
+          polyline.dataset.key = `canvas-trace-line:${key}`;
+          const endX = Math.max(0, Math.min(1000, (lastPoint.atS / axisMax) * 1000));
+          const endY = Math.max(4, Math.min(96, 96 - (lastPoint.tokens / tokenMax) * 90));
+          const endpoint = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          endpoint.setAttribute("class", `canvas-endpoint ${kind}`);
+          endpoint.setAttribute("x", String(endX - 3));
+          endpoint.setAttribute("y", String(endY - 3));
+          endpoint.setAttribute("width", "6");
+          endpoint.setAttribute("height", "6");
+          endpoint.dataset.key = `canvas-endpoint:${key}`;
+          svg.append(polyline, endpoint);
+          plot.appendChild(svg);
+        } else {
+          const collecting = document.createElement("span");
+          collecting.className = "canvas-collecting";
+          collecting.dataset.key = `canvas-collecting:${key}`;
+          collecting.textContent = "Collecting observed history — trace starts after the next poll";
+          plot.appendChild(collecting);
+        }
+        const foot = document.createElement("span");
+        foot.className = "canvas-track-foot";
+        foot.dataset.key = `canvas-track-foot:${key}`;
+        const activityNode = document.createElement("span");
+        activityNode.textContent = activity;
+        const rankNode = document.createElement("span");
+        rankNode.className = "canvas-burn-rank";
+        rankNode.textContent = taskTokens > 0 && taskTokens === highestTokens ? "highest burn" : "";
+        foot.append(activityNode, rankNode);
+        plot.appendChild(foot);
+
+        const note = document.createElement("div");
+        note.className = "canvas-lane-note";
+        note.dataset.key = `canvas-note:${key}`;
+        const noteKicker = document.createElement("span");
+        noteKicker.className = "canvas-note-kicker";
+        noteKicker.textContent = cause.label;
+        const noteMain = document.createElement("span");
+        noteMain.className = `canvas-note-main${cause.isFailure ? " fail" : ""}`;
+        noteMain.textContent = cause.sentence;
+        const noteSub = document.createElement("span");
+        noteSub.className = `canvas-note-sub${cause.isFailure ? " fail" : ""}`;
+        noteSub.textContent = retryEvents.length
+          ? `retry observed at ${canvasTime(retryEvents[retryEvents.length - 1].atS)} · spawned ${canvasTime(laneStart)}`
+          : attempts > 1
+            ? `multi-attempt · boundary not observed · spawned ${canvasTime(laneStart)}`
+            : `spawned ${canvasTime(laneStart)} after run start`;
+        note.append(noteKicker, noteMain, noteSub);
+        lane.append(laneMeta, plot, note);
+        wall.appendChild(lane);
+      });
+
+      const footer = document.createElement("footer");
+      footer.className = "canvas-footer";
+      footer.dataset.key = `canvas-footer:${run.__id}`;
+      const brand = document.createElement("span");
+      brand.append(Object.assign(document.createElement("strong"), {textContent: "TIME CANVAS"}), document.createTextNode(" / fitted window"));
+      const legend = document.createElement("span");
+      legend.className = "canvas-legend";
+      legend.setAttribute("aria-label", "Trace legend");
+      [["", "observed token accumulation"], ["flat", "flat = no token change observed"], ["gap", "gap = queue wait / observed retry"]].forEach(([kindName, label]) => {
+        const item = document.createElement("span");
+        item.className = "canvas-legend-item";
+        const line = document.createElement("span");
+        line.className = `canvas-legend-line${kindName ? ` ${kindName}` : ""}`;
+        line.setAttribute("aria-hidden", "true");
+        item.append(line, document.createTextNode(label));
+        legend.appendChild(item);
+      });
+      const windowPolicy = document.createElement("span");
+      windowPolicy.className = "canvas-window";
+      windowPolicy.textContent = nextStep ? `window ${canvasTime(axisMax)} · next ${canvasTime(nextStep)}` : `window ${canvasTime(axisMax)} · ${budget ? "budget ceiling" : "open ceiling"}`;
+      footer.append(brand, legend, windowPolicy);
+      wall.appendChild(footer);
+      staging.appendChild(wall);
+      preserveScroll(() => morphChildren(els.canvasView, staging));
+    }
+
     function renderReviewsView() {
       const staging=document.createElement("div"); const queue=reviewRuns(); const run=queue.find(item=>item.__id===state.focusedRunId)||queue[0];
       appendSystemStates(staging);
@@ -1052,8 +1515,8 @@
       state.shellView=view;
       try { localStorage.setItem(SHELL_VIEW_KEY, view); } catch (_) { /* private mode */ }
       replaceUrlState();
-      document.querySelectorAll("[data-shell-view]").forEach(button=>button.setAttribute("aria-current",button.dataset.shellView===view?"page":"false")); els.runsOverview.hidden=view!=="runs"; els.lanesView.hidden=view!=="lanes"; els.reviewsView.hidden=view!=="reviews"; els.artifactsView.hidden=view!=="artifacts"; els.modelsView.hidden=view!=="models";
-      if(view==="lanes") renderLanesView(); if(view==="reviews") renderReviewsView(); if(view==="artifacts")renderArtifactsView(); if(view==="models"){renderModelsView();fetchModels();}
+      document.querySelectorAll("[data-shell-view]").forEach(button=>button.setAttribute("aria-current",button.dataset.shellView===view?"page":"false")); els.runsOverview.hidden=view!=="runs"; els.lanesView.hidden=view!=="lanes"; els.canvasView.hidden=view!=="canvas"; els.reviewsView.hidden=view!=="reviews"; els.artifactsView.hidden=view!=="artifacts"; els.modelsView.hidden=view!=="models";
+      if(view==="lanes") renderLanesView(); if(view==="canvas") renderCanvasView(); if(view==="reviews") renderReviewsView(); if(view==="artifacts")renderArtifactsView(); if(view==="models"){renderModelsView();fetchModels();}
     }
 
     function closeRunPanel() {
@@ -1105,6 +1568,7 @@
     function renderTop() {
       renderRunsOverview();
       if (state.shellView === "lanes") renderLanesView();
+      if (state.shellView === "canvas") renderCanvasView();
       if (state.shellView === "reviews") renderReviewsView();
       if (state.shellView === "artifacts") renderArtifactsView();
       if (state.shellView === "models") renderModelsView();
@@ -1411,6 +1875,7 @@
         const payload = await response.json();
         const runs = normalizeRuns(payload);
         updateActivityChanges(runs);
+        updateCanvasSamples(runs);
         state.runs = runs;
         state.serverVersion = String(payload?.server?.ringer_version || "").trim();
         state.runUnreadable = Math.max(0, Math.trunc(numberOrZero(payload?.unreadable)));
