@@ -76,9 +76,9 @@
     .lane-strip{display:flex;gap:var(--rs-lane-gap);height:var(--rs-lane-strip-height)}.lane-segment{flex:1;min-width:1px;background:var(--rs-waiting)}.lane-segment.pass{background:var(--rs-pass)}.lane-segment.fail{background:var(--rs-fail)}.lane-segment.working{background:var(--rs-working)}.lane-segment.retry{background:var(--rs-pilot)}.overview-count{text-align:right;font:600 14px/1 var(--rs-mono);font-variant-numeric:tabular-nums}.overview-count small{color:var(--rs-label-muted);font-size:inherit;font-weight:400}.overview-outcome{text-align:right;font:500 12px/1 var(--rs-mono);font-variant-numeric:tabular-nums}.elapsed-cell{display:grid;gap:3px}.elapsed-track{height:var(--rs-elapsed-height);background:var(--rs-hairline-soft)}.elapsed-fill{display:block;height:100%;background:var(--rs-ink)}.died .elapsed-fill{background:var(--rs-fail)}.elapsed-label,.started-label{color:var(--rs-label-muted);font:var(--rs-micro);font-weight:400;font-variant-numeric:tabular-nums}.started-label{text-align:right;font-size:10px;color:var(--rs-body-muted)}
     .overview-legend{display:flex;gap:18px;padding:12px var(--rs-content-gutter);border-bottom:1px solid var(--rs-hairline);color:var(--rs-label-muted);font:500 9px/1 var(--rs-mono);text-transform:uppercase}.legend-item{display:inline-flex;align-items:center;gap:6px}.legend-swatch{width:8px;height:8px;background:var(--rs-waiting)}.legend-swatch.working{background:var(--rs-working)}.legend-swatch.pass{background:var(--rs-pass)}.legend-swatch.fail{background:var(--rs-fail)}.legend-swatch.pilot{background:var(--rs-pilot)}.legend-swatch.waiting{border:1.5px solid var(--rs-waiting);background:transparent}
     .shell-view[hidden]{display:none}.rail-review-badge{min-width:16px;padding:3px 5px;background:var(--rs-pilot);color:var(--rs-ink);font:700 8px/1 var(--rs-mono);letter-spacing:.1em;text-align:center}.view-title-row{min-height:76px;display:flex;align-items:flex-end;gap:20px;padding:0 var(--rs-content-gutter) 16px;border-bottom:2px solid var(--rs-rule-ink)}.view-title-row h1{margin:0;font:700 26px/1 var(--rs-grotesk);letter-spacing:-.01em}.view-meta{margin:0;color:var(--rs-body-muted);font:400 10px/1.5 var(--rs-mono)}.view-sort{margin-left:auto;color:var(--rs-label-muted);font:600 9px/1.4 var(--rs-mono);letter-spacing:.1em;text-transform:uppercase}
-    .lane-wall-grid{display:grid;grid-template-columns:10px 150px minmax(150px,1fr) 100px minmax(180px,2fr) 90px;align-items:center;column-gap:16px}.lane-wall-columns{padding:8px var(--rs-content-gutter) 8px 16px;border-bottom:1px solid var(--rs-rule-strong);color:var(--rs-label-muted);font:600 9px/1.2 var(--rs-mono);letter-spacing:.12em;text-transform:uppercase}.lane-wall-row{min-height:59px;padding:12px var(--rs-content-gutter) 12px 16px;border-bottom:1px solid var(--rs-hairline)}.lane-wall-row.working{background:var(--rs-surface-active)}.lane-wall-row.pilot{background:var(--rs-pilot-tint)}.lane-wall-row.fail{background:var(--rs-fail-tint)}.lane-dot{width:8px;height:8px;background:var(--rs-waiting)}.lane-dot.waiting{border:1.5px solid var(--rs-waiting);background:transparent}.lane-dot.working{background:var(--rs-working)}.lane-dot.pass{background:var(--rs-pass)}.lane-dot.fail{background:var(--rs-fail)}.lane-dot.pilot,.lane-dot.retry{background:var(--rs-pilot)}.lane-name{font:600 12px/1.3 var(--rs-mono)}.lane-run,.lane-activity,.lane-elapsed{overflow:hidden;color:var(--rs-body-muted);font:400 10px/1.45 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}.lane-run b{display:block;color:var(--rs-ink);font-family:var(--rs-grotesk);font-size:11px}.lane-state{font:600 9px/1.3 var(--rs-mono);letter-spacing:.08em;text-transform:uppercase}.lane-held{color:var(--rs-pilot-text)}
+    .lane-wall-grid{display:grid;grid-template-columns:8px minmax(110px,.75fr) minmax(100px,.75fr) minmax(110px,.85fr) minmax(140px,1.2fr) minmax(125px,.9fr) minmax(135px,.95fr) minmax(180px,1.35fr);align-items:center;column-gap:12px}.lane-wall-columns{padding:8px var(--rs-content-gutter) 8px 16px;border-bottom:1px solid var(--rs-rule-strong);color:var(--rs-label-muted);font:600 9px/1.2 var(--rs-mono);letter-spacing:.12em;text-transform:uppercase}.lane-wall-row{min-height:92px;padding:12px var(--rs-content-gutter) 12px 16px;border-bottom:1px solid var(--rs-hairline)}.lane-wall-row.working{background:var(--rs-surface-active)}.lane-wall-row.pilot{background:var(--rs-pilot-tint)}.lane-wall-row.fail{background:var(--rs-fail-tint)}.lane-dot{width:8px;height:8px;background:var(--rs-waiting)}.lane-dot.waiting{border:1.5px solid var(--rs-waiting);background:transparent}.lane-dot.working{background:var(--rs-working)}.lane-dot.pass{background:var(--rs-pass)}.lane-dot.fail{background:var(--rs-fail)}.lane-dot.pilot,.lane-dot.retry{background:var(--rs-pilot)}.lane-identity,.lane-route,.lane-activity-cell,.lane-burn,.lane-timeout,.lane-cause{min-width:0;display:block}.lane-name{display:block;overflow:hidden;font:600 12px/1.3 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}.lane-run,.lane-activity,.lane-route-model{display:block;overflow:hidden;color:var(--rs-body-muted);font:400 9px/1.4 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}.lane-run b{display:block;color:var(--rs-ink);font-family:var(--rs-grotesk);font-size:10px}.lane-state{display:block;margin-top:6px;font:600 8px/1.3 var(--rs-mono);letter-spacing:.08em;text-transform:uppercase}.lane-held{color:var(--rs-pilot-text)}.lane-route-engine{display:block;overflow:hidden;color:var(--rs-ink);font:600 10px/1.35 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}.lane-signal{display:block;margin-top:6px;color:var(--rs-label-muted);font:600 8px/1.25 var(--rs-mono);letter-spacing:.07em;text-transform:uppercase}.lane-signal.stale{color:var(--rs-ink)}.lane-meter-top{display:flex;align-items:baseline;justify-content:space-between;gap:5px;color:var(--rs-ink);font:600 10px/1.2 var(--rs-mono);font-variant-numeric:tabular-nums}.lane-meter-top small{color:var(--rs-label-muted);font-size:8px;font-weight:400;white-space:nowrap}.lane-meter{height:5px;display:block;margin-top:7px;background:var(--rs-hairline-soft)}.lane-meter-fill{height:100%;display:block;background:var(--rs-ink)}.lane-timeout .lane-meter{background-image:repeating-linear-gradient(90deg,transparent 0,transparent calc(25% - 1px),var(--rs-rule-strong) calc(25% - 1px),var(--rs-rule-strong) 25%)}.lane-meter-caption{display:block;margin-top:5px;color:var(--rs-label-muted);font:500 8px/1.25 var(--rs-mono);font-variant-numeric:tabular-nums;text-transform:uppercase}.burn-leader{color:var(--rs-ink);font-weight:700;letter-spacing:.06em}.lane-cause-chip{display:inline-block;max-width:100%;padding:4px 5px;border:1px solid currentColor;color:var(--rs-label-muted);font:700 8px/1 var(--rs-mono);letter-spacing:.08em;text-transform:uppercase}.lane-cause-chip.pass{color:var(--rs-pass-text)}.lane-cause-chip.fail{color:var(--rs-fail)}.lane-cause-chip.pending{color:var(--rs-working)}.lane-cause-evidence{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 5px;margin-top:5px;color:var(--rs-body-strong-muted);font:600 7px/1.3 var(--rs-mono)}.lane-evidence-item,.lane-cause-check{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lane-cause-check{margin-top:4px;color:var(--rs-body-muted);font:400 8px/1.3 var(--rs-mono);letter-spacing:0}.lane-wall-row:focus-visible{outline:2px solid var(--rs-ink);outline-offset:-2px}
     .reviews-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;min-height:calc(100vh - 76px)}.review-evidence{min-width:0;padding:24px var(--rs-content-gutter)}.review-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid var(--rs-hairline);border-left:1px solid var(--rs-hairline)}.review-grid>div{min-height:86px;padding:14px;border-right:1px solid var(--rs-hairline);border-bottom:1px solid var(--rs-hairline)}.micro-label{display:block;margin-bottom:7px;color:var(--rs-label-muted);font:600 9px/1.4 var(--rs-mono);letter-spacing:.13em;text-transform:uppercase}.review-value{color:var(--rs-ink);font:400 11px/1.55 var(--rs-mono);overflow-wrap:anywhere}.round-block{margin-top:24px}.round-matrix{display:flex;gap:var(--rs-round-gap)}.round-dot{width:var(--rs-round-size);height:var(--rs-round-size);border:1px solid var(--rs-waiting);background:transparent}.round-dot.pass{border-color:var(--rs-pass);background:var(--rs-pass)}.round-dot.fail{border-color:var(--rs-fail);background:var(--rs-fail)}.round-dot.working{border-color:var(--rs-working);background:var(--rs-working)}.terminal-block{margin:24px 0 0;padding:14px 16px;background:var(--rs-terminal);color:var(--rs-terminal-ink);font:400 10px/1.6 var(--rs-mono);white-space:pre-wrap;max-height:210px;overflow:auto}.held-callout{margin-top:18px;padding:12px 14px;border-left:3px solid var(--rs-pilot);background:var(--rs-surface-active);color:var(--rs-body-strong-muted);font:400 11px/1.5 var(--rs-grotesk)}.decision-aside{display:flex;min-height:calc(100vh - 76px);flex-direction:column;padding:24px 20px;border-left:1px solid var(--rs-hairline);background:var(--rs-surface-active)}.decision-aside button{border-radius:0;font:600 10px/1 var(--rs-mono);letter-spacing:.04em;text-transform:uppercase}.decision-approve{width:100%;height:38px;border:0;background:var(--rs-ink);color:var(--rs-ground)}.decision-note-label{margin:22px 0 7px;color:var(--rs-pilot-text);font:600 10px/1.4 var(--rs-mono)}.decision-note{min-height:112px;padding:10px;border:1px solid var(--rs-waiting);border-radius:0;background:var(--rs-ground);color:var(--rs-ink);font:11px/1.5 var(--rs-mono);resize:vertical}.decision-revise{width:100%;min-height:38px;margin-top:8px;border:1px solid var(--rs-pilot-text);background:transparent;color:var(--rs-pilot-text)}.decision-aside button:disabled,.decision-aside textarea:disabled{opacity:.45}.decision-reject{align-self:flex-start;margin-top:20px;padding:0;border:0;background:transparent;color:var(--rs-fail);font-weight:400!important;text-decoration:underline;text-underline-offset:3px;text-transform:none!important}.decision-status{color:var(--rs-body-muted);font:10px/1.5 var(--rs-mono)}.decision-cli{margin-top:auto;padding-top:20px;border-top:1px solid var(--rs-hairline);color:var(--rs-label-muted);font:9px/1.65 var(--rs-mono);overflow-wrap:anywhere}
-    .slide-backdrop{position:fixed;z-index:50;inset:0;background:rgba(20,20,18,.18)}.run-slide{position:absolute;top:0;right:0;width:560px;max-width:80vw;height:100%;display:flex;flex-direction:column;border-left:1px solid var(--rs-rule-ink);background:var(--rs-ground);box-shadow:-24px 0 48px rgba(20,20,18,.18);font-family:var(--rs-grotesk)}.slide-head{display:grid;grid-template-columns:4px 1fr auto;gap:14px;align-items:center;padding:14px 18px;border-bottom:2px solid var(--rs-rule-ink)}.slide-mark{height:34px;background:var(--rs-working)}.slide-breadcrumb{color:var(--rs-label-muted);font:10px/1.4 var(--rs-mono)}.slide-title{font:700 20px/1.2 var(--rs-grotesk)}.slide-close{width:32px;height:32px;border:0;background:transparent;font-size:18px}.slide-stats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--rs-hairline)}.slide-stat{padding:16px;border-right:1px solid var(--rs-hairline)}.slide-stat:last-child{border:0}.slide-stat b{display:block;font:700 26px/1 var(--rs-mono)}.slide-stat span{color:var(--rs-label-muted);font:600 9px/1.5 var(--rs-mono);letter-spacing:.1em;text-transform:uppercase}.slide-body{flex:1;overflow:auto}.slide-lane{display:grid;grid-template-columns:8px 128px 84px minmax(0,1fr) 54px;gap:12px;align-items:center;width:100%;padding:11px 16px;border:0;border-bottom:1px solid var(--rs-hairline-soft);background:transparent;color:inherit;text-align:left}.slide-lane:hover{background:var(--rs-surface-hover)}.slide-lane[aria-expanded="true"]{background:#eceae5}.slide-expanded{padding:18px;background:var(--rs-surface-active)}.slide-expanded .round-block{margin-top:0}.slide-lane-meta{margin:10px 0 0;color:var(--rs-body-muted);font:400 10px/1.5 var(--rs-mono)}.slide-proof{display:grid;gap:10px;margin-top:14px}.slide-proof-section{padding-top:10px;border-top:1px solid var(--rs-hairline)}.slide-proof-section p,.slide-proof-section pre{margin:0;color:var(--rs-body-strong-muted);font:400 10px/1.55 var(--rs-mono);white-space:pre-wrap;overflow-wrap:anywhere}.slide-proof-section .micro-label{margin-bottom:5px}.slide-violations{margin:14px 0 0;padding:10px 12px 10px 28px;border-left:3px solid var(--rs-fail);background:var(--rs-fail-tint);color:var(--rs-body-strong-muted);font:400 10px/1.5 var(--rs-mono)}.slide-violations li+li{margin-top:6px}.slide-violations b{color:var(--rs-fail)}.slide-stream-head{display:flex;justify-content:space-between;gap:10px;margin-top:16px;color:var(--rs-label-muted);font:600 9px/1.4 var(--rs-mono);letter-spacing:.08em;text-transform:uppercase}.slide-log{margin:7px 0 0;padding:14px 16px;max-height:280px;overflow:auto;background:var(--rs-terminal);color:var(--rs-terminal-ink);font:400 10px/1.6 var(--rs-mono);white-space:pre-wrap;tab-size:2}.slide-log-error{margin:7px 0 0;color:var(--rs-fail);font:400 10px/1.4 var(--rs-mono)}.slide-foot{display:flex;justify-content:space-between;gap:12px;padding:10px 16px;border-top:1px solid var(--rs-hairline);color:var(--rs-label-muted);font:9px/1.4 var(--rs-mono)}
+    .slide-backdrop{position:fixed;z-index:50;inset:0;background:rgba(20,20,18,.18)}.run-slide{position:absolute;top:0;right:0;width:560px;max-width:80vw;height:100%;display:flex;flex-direction:column;border-left:1px solid var(--rs-rule-ink);background:var(--rs-ground);box-shadow:-24px 0 48px rgba(20,20,18,.18);font-family:var(--rs-grotesk)}.slide-head{display:grid;grid-template-columns:4px 1fr auto;gap:14px;align-items:center;padding:14px 18px;border-bottom:2px solid var(--rs-rule-ink)}.slide-mark{height:34px;background:var(--rs-working)}.slide-breadcrumb{color:var(--rs-label-muted);font:10px/1.4 var(--rs-mono)}.slide-title{font:700 20px/1.2 var(--rs-grotesk)}.slide-close{width:32px;height:32px;border:0;background:transparent;font-size:18px}.slide-stats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--rs-hairline)}.slide-stat{padding:16px;border-right:1px solid var(--rs-hairline)}.slide-stat:last-child{border:0}.slide-stat b{display:block;font:700 26px/1 var(--rs-mono)}.slide-stat span{color:var(--rs-label-muted);font:600 9px/1.5 var(--rs-mono);letter-spacing:.1em;text-transform:uppercase}.slide-body{flex:1;overflow:auto}.slide-lane{display:grid;grid-template-columns:8px 128px 84px minmax(0,1fr) 54px;gap:12px;align-items:center;width:100%;padding:11px 16px;border:0;border-bottom:1px solid var(--rs-hairline-soft);background:transparent;color:inherit;text-align:left}.slide-lane:hover{background:var(--rs-surface-hover)}.slide-lane[aria-expanded="true"]{background:#eceae5}.slide-expanded{padding:18px;background:var(--rs-surface-active)}.slide-expanded .round-block{margin-top:0}.slide-cause{margin:0 0 16px;padding:12px;border-top:1px solid var(--rs-fail);border-bottom:1px solid var(--rs-fail);background:var(--rs-fail-tint)}.slide-cause-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.slide-cause-title{color:var(--rs-label-muted);font:600 9px/1.3 var(--rs-mono);letter-spacing:.12em;text-transform:uppercase}.slide-cause-sentence{margin:10px 0 0;color:var(--rs-body-strong-muted);font:600 11px/1.45 var(--rs-grotesk)}.slide-cause-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:12px;border-top:1px solid var(--rs-hairline);border-left:1px solid var(--rs-hairline)}.slide-cause-cell{min-width:0;padding:9px;border-right:1px solid var(--rs-hairline);border-bottom:1px solid var(--rs-hairline)}.slide-cause-cell b{display:block;overflow-wrap:anywhere;color:var(--rs-ink);font:600 10px/1.4 var(--rs-mono)}.slide-cause-note{margin:9px 0 0;color:var(--rs-fail);font:700 9px/1.4 var(--rs-mono);letter-spacing:.06em;text-transform:uppercase}.slide-lane-meta{margin:10px 0 0;color:var(--rs-body-muted);font:400 10px/1.5 var(--rs-mono)}.slide-proof{display:grid;gap:10px;margin-top:14px}.slide-proof-section{padding-top:10px;border-top:1px solid var(--rs-hairline)}.slide-proof-section p,.slide-proof-section pre{margin:0;color:var(--rs-body-strong-muted);font:400 10px/1.55 var(--rs-mono);white-space:pre-wrap;overflow-wrap:anywhere}.slide-proof-section .micro-label{margin-bottom:5px}.slide-violations{margin:14px 0 0;padding:10px 12px 10px 28px;border-left:3px solid var(--rs-fail);background:var(--rs-fail-tint);color:var(--rs-body-strong-muted);font:400 10px/1.5 var(--rs-mono)}.slide-violations li+li{margin-top:6px}.slide-violations b{color:var(--rs-fail)}.slide-stream-head{display:flex;justify-content:space-between;gap:10px;margin-top:16px;color:var(--rs-label-muted);font:600 9px/1.4 var(--rs-mono);letter-spacing:.08em;text-transform:uppercase}.slide-log{margin:7px 0 0;padding:14px 16px;max-height:280px;overflow:auto;background:var(--rs-terminal);color:var(--rs-terminal-ink);font:400 10px/1.6 var(--rs-mono);white-space:pre-wrap;tab-size:2}.slide-log-error{margin:7px 0 0;color:var(--rs-fail);font:400 10px/1.4 var(--rs-mono)}.slide-foot{display:flex;justify-content:space-between;gap:12px;padding:10px 16px;border-top:1px solid var(--rs-hairline);color:var(--rs-label-muted);font:9px/1.4 var(--rs-mono)}
     @media(prefers-reduced-motion:no-preference){.slide-backdrop{animation:fadeIn .2s}.run-slide{animation:slideIn .28s cubic-bezier(.2,.8,.2,1)}}@keyframes slideIn{from{transform:translateX(40px)}}
     @media(prefers-reduced-motion:no-preference){.run-status-bar.working,.lane-segment.working,.rail-live.live{animation:pulse 1.4s ease-in-out infinite}}
     @media(max-width:950px){.overview-grid{grid-template-columns:10px minmax(170px,1.3fr) minmax(130px,1fr) 60px 80px 100px}.overview-grid>:last-child{display:none}}
@@ -232,6 +232,7 @@
       selectedLaneKey: "",
       panelReturnFocus: null,
       restoreRunFromUrl: Boolean(queryRun),
+      activityChanges: new Map(),
       pilotDecisions: new Map(),
       pilotNotes: new Map()
     };
@@ -423,6 +424,115 @@
       if (status === "running" || status === "verifying" || status === "working") return "working";
       if (status === "fail" || status === "failed" || status === "error" || status === "errored" || status === "timeout" || status === "died" || verdict === "FAIL") return "fail";
       return "waiting";
+    }
+
+    function taskWorkerReturncode(task) {
+      const direct = task?.worker_returncode ?? task?.returncode;
+      if (direct !== null && direct !== undefined && direct !== "") return String(direct);
+      const lines = Array.isArray(task?.log_tail) ? task.log_tail : [];
+      const patterns = [
+        /\bworker_returncode=(null|-?\d+)\b/i,
+        /\battempt\s+\d+\s+exited\s+rc=(null|-?\d+)\b/i,
+        /\bworker(?:\s+exited)?\s+rc[=:]\s*(null|-?\d+)\b/i
+      ];
+      for (let index = lines.length - 1; index >= 0; index -= 1) {
+        const text = String(lines[index] || "");
+        for (const pattern of patterns) {
+          const match = text.match(pattern);
+          if (match) return match[1];
+        }
+      }
+      return "";
+    }
+
+    function laneCause(task) {
+      const lane = task && typeof task === "object" ? task : {};
+      const setupError = typeof lane.setup_error === "string" ? lane.setup_error.trim() : "";
+      const rawCheckRc = lane.check_returncode;
+      const checkRcSet = rawCheckRc !== null && rawCheckRc !== undefined && rawCheckRc !== "";
+      const checkRc = checkRcSet ? String(rawCheckRc) : "not recorded";
+      const workerRc = taskWorkerReturncode(lane);
+      const checkName = String(lane.check || "").trim();
+      const withCheck = evidence => checkName ? [...evidence, `check=${checkName}`] : evidence;
+      if (setupError) {
+        return {
+          label: "HARNESS FAULT",
+          sentence: "Setup failed before the model ran; this lane must not be counted against the model.",
+          evidence: ["worker rc=not run", "check rc=not run", "timed-out=false", `setup-error=${setupError}`],
+          tone: "fail",
+          isFailure: true
+        };
+      }
+      if (lane.check_timed_out === true) {
+        return {
+          label: "TIMED OUT",
+          sentence: "The worker finished; the check exceeded its time window.",
+          evidence: withCheck([`worker rc=${workerRc || "not recorded (clean exit)"}`, `check rc=${checkRc}`, "timed-out=true", "setup-error=none"]),
+          tone: "fail",
+          isFailure: true
+        };
+      }
+      if (checkRcSet && Number(rawCheckRc) !== 0) {
+        return {
+          label: "CHECK FAULT",
+          sentence: "The worker finished cleanly; the check rejected the work.",
+          evidence: withCheck([`worker rc=${workerRc || "not recorded (clean exit)"}`, `check rc=${checkRc}`, "timed-out=false", "setup-error=none"]),
+          tone: "fail",
+          isFailure: true
+        };
+      }
+      if (taskKind(lane) === "fail") {
+        return {
+          label: "MODEL FAILURE",
+          sentence: "The model's worker failed; no setup or check fault was recorded.",
+          evidence: [`worker rc=${workerRc || "not reported"}`, `check rc=${checkRc}`, "timed-out=false", "setup-error=none"],
+          tone: "fail",
+          isFailure: true
+        };
+      }
+      if (taskKind(lane) === "pass") {
+        return {
+          label: "VERIFIED",
+          sentence: "The check accepted the work.",
+          evidence: [`check rc=${checkRcSet ? checkRc : "not recorded"}`],
+          tone: "pass",
+          isFailure: false
+        };
+      }
+      return {
+        label: "PENDING",
+        sentence: "No final verdict has been recorded.",
+        evidence: [checkRcSet ? `check rc=${checkRc}` : "check not run"],
+        tone: "pending",
+        isFailure: false
+      };
+    }
+
+    const STALE_ACTIVITY_MS = 180000;
+
+    function updateActivityChanges(runs) {
+      const now = Date.now();
+      const present = new Set();
+      runs.forEach(run => run.tasks.forEach((task, index) => {
+        const key = expansionKey(run.__id, taskKey(task, index));
+        const activity = String(task?.activity || "");
+        present.add(key);
+        const observed = state.activityChanges.get(key);
+        if (!observed || observed.activity !== activity) {
+          state.activityChanges.set(key, {activity, changedAt: now});
+        }
+      }));
+      for (const key of state.activityChanges.keys()) {
+        if (!present.has(key)) state.activityChanges.delete(key);
+      }
+    }
+
+    function laneStaleness(run, task, key) {
+      if (!taskIsRunning(task)) return null;
+      const observed = state.activityChanges.get(expansionKey(run.__id, key));
+      if (!observed) return null;
+      const ageMs = Math.max(0, Date.now() - observed.changedAt);
+      return ageMs >= STALE_ACTIVITY_MS ? ageMs / 1000 : null;
     }
 
     function taskStateText(kind) {
@@ -706,8 +816,161 @@
       })).sort((a,b) => a.rank-b.rank || a.key.localeCompare(b.key));
       const attention = entries.filter(entry => entry.rank === 0).length; const working = entries.filter(entry => entry.kind === "working").length;
       const head = document.createElement("header"); head.className = "view-title-row"; head.innerHTML = `<h1 id="lanes-title">Lane wall</h1><p class="view-meta">${entries.length} lanes · ${working} working · ${attention} need attention</p><p class="view-sort">attention → working → pass</p>`; staging.appendChild(head);
-      const columns = document.createElement("div"); columns.className = "lane-wall-grid lane-wall-columns"; ["","Lane","Run","State","Activity","Elapsed"].forEach(text => columns.append(Object.assign(document.createElement("span"), {textContent:text}))); staging.appendChild(columns);
-      entries.forEach(entry => { const row=document.createElement("button"); row.type="button"; row.className=`lane-wall-grid lane-wall-row ${entry.kind}`; row.dataset.key=`shell-lane:${entry.run.__id}:${entry.key}`; row.setAttribute("aria-label",`${entry.key}, ${entry.run.run_name}, ${entry.kind === "pilot" ? "review" : taskStateText(entry.kind)}. Open lane detail.`); const dot=document.createElement("span"); dot.className=`lane-dot ${entry.kind}`; dot.setAttribute("aria-hidden","true"); const lane=document.createElement("span"); lane.className="lane-name"; lane.textContent=entry.key; const run=document.createElement("span"); run.className="lane-run"; run.innerHTML=`<b></b>${projectInfo(entry.run).name}`; run.firstChild.textContent=entry.run.run_name; const status=document.createElement("span"); status.className=`lane-state status-${entry.kind === "pilot" ? "pilot" : entry.kind}`; status.textContent=entry.kind === "pilot" ? "review" : taskStateText(entry.kind); const activity=document.createElement("span"); activity.className=`lane-activity${entry.kind === "pilot" ? " lane-held" : ""}`; activity.textContent=entry.kind === "pilot" ? `Held while pilot ${entry.run.pilot?.task || "lane"} awaits review` : (taskActivity(entry.task) || "No activity reported"); const elapsed=document.createElement("span"); elapsed.className="lane-elapsed"; elapsed.textContent=formatDuration(entry.task.elapsed_s); row.append(dot,lane,run,status,activity,elapsed); row.addEventListener("click",event=>{openRunPanel(entry.run.__id,event.currentTarget);selectPanelLane(entry.run,entry.key);}); staging.appendChild(row); });
+      const columns = document.createElement("div");
+      columns.className = "lane-wall-grid lane-wall-columns";
+      ["", "Lane / state", "Run", "Route", "Activity", "Burn / run share", "Timeout progress", "Verdict / cause"].forEach(text => columns.append(Object.assign(document.createElement("span"), {textContent: text})));
+      staging.appendChild(columns);
+      const burnLeaders = new Map();
+      entries.forEach(entry => {
+        const tokens = Math.max(0, numberOrZero(entry.task.tokens));
+        const leader = burnLeaders.get(entry.run.__id);
+        if (!leader || tokens > leader.tokens) burnLeaders.set(entry.run.__id, {key: entry.key, tokens});
+      });
+      entries.forEach(entry => {
+        const cause = laneCause(entry.task);
+        const tokens = Math.max(0, numberOrZero(entry.task.tokens));
+        const runTokens = Math.max(0, numberOrZero(entry.run.tokens));
+        const burnShare = runTokens > 0 ? (tokens / runTokens) * 100 : 0;
+        const burnLeader = tokens > 0 && burnLeaders.get(entry.run.__id)?.key === entry.key;
+        const elapsedSeconds = Math.max(0, numberOrZero(entry.task.elapsed_s));
+        const timeoutSeconds = Math.max(0, numberOrZero(entry.task.timeout_s));
+        const timeoutPercent = timeoutSeconds > 0 ? (elapsedSeconds / timeoutSeconds) * 100 : 0;
+        const staleSeconds = laneStaleness(entry.run, entry.task, entry.key);
+        const engine = String(entry.task.engine || "").trim() || "engine not reported";
+        const model = String(entry.task.model || "").trim() || "model not reported";
+        const statusText = entry.kind === "pilot" ? "review" : taskStateText(entry.kind);
+        const activityText = entry.kind === "pilot"
+          ? `Held while pilot ${entry.run.pilot?.task || "lane"} awaits review`
+          : (taskActivity(entry.task) || "No activity reported");
+        const staleText = staleSeconds === null ? "" : `no change ${formatDuration(staleSeconds)}`;
+        const evidenceText = cause.evidence.join("; ");
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = `lane-wall-grid lane-wall-row ${entry.kind}${staleText ? " stale" : ""}`;
+        row.dataset.key = `shell-lane:${entry.run.__id}:${entry.key}`;
+        row.setAttribute("aria-label", `${entry.key}, ${entry.run.run_name}, ${statusText}, route ${engine}, model ${model}, ${formatTokens(tokens)}, ${burnShare.toFixed(1)} percent of run burn, ${formatDuration(elapsedSeconds)} of ${timeoutSeconds ? formatDuration(timeoutSeconds) : "no timeout reported"}${staleText ? `, ${staleText}` : ""}, ${cause.label}, ${evidenceText}. Open lane detail.`);
+
+        const dot = document.createElement("span");
+        dot.className = `lane-dot ${entry.kind}`;
+        dot.setAttribute("aria-hidden", "true");
+
+        const identity = document.createElement("span");
+        identity.className = "lane-identity";
+        const lane = document.createElement("span");
+        lane.className = "lane-name";
+        lane.textContent = entry.key;
+        const status = document.createElement("span");
+        status.className = `lane-state status-${entry.kind === "pilot" ? "pilot" : entry.kind}`;
+        status.textContent = statusText;
+        identity.append(lane, status);
+
+        const run = document.createElement("span");
+        run.className = "lane-run";
+        const runName = document.createElement("b");
+        runName.textContent = entry.run.run_name;
+        run.append(runName, document.createTextNode(projectInfo(entry.run).name));
+
+        const route = document.createElement("span");
+        route.className = "lane-route";
+        route.append(
+          Object.assign(document.createElement("span"), {className: "lane-route-engine", textContent: engine}),
+          Object.assign(document.createElement("span"), {className: "lane-route-model", textContent: `· ${model}`})
+        );
+
+        const activity = document.createElement("span");
+        activity.className = "lane-activity-cell";
+        const activityValue = document.createElement("span");
+        activityValue.className = `lane-activity${entry.kind === "pilot" ? " lane-held" : ""}`;
+        activityValue.textContent = activityText;
+        const signal = document.createElement("span");
+        signal.className = `lane-signal${staleText ? " stale" : ""}`;
+        signal.textContent = staleText || (taskIsRunning(entry.task) ? "activity observed" : entry.kind === "pilot" ? "held" : "resolved");
+        activity.append(activityValue, signal);
+
+        const burn = document.createElement("span");
+        burn.className = "lane-burn";
+        const burnTop = document.createElement("span");
+        burnTop.className = "lane-meter-top";
+        burnTop.append(
+          Object.assign(document.createElement("span"), {textContent: formatTokens(tokens)}),
+          Object.assign(document.createElement("small"), {textContent: `${burnShare.toFixed(1)}%`})
+        );
+        const burnMeter = document.createElement("span");
+        burnMeter.className = "lane-meter";
+        burnMeter.setAttribute("role", "meter");
+        burnMeter.setAttribute("aria-valuemin", "0");
+        burnMeter.setAttribute("aria-valuemax", "100");
+        burnMeter.setAttribute("aria-valuenow", String(Math.min(100, burnShare)));
+        burnMeter.setAttribute("aria-label", `${entry.key} used ${burnShare.toFixed(1)} percent of ${formatTokens(runTokens)} run tokens`);
+        const burnFill = document.createElement("span");
+        burnFill.className = "lane-meter-fill";
+        burnFill.style.width = `${Math.min(100, burnShare)}%`;
+        burnMeter.appendChild(burnFill);
+        const burnCaption = document.createElement("span");
+        burnCaption.className = `lane-meter-caption${burnLeader ? " burn-leader" : ""}`;
+        burnCaption.textContent = burnLeader ? "Burn leader · run share" : "of run total";
+        burn.append(burnTop, burnMeter, burnCaption);
+
+        const timeout = document.createElement("span");
+        timeout.className = "lane-timeout";
+        const timeoutTop = document.createElement("span");
+        timeoutTop.className = "lane-meter-top";
+        timeoutTop.append(
+          Object.assign(document.createElement("span"), {textContent: formatDuration(elapsedSeconds)}),
+          Object.assign(document.createElement("small"), {textContent: timeoutSeconds ? `/ ${formatDuration(timeoutSeconds)}` : "/ no budget"})
+        );
+        const timeoutMeter = document.createElement("span");
+        timeoutMeter.className = "lane-meter";
+        timeoutMeter.setAttribute("role", "meter");
+        timeoutMeter.setAttribute("aria-valuemin", "0");
+        timeoutMeter.setAttribute("aria-valuemax", String(timeoutSeconds || 100));
+        timeoutMeter.setAttribute("aria-valuenow", String(timeoutSeconds ? Math.min(timeoutSeconds, elapsedSeconds) : 0));
+        timeoutMeter.setAttribute("aria-label", timeoutSeconds ? `${entry.key} has used ${timeoutPercent.toFixed(1)} percent of its timeout` : `${entry.key} timeout budget not reported`);
+        const timeoutFill = document.createElement("span");
+        timeoutFill.className = "lane-meter-fill";
+        timeoutFill.style.width = `${Math.min(100, timeoutPercent)}%`;
+        timeoutMeter.appendChild(timeoutFill);
+        const attempts = Math.max(0, Math.floor(numberOrZero(entry.task.attempts)));
+        const maxAttempts = Math.max(attempts, Math.floor(numberOrZero(entry.task.max_attempts)));
+        const timeoutCaption = document.createElement("span");
+        timeoutCaption.className = "lane-meter-caption";
+        timeoutCaption.textContent = `${timeoutPercent.toFixed(1)}% · attempt ${attempts || "—"}/${maxAttempts || "—"}`;
+        timeout.append(timeoutTop, timeoutMeter, timeoutCaption);
+
+        const causeCell = document.createElement("span");
+        causeCell.className = "lane-cause";
+        const chip = document.createElement("span");
+        chip.className = `lane-cause-chip ${cause.tone}`;
+        chip.textContent = `${statusText} · ${cause.label}`;
+        const causeEvidence = document.createElement("span");
+        causeEvidence.className = "lane-cause-evidence";
+        cause.evidence.filter(item => !item.startsWith("check=")).forEach(item => {
+          const evidenceItem = document.createElement("span");
+          evidenceItem.className = "lane-evidence-item";
+          evidenceItem.textContent = item;
+          evidenceItem.title = item;
+          causeEvidence.appendChild(evidenceItem);
+        });
+        causeEvidence.title = evidenceText;
+        causeCell.append(chip, causeEvidence);
+        if (cause.isFailure && String(entry.task.check || "").trim()) {
+          const check = document.createElement("span");
+          check.className = "lane-cause-check";
+          check.textContent = `check: ${String(entry.task.check).trim()}`;
+          check.title = String(entry.task.check).trim();
+          causeCell.appendChild(check);
+        }
+
+        row.append(dot, identity, run, route, activity, burn, timeout, causeCell);
+        const runIdValue = entry.run.__id;
+        const laneKeyValue = entry.key;
+        row.addEventListener("click", event => {
+          const currentRun = state.runs.find(runItem => runItem.__id === runIdValue);
+          openRunPanel(runIdValue, event.currentTarget);
+          if (currentRun) selectPanelLane(currentRun, laneKeyValue);
+        });
+        staging.appendChild(row);
+      });
       if (!entries.length) staging.append(Object.assign(document.createElement("p"), {className:"held-callout",textContent:"No lanes have reported in yet."}));
       morphChildren(els.lanesView, staging);
     }
@@ -824,6 +1087,8 @@
     function renderPanelLaneDetail(run, task, index, key, kind) {
       // The expander's aria-expanded state controls this region; violation labels remain textual, not colour-only.
       const expandedKey=expansionKey(run.__id,key); const logState=state.expanded.get(expandedKey); const panel=document.createElement("section"); panel.id=`slide-lane-detail-${index}`; panel.className="slide-expanded"; panel.dataset.key=`slide-detail:${key}`; panel.setAttribute("aria-label",`${key} lane detail`);
+      const cause=laneCause(task);
+      if(kind==="fail"||cause.isFailure){const causeBlock=document.createElement("section");causeBlock.className="slide-cause";causeBlock.setAttribute("aria-label",`Cause and evidence: ${cause.label}`);const causeHead=document.createElement("div");causeHead.className="slide-cause-head";causeHead.append(Object.assign(document.createElement("span"),{className:"slide-cause-title",textContent:"Cause and evidence"}),Object.assign(document.createElement("span"),{className:`lane-cause-chip ${cause.tone}`,textContent:cause.label}));const sentence=document.createElement("p");sentence.className="slide-cause-sentence";sentence.textContent=cause.sentence;const grid=document.createElement("div");grid.className="slide-cause-grid";const evidenceCells=[["check_returncode",task.check_returncode===null||task.check_returncode===undefined||task.check_returncode===""?"Not recorded":String(task.check_returncode)],["check_timed_out",task.check_timed_out===true?"true":"false"],["setup_error",String(task.setup_error||"").trim()||"None recorded"]];evidenceCells.forEach(([label,value])=>{const cell=document.createElement("div");cell.className="slide-cause-cell";cell.append(Object.assign(document.createElement("span"),{className:"micro-label",textContent:label}),Object.assign(document.createElement("b"),{textContent:value}));grid.appendChild(cell);});const note=document.createElement("p");note.className="slide-cause-note";note.textContent="This is check evidence, not a model verdict.";causeBlock.append(causeHead,sentence,grid,note);panel.appendChild(causeBlock);}
       appendRoundMatrix(panel,task,`${key} rounds`); const attempts=Math.max(1,numberOrZero(task.attempts||task.round||1)); const metadata=document.createElement("p"); metadata.className="slide-lane-meta"; metadata.textContent=[String(task.engine||"").trim()||"engine not reported",String(task.model||"").trim()||"model not reported",`${attempts} attempt${attempts===1?"":"s"}`,formatTokens(task.tokens)].join(" · "); panel.appendChild(metadata);
       const proof=document.createElement("div"); proof.className="slide-proof"; appendPanelProof(proof,"Brief / spec",task.spec); appendPanelProof(proof,"Check command",task.check); appendPanelProof(proof,"Verification",task.verified); appendPanelProof(proof,"Check output",task.check_output_tail); panel.appendChild(proof);
       const violations=Array.isArray(task.violations)?task.violations.map(violationParts):[]; if(violations.length){const list=document.createElement("ul");list.className="slide-violations";list.setAttribute("aria-label",`${violations.length} task violation${violations.length===1?"":"s"}`);violations.forEach(violation=>{const item=document.createElement("li");const label=document.createElement("b");const name=violation.kind==="ownership"?"Ownership":violation.kind==="contract"?"Contract":"Recorded";label.textContent=`${name} violation:`;item.append(label,document.createTextNode(` ${violation.detail}`));list.appendChild(item);});panel.appendChild(list);}
@@ -1144,7 +1409,9 @@
         const response = await fetch("/api/runs", {cache: "no-store"});
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const payload = await response.json();
-        state.runs = normalizeRuns(payload);
+        const runs = normalizeRuns(payload);
+        updateActivityChanges(runs);
+        state.runs = runs;
         state.serverVersion = String(payload?.server?.ringer_version || "").trim();
         state.runUnreadable = Math.max(0, Math.trunc(numberOrZero(payload?.unreadable)));
         state.active = payload?.active || {};
