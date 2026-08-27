@@ -270,6 +270,7 @@
       activityChanges: new Map(),
       canvasSamples: new Map(),
       canvasAxisMax: new Map(),
+      canvasSamplingReady: false,
       pilotDecisions: new Map(),
       pilotNotes: new Map()
     };
@@ -575,19 +576,30 @@
       runs.forEach(run => {
         let buffer = state.canvasSamples.get(run.__id);
         if (!buffer) {
-          buffer = {samples: [], retryEvents: new Map()};
+          buffer = {samples: [], retryEvents: new Map(), observedStarts: new Map()};
           state.canvasSamples.set(run.__id, buffer);
         }
+        const atS = canvasElapsed(run);
+        const previous = buffer.samples[buffer.samples.length - 1];
         const lanes = new Map();
         run.tasks.forEach((task, index) => {
           const key = taskKey(task, index);
+          const kind = taskKind(task);
+          const taskElapsed = Math.max(0, numberOrZero(task.elapsed_s));
           lanes.set(key, {
             tokens: Math.max(0, numberOrZero(task.tokens)),
-            attempts: Math.max(0, Math.floor(numberOrZero(task.attempts)))
+            attempts: Math.max(0, Math.floor(numberOrZero(task.attempts))),
+            kind
           });
+          const prior = previous?.lanes.get(key);
+          const appearedWhilePolling = (previous ? !prior : state.canvasSamplingReady)
+            && (kind === "working" || kind === "retry");
+          const startedWhilePolling = prior?.kind === "waiting"
+            && (kind === "working" || kind === "retry");
+          if (!buffer.observedStarts.has(key) && (appearedWhilePolling || startedWhilePolling)) {
+            buffer.observedStarts.set(key, Math.max(0, Math.round(atS - taskElapsed)));
+          }
         });
-        const atS = canvasElapsed(run);
-        const previous = buffer.samples[buffer.samples.length - 1];
         if (previous) {
           lanes.forEach((lane, key) => {
             const prior = previous.lanes.get(key);
@@ -610,6 +622,7 @@
       for (const runIdValue of state.canvasAxisMax.keys()) {
         if (!presentRuns.has(runIdValue)) state.canvasAxisMax.delete(runIdValue);
       }
+      state.canvasSamplingReady = true;
     }
 
     function canvasRun() {
@@ -1138,7 +1151,7 @@
         return;
       }
 
-      const buffer = state.canvasSamples.get(run.__id) || {samples: [], retryEvents: new Map()};
+      const buffer = state.canvasSamples.get(run.__id) || {samples: [], retryEvents: new Map(), observedStarts: new Map()};
       const samples = buffer.samples.length;
       const {axisMax, budget, steps} = canvasAxisDomain(run);
       const previousAxis = state.canvasAxisMax.get(run.__id);
@@ -1247,14 +1260,22 @@
         const statusText = taskStateText(kind);
         const taskTokens = Math.max(0, numberOrZero(task.tokens));
         const taskElapsed = Math.max(0, numberOrZero(task.elapsed_s));
-        const laneStart = Math.max(0, Math.round(elapsed - taskElapsed));
+        const laneFinished = kind === "pass" || kind === "fail";
+        const observedStart = buffer.observedStarts.get(key);
+        const laneStart = laneFinished
+          ? (Number.isFinite(observedStart) ? observedStart : null)
+          : Math.max(0, Math.round(elapsed - taskElapsed));
+        const laneStartKnown = laneStart !== null;
+        const laneStartText = laneStartKnown
+          ? `spawned ${canvasTime(laneStart)} after run start`
+          : "spawn time not observed";
         const attempts = Math.max(0, Math.floor(numberOrZero(task.attempts)));
         const maxAttempts = Math.max(attempts, Math.floor(numberOrZero(task.max_attempts)));
         const timeout = Math.max(0, Math.floor(numberOrZero(task.timeout_s)));
         const retryEvents = buffer.retryEvents.get(key) || [];
         const points = buffer.samples.flatMap(sample => {
           const lane = sample.lanes.get(key);
-          if (!lane || sample.atS < laneStart || sample.atS > axisMax) return [];
+          if (!lane || (laneStartKnown && sample.atS < laneStart) || sample.atS > axisMax) return [];
           return [{atS: sample.atS, tokens: lane.tokens}];
         });
         const pointText = points.map(point => {
@@ -1272,8 +1293,8 @@
         const lane = document.createElement("article");
         lane.className = "canvas-lane-track";
         lane.dataset.key = `canvas-lane:${run.__id}:${key}`;
-        lane.dataset.laneStartS = String(laneStart);
-        lane.setAttribute("aria-label", `${key}, ${statusText}, spawned ${canvasTime(laneStart)} after run start, ${formatTokens(taskTokens)}, ${traceState}, ${retrySummary}, ${cause.label}. ${activity}`);
+        if (laneStartKnown) lane.dataset.laneStartS = String(laneStart);
+        lane.setAttribute("aria-label", `${key}, ${statusText}, ${laneStartText}, ${formatTokens(taskTokens)}, ${traceState}, ${retrySummary}, ${cause.label}. ${activity}`);
 
         const laneMeta = document.createElement("div");
         laneMeta.className = "canvas-lane-meta";
@@ -1321,18 +1342,20 @@
         baseline.className = "canvas-baseline";
         baseline.dataset.key = `canvas-baseline:${key}`;
         plot.appendChild(baseline);
-        if (laneStart > 0) {
+        if (laneStartKnown && laneStart > 0) {
           const queueGap = document.createElement("span");
           queueGap.className = "canvas-queue-gap";
           queueGap.dataset.key = `canvas-queue-gap:${key}`;
           queueGap.style.width = `${Math.min(100, (laneStart / axisMax) * 100)}%`;
           plot.appendChild(queueGap);
         }
-        const spawnLine = document.createElement("span");
-        spawnLine.className = "canvas-spawn-line";
-        spawnLine.dataset.key = `canvas-spawn:${key}`;
-        spawnLine.style.left = `${Math.min(100, (laneStart / axisMax) * 100)}%`;
-        plot.appendChild(spawnLine);
+        if (laneStartKnown) {
+          const spawnLine = document.createElement("span");
+          spawnLine.className = "canvas-spawn-line";
+          spawnLine.dataset.key = `canvas-spawn:${key}`;
+          spawnLine.style.left = `${Math.min(100, (laneStart / axisMax) * 100)}%`;
+          plot.appendChild(spawnLine);
+        }
         const nowLine = document.createElement("span");
         nowLine.className = "canvas-now-line";
         nowLine.dataset.key = `canvas-now:${key}`;
@@ -1345,7 +1368,7 @@
           timeoutLine.style.left = `${(timeout / axisMax) * 100}%`;
           plot.appendChild(timeoutLine);
         }
-        retryEvents.filter(event => event.atS >= laneStart && event.atS <= axisMax).forEach((event, eventIndex) => {
+        retryEvents.filter(event => (!laneStartKnown || event.atS >= laneStart) && event.atS <= axisMax).forEach((event, eventIndex) => {
           const retry = document.createElement("span");
           retry.className = "canvas-retry-line";
           retry.dataset.key = `canvas-retry:${key}:${eventIndex}:${event.atS}`;
@@ -1403,10 +1426,10 @@
         const noteSub = document.createElement("span");
         noteSub.className = `canvas-note-sub${cause.isFailure ? " fail" : ""}`;
         noteSub.textContent = retryEvents.length
-          ? `retry observed at ${canvasTime(retryEvents[retryEvents.length - 1].atS)} · spawned ${canvasTime(laneStart)}`
+          ? `retry observed at ${canvasTime(retryEvents[retryEvents.length - 1].atS)} · ${laneStartKnown ? `spawned ${canvasTime(laneStart)}` : laneStartText}`
           : attempts > 1
-            ? `multi-attempt · boundary not observed · spawned ${canvasTime(laneStart)}`
-            : `spawned ${canvasTime(laneStart)} after run start`;
+            ? `multi-attempt · boundary not observed · ${laneStartKnown ? `spawned ${canvasTime(laneStart)}` : laneStartText}`
+            : laneStartText;
         note.append(noteKicker, noteMain, noteSub);
         lane.append(laneMeta, plot, note);
         wall.appendChild(lane);
