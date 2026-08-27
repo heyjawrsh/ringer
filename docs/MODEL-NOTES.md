@@ -2216,3 +2216,74 @@ legitimate PRIMARY view; it just needs an axis that fits what exists and grows.
     reported a premise flaw where the evidence only supported an implementation
     flaw. "This approach does not work" and "this parameter is wrong" are very
     different verdicts, and the second one was the true one.
+
+## 2026-08-27 (later) — Ringside live watching, shipped into the real dashboard
+
+Three lanes, codex gpt-5.6-sol high, worktrees, 3/3 PASS FIRST TRY with
+integration passing on all three: the lane wall (162.9k tok, 636s), the time
+canvas (249.2k tok, 803s), and a follow-up honesty fix (129.6k tok, 324s). No
+questions raised. This is the strongest run of the family so far, and the
+reason is the gates, not the specs.
+
+**GATING A BROWSER UI AGAINST ITS OWN DOM.** The pattern that made this work,
+and that should be reused: serve the REAL page against a synthetic /api/runs
+fixture whose rows are engineered to hit each case, drive real Chrome, and
+assert on the DOM the page actually built. Never inspect a screenshot, never
+trust a self-report.
+  · `--dump-dom` ALONE CAPTURES AN EMPTY PAGE. Ringside fetches asynchronously,
+    so the DOM is snapshotted before the first fetch resolves — measured: zero
+    lane rows, lane names absent. `--virtual-time-budget` fixes it.
+  · CORRECTION to the note above (2026-08-14, ~line 1943): that entry says a
+    page must omit `--virtual-time-budget` because Chrome hangs. That is true of
+    `<meta http-equiv="refresh">` pages. It is NOT true of `setInterval` pages —
+    Ringside polls every 1s and drains a 4s budget in ~3s, every time. The flag
+    is not the problem; meta-refresh is. Budget size also doubles as a time
+    machine: a 220s budget advanced the clock far enough to watch the 180s
+    staleness threshold trip.
+  · MAKE THE PAGE EXPOSE WHAT IT DREW. A gate cannot read a number off a
+    picture, so the canvas spec REQUIRED `data-axis-max-s`, `data-token-max`,
+    `data-samples` and `data-lane-start-s`. Every meaningful assertion in that
+    gate reads one of those. Design the contract with the gate, not after it.
+
+**MY OWN GATE FALSE-PASSED TWICE, BOTH TIMES ON MY FIXTURE'S WORDING.** The
+timeout assertion passed because I had written "check exceeded its window" as
+that lane's activity text; the setup assertion passed because I had named the
+lane `broken-setup`. In both cases the grep matched MY fixture rather than
+anything the UI derived. Failures went 18 -> 19 -> 20 as each leak closed.
+RULE: a fixture must never contain the words its assertions search for — that
+includes the KEY, not just the values. This is the same lesson as "greps must
+survive a repo that already says the words", and it bit me from a new direction.
+
+**FABRICATE THE GOOD STATE EVEN FOR CODE LANES.** The skill says a code lane's
+good state usually cannot be fabricated, which leaves prove-pass with nothing.
+Both gates here got a `fabricate_good_*.py` that bolts on the required DATA with
+no design work — ~60 lines each. Cheap, and it converts "the lane failed" from
+ambiguous into evidence about the lane. One of them caught a real bug in my own
+fabricator (`createElement("section")`, not `"div"`) before any worker ran.
+
+**THE DEFECT NEITHER GATE COULD HAVE CAUGHT, found by looking.** The canvas
+derived every lane's start offset as `run.elapsed_s - task.elapsed_s`. Valid
+while a lane RUNS; for a finished lane `elapsed_s` is frozen at total duration,
+so the number is meaningless AND MOVES — the same completed lane read "spawned
+3m 53s after run start" and then "spawned 4m 39s" 46 seconds later. Caught by
+rendering the same run at two clock positions and reading the two screens, not
+by any assertion. The fix makes it say "spawn time not observed", matching how
+the view already refuses to place an unwitnessed retry boundary.
+  · Worth noting WHY it slipped through: the whole round was specified around
+    not asserting unobserved things, and the lane obeyed that perfectly for the
+    retry boundary while violating it for the spawn offset. A discipline stated
+    once in a spec gets applied where the spec points, not everywhere it holds.
+
+**CHECK THE PAYLOAD BEFORE WRITING THE SPEC.** I queried the live /api/runs
+rather than trusting my own earlier notes, and it changed the task: `tokens` is
+a SCALAR with no time series, there is no per-attempt timing, and no task start
+time. So the canvas's traces cannot be read from a field at all — they are
+sampled across polls, the sample count is displayed, and an unobserved retry
+boundary is labelled rather than guessed. Had I specified from memory, the lane
+would have built a fabricated curve that looked perfect and meant nothing.
+
+**INTEGRATION_CHECK EARNED ITS KEEP, TWICE.** Both build lanes reported the
+suite failing inside their own sandbox — "426 tests ran, 9 failures and 43
+errors" from denied loopback sockets and `~/.ringer` writes. Taken at face value
+that reads like a broken change. The out-of-sandbox integration run passed clean
+both times. A worker's own test run is not evidence about the tree.
