@@ -119,6 +119,8 @@ class ModelLogTests(unittest.TestCase):
             self.assertEqual("openrouter/z-ai/glm-5.2", payload["model"])
             self.assertEqual("code-feature", payload["task_type"])
             self.assertIs(payload["retry"], True)
+            self.assertEqual(2, payload["attempt"])
+            self.assertEqual(0, payload["check_returncode"])
             self.assertIn("model=openrouter/z-ai/glm-5.2", payload["notes"])
             self.assertIn("task_type=code-feature", payload["notes"])
             self.assertIn("retry=true", payload["notes"])
@@ -156,6 +158,8 @@ class ModelLogTests(unittest.TestCase):
                 "model": "openrouter/x",
                 "task_type": "code-feature",
                 "retry": False,
+                "attempt": 1,
+                "check_returncode": 0,
             }
             logger.log_attempt(row)
             self.assertIsNotNone(fake.params)
@@ -163,6 +167,8 @@ class ModelLogTests(unittest.TestCase):
             self.assertNotIn("model", fake.params)
             self.assertNotIn("task_type", fake.params)
             self.assertNotIn("retry", fake.params)
+            self.assertNotIn("attempt", fake.params)
+            self.assertNotIn("check_returncode", fake.params)
             self.assertEqual(
                 {
                     "run_id",
@@ -180,6 +186,77 @@ class ModelLogTests(unittest.TestCase):
                 },
                 set(fake.params),
             )
+
+    def test_task_attempt_records_are_bounded_and_keep_first_attempt(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            manifest = Manifest.from_obj(
+                {
+                    "run_name": "bounded-attempt-records",
+                    "workdir": str(root / "work"),
+                    "tasks": [self.task_obj(max_attempts=30)],
+                }
+            )
+            runner = RingerRunner(
+                manifest,
+                config=self.config(root),
+                identity="tester",
+                dashboard_enabled=False,
+            )
+            runtime = runner.runtimes[0]
+            for attempt in range(1, 26):
+                runtime.attempts = attempt
+                runner._log_attempt(
+                    runtime,
+                    runtime.task.spec,
+                    attempt > 1,
+                    WorkerResult(returncode=0, timed_out=False, tokens=None),
+                    VerifyResult(
+                        ok=False,
+                        check_returncode=9,
+                        check_timed_out=False,
+                        raw_output_excerpt=f"FAIL: rejection {attempt} " + "x" * 1000,
+                    ),
+                    "FAIL",
+                    1,
+                )
+
+            records = runner.state_writer.snapshot()["tasks"][0]["attempt_records"]
+            self.assertEqual(20, len(records))
+            self.assertEqual(1, records[0]["attempt"])
+            self.assertEqual(25, records[-1]["attempt"])
+            self.assertLessEqual(len(records[-1]["check_output_excerpt"]), 500)
+
+    def test_redacted_task_redacts_attempt_record_excerpt(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            manifest = Manifest.from_obj(
+                {
+                    "run_name": "redacted-attempt-record",
+                    "workdir": str(root / "work"),
+                    "tasks": [self.task_obj(redact_spec=True)],
+                }
+            )
+            runner = RingerRunner(
+                manifest,
+                config=self.config(root),
+                identity="tester",
+                dashboard_enabled=False,
+            )
+            runtime = runner.runtimes[0]
+            runtime.attempts = 1
+            runner._log_attempt(
+                runtime,
+                runtime.task.spec,
+                False,
+                WorkerResult(returncode=0, timed_out=False, tokens=None),
+                VerifyResult(False, 1, False, "FAIL: secret request text"),
+                "FAIL",
+                1,
+            )
+
+            record = runner.state_writer.snapshot()["tasks"][0]["attempt_records"][0]
+            self.assertEqual("[redacted check output]", record["check_output_excerpt"])
 
     def test_models_aggregation_contract(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -329,6 +406,67 @@ class ModelLogTests(unittest.TestCase):
             self.assertEqual(2, group["attempts"])
             self.assertEqual(0.0, group["first_try_pass_rate"])
             self.assertEqual(1.0, group["pass_rate"])
+
+    def test_attempt_number_overrides_timestamp_order(self) -> None:
+        rows = [
+            {
+                "run_id": "numbered-run",
+                "task_key": "task-a",
+                "worker_engine": "opencode",
+                "model": "openrouter/x",
+                "task_type": "code-feature",
+                "verdict": "FAIL",
+                "retry": False,
+                "attempt": 1,
+                "logged_at": "2026-07-02T10:00:00+00:00",
+            },
+            {
+                "run_id": "numbered-run",
+                "task_key": "task-a",
+                "worker_engine": "opencode",
+                "model": "openrouter/x",
+                "task_type": "code-feature",
+                "verdict": "PASS",
+                "retry": True,
+                "attempt": 2,
+                "logged_at": "2026-07-01T10:00:00+00:00",
+            },
+        ]
+
+        group = aggregate_model_log_rows(rows)[0]
+
+        self.assertEqual(1.0, group["pass_rate"])
+        self.assertEqual(0.0, group["first_try_pass_rate"])
+
+    def test_historical_rows_without_attempt_keep_legacy_ordering(self) -> None:
+        rows = [
+            {
+                "run_id": "legacy-run",
+                "task_key": "task-a",
+                "worker_engine": "opencode",
+                "model": "openrouter/x",
+                "task_type": "code-feature",
+                "verdict": "FAIL",
+                "retry": False,
+                "logged_at": "2026-07-01T10:00:00+00:00",
+            },
+            {
+                "run_id": "legacy-run",
+                "task_key": "task-a",
+                "worker_engine": "opencode",
+                "model": "openrouter/x",
+                "task_type": "code-feature",
+                "verdict": "PASS",
+                "retry": True,
+                "logged_at": "2026-07-01T10:01:00+00:00",
+            },
+        ]
+
+        group = aggregate_model_log_rows(rows)[0]
+
+        self.assertEqual(2, group["attempts"])
+        self.assertEqual(1.0, group["pass_rate"])
+        self.assertEqual(0.0, group["first_try_pass_rate"])
 
     def test_crashed_checks_are_excluded_but_honest_failures_lower_rates(self) -> None:
         def row(run_id: str, task_key: str, verdict: str) -> dict[str, object]:

@@ -78,6 +78,8 @@ ARTIFACT_WRAPPER_TAIL_BYTES = 256 * 1024
 ARTIFACT_LIBRARY_MAX_VERSIONS = 20
 DELIVERABLE_MAX_BYTES = 20 * 1024 * 1024
 WORKER_LOG_TAIL_BYTES = 64 * 1024
+TASK_ATTEMPT_RECORD_LIMIT = 20
+TASK_ATTEMPT_EXCERPT_LIMIT = 500
 TASK_REPORT_FILENAMES = ("report.md", "report.html")
 TEXT_DELIVERABLE_SUFFIXES = {".md", ".txt", ".log"}
 IMAGE_DELIVERABLE_SUFFIXES = {".avif", ".gif", ".jpeg", ".jpg", ".png", ".svg", ".webp"}
@@ -2842,6 +2844,7 @@ class TaskRuntime:
     last_check_returncode: int | None = None
     last_check_timed_out: bool = False
     last_check_output: str = ""
+    attempt_records: list[dict[str, Any]] = field(default_factory=list)
     # Why task setup failed before any worker could spawn (e.g. a stale
     # worktree from a previous failed run). Without this an ERROR verdict at
     # 0.0s carries no diagnostics anywhere the operator looks.
@@ -3080,6 +3083,7 @@ class StateWriter:
                     "check_returncode": runtime.last_check_returncode,
                     "check_timed_out": runtime.last_check_timed_out,
                     "check_output_tail": shorten(runtime.last_check_output, 4000),
+                    "attempt_records": [dict(record) for record in runtime.attempt_records],
                     "setup_error": runtime.setup_error,
                     "timeout_s": runtime.task.timeout_s,
                     "max_attempts": runtime.task.max_attempts,
@@ -6847,7 +6851,15 @@ class EvalLogger:
             db_row = {
                 key: value
                 for key, value in row.items()
-                if key not in {"model", "reasoning_effort", "task_type", "retry"}
+                if key
+                not in {
+                    "model",
+                    "reasoning_effort",
+                    "task_type",
+                    "retry",
+                    "attempt",
+                    "check_returncode",
+                }
             }
             try:
                 self._conn.execute(
@@ -7013,6 +7025,34 @@ def model_log_int(value: Any) -> int | None:
         return None
 
 
+def model_log_row_attempt(row: dict[str, Any]) -> int | None:
+    attempt = model_log_int(row.get("attempt"))
+    return attempt if attempt is not None and attempt >= 1 else None
+
+
+def order_model_log_task_rows(
+    rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Order attempts by recorded number, preserving the legacy fallback."""
+    if any(model_log_row_attempt(row) is not None for row in rows):
+        return sorted(
+            rows,
+            key=lambda row: (
+                model_log_row_attempt(row)
+                or (2 if model_log_row_is_retry(row) else 1),
+                model_log_text(row.get("logged_at")),
+                1 if model_log_row_is_retry(row) else 0,
+            ),
+        )
+    return sorted(
+        rows,
+        key=lambda row: (
+            model_log_text(row.get("logged_at")),
+            1 if model_log_row_is_retry(row) else 0,
+        ),
+    )
+
+
 def median_int(values: list[int]) -> int | None:
     if not values:
         return None
@@ -7081,13 +7121,7 @@ def read_model_log_rows(
     if since is not None:
         selected_row_ids: set[int] = set()
         for task_rows in group_model_log_tasks(rows):
-            ordered = sorted(
-                task_rows,
-                key=lambda row: (
-                    model_log_text(row.get("logged_at")),
-                    1 if model_log_row_is_retry(row) else 0,
-                ),
-            )
+            ordered = order_model_log_task_rows(task_rows)
             final_date = parse_log_date(ordered[-1].get("logged_at"))
             if final_date and final_date >= since:
                 selected_row_ids.update(id(row) for row in task_rows)
@@ -7104,13 +7138,7 @@ def aggregate_model_log_rows(
     groups: dict[tuple[str, str, str, str, bool], dict[str, Any]] = {}
     effort_keys = model_reasoning_effort_keys(rows)
     for task_rows in group_model_log_tasks(rows):
-        ordered = sorted(
-            task_rows,
-            key=lambda row: (
-                model_log_text(row.get("logged_at")),
-                1 if model_log_row_is_retry(row) else 0,
-            ),
-        )
+        ordered = order_model_log_task_rows(task_rows)
         first = ordered[0]
         final = ordered[-1]
         if (
@@ -7503,13 +7531,7 @@ def row_identity_fields(row: dict[str, Any], registry: ModelIdentityRegistry) ->
 def task_final_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     finals: list[dict[str, Any]] = []
     for task_rows in group_model_log_tasks(rows):
-        ordered = sorted(
-            task_rows,
-            key=lambda row: (
-                model_log_text(row.get("logged_at")),
-                1 if model_log_row_is_retry(row) else 0,
-            ),
-        )
+        ordered = order_model_log_task_rows(task_rows)
         if ordered:
             finals.append(ordered[-1])
     return finals
@@ -7665,7 +7687,7 @@ def create_read_model_schema(conn: Any) -> None:
         row = conn.execute("SELECT version FROM schema_version LIMIT 1").fetchone()
         if row is not None:
             schema_version = int(row[0])
-    needs_stamp = user_version != 3 or schema_version != 3
+    needs_stamp = user_version != 4 or schema_version != 4
     conn.executescript(
         """
         CREATE TABLE IF NOT EXISTS schema_version (
@@ -7684,6 +7706,8 @@ def create_read_model_schema(conn: Any) -> None:
             reasoning_effort TEXT,
             task_type TEXT,
             retry INTEGER,
+            attempt INTEGER,
+            check_returncode INTEGER,
             verdict TEXT,
             duration_ms INTEGER,
             worker_tokens INTEGER,
@@ -7744,6 +7768,10 @@ def create_read_model_schema(conn: Any) -> None:
         conn.execute("ALTER TABLE attempts ADD COLUMN reported_model TEXT")
     if not read_model_column_exists(conn, "attempts", "expected_model"):
         conn.execute("ALTER TABLE attempts ADD COLUMN expected_model TEXT")
+    if not read_model_column_exists(conn, "attempts", "attempt"):
+        conn.execute("ALTER TABLE attempts ADD COLUMN attempt INTEGER")
+    if not read_model_column_exists(conn, "attempts", "check_returncode"):
+        conn.execute("ALTER TABLE attempts ADD COLUMN check_returncode INTEGER")
     if not read_model_column_exists(conn, "identity", "lab"):
         conn.execute("ALTER TABLE identity ADD COLUMN lab TEXT")
     if not read_model_column_exists(conn, "identity", "alias"):
@@ -7754,8 +7782,8 @@ def create_read_model_schema(conn: Any) -> None:
         conn.executescript(
             """
             DELETE FROM schema_version;
-            INSERT INTO schema_version(version) VALUES (3);
-            PRAGMA user_version = 3;
+            INSERT INTO schema_version(version) VALUES (4);
+            PRAGMA user_version = 4;
             """
         )
 
@@ -7846,6 +7874,8 @@ def insert_attempt_rows(conn: Any, rows: list[dict[str, Any]]) -> int:
                 model_log_row_reasoning_effort(row),
                 model_log_text(row.get("task_type")),
                 1 if model_log_row_is_retry(row) else 0,
+                model_log_row_attempt(row),
+                model_log_int(row.get("check_returncode")),
                 model_log_text(row.get("verdict")),
                 model_log_int(row.get("duration_ms")),
                 model_log_int(row.get("worker_tokens")),
@@ -7857,10 +7887,10 @@ def insert_attempt_rows(conn: Any, rows: list[dict[str, Any]]) -> int:
             """
             INSERT INTO attempts (
                 run_id, task_key, logged_at, engine, model, reported_model, expected_model,
-                reasoning_effort, task_type, retry,
+                reasoning_effort, task_type, retry, attempt, check_returncode,
                 verdict, duration_ms, worker_tokens, orchestrator
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             payloads,
         )
@@ -8196,7 +8226,7 @@ def db_attempt_rows(
     with contextlib.closing(connect_read_model_db_readonly(db_path)) as conn:
         query = """
             SELECT run_id, task_key, logged_at, engine, model, reported_model, expected_model,
-                   reasoning_effort, task_type, retry,
+                   reasoning_effort, task_type, retry, attempt, check_returncode,
                    verdict, duration_ms, worker_tokens, orchestrator
             FROM attempts
         """
@@ -8217,6 +8247,8 @@ def db_attempt_rows(
                 "reasoning_effort": row["reasoning_effort"],
                 "task_type": row["task_type"],
                 "retry": bool(row["retry"]),
+                "attempt": row["attempt"],
+                "check_returncode": row["check_returncode"],
                 "verdict": row["verdict"],
                 "duration_ms": row["duration_ms"],
                 "worker_tokens": row["worker_tokens"],
@@ -8228,13 +8260,7 @@ def db_attempt_rows(
     if since is not None:
         selected_row_ids: set[int] = set()
         for task_rows in group_model_log_tasks(rows):
-            ordered = sorted(
-                task_rows,
-                key=lambda row: (
-                    model_log_text(row.get("logged_at")),
-                    1 if model_log_row_is_retry(row) else 0,
-                ),
-            )
+            ordered = order_model_log_task_rows(task_rows)
             final_date = parse_log_date(ordered[-1].get("logged_at"))
             if final_date and final_date >= since:
                 selected_row_ids.update(id(row) for row in task_rows)
@@ -8587,13 +8613,7 @@ def aggregate_model_scoreboard_rows(
     models: dict[tuple[str, str, str, bool], dict[str, Any]] = {}
     effort_keys = model_reasoning_effort_keys(rows)
     for task_rows in group_model_log_tasks(rows):
-        ordered = sorted(
-            task_rows,
-            key=lambda row: (
-                model_log_text(row.get("logged_at")),
-                1 if model_log_row_is_retry(row) else 0,
-            ),
-        )
+        ordered = order_model_log_task_rows(task_rows)
         first = ordered[0]
         final = ordered[-1]
         if (
@@ -11374,6 +11394,26 @@ class RingerRunner:
         verdict: str,
         duration_ms: int,
     ) -> None:
+        attempt = runtime.attempts if runtime.attempts >= 1 else (2 if retrying else 1)
+        check_output_excerpt = shorten(
+            verify.raw_output_excerpt,
+            TASK_ATTEMPT_EXCERPT_LIMIT,
+        )
+        if runtime.task.redact_spec and check_output_excerpt:
+            check_output_excerpt = "[redacted check output]"
+        attempt_record = {
+            "attempt": attempt,
+            "verdict": verdict,
+            "check_returncode": verify.check_returncode,
+            "check_timed_out": verify.check_timed_out,
+            "check_output_excerpt": check_output_excerpt,
+        }
+        with self.lock:
+            runtime.attempt_records.append(attempt_record)
+            overflow = len(runtime.attempt_records) - TASK_ATTEMPT_RECORD_LIMIT
+            if overflow > 0:
+                # Keep attempt 1: it is the baseline needed to explain a rescue.
+                del runtime.attempt_records[1 : 1 + overflow]
         engine = self.config.engines.get(runtime.task.engine)
         resolved_model = resolved_task_model(
             runtime.task,
@@ -11442,6 +11482,8 @@ class RingerRunner:
                 "reasoning_effort": reasoning_effort,
                 "task_type": runtime.task.task_type,
                 "retry": retrying,
+                "attempt": attempt,
+                "check_returncode": verify.check_returncode,
             }
         )
 

@@ -30,6 +30,8 @@ class RingerCliTests(unittest.TestCase):
         self.config_path = self.root / "config.toml"
         self.jsonl_path = self.root / "runs.jsonl"
         self.state_dir = self.root / "state"
+        self.old_ringer_home = os.environ.get("RINGER_HOME")
+        os.environ["RINGER_HOME"] = str(self.root / "ringer-home")
         self.write_config(
             {
                 "write_done": ["-c", "printf done > out.txt"],
@@ -48,6 +50,10 @@ class RingerCliTests(unittest.TestCase):
         )
 
     def tearDown(self) -> None:
+        if self.old_ringer_home is None:
+            os.environ.pop("RINGER_HOME", None)
+        else:
+            os.environ["RINGER_HOME"] = self.old_ringer_home
         self.tmp.cleanup()
 
     def write_config(self, engines: dict[str, list[str]], *, port: int = 18787) -> None:
@@ -177,6 +183,45 @@ class RingerCliTests(unittest.TestCase):
         self.assertIn("expected=expected actual=done", rows[0]["notes"])
         self.assertIn("Previous attempt failed", rows[1]["spec"])
         self.assertIn("expected=expected actual=done", rows[1]["spec"])
+
+    def test_rescued_run_records_structured_attempt_history(self) -> None:
+        marker = "FAIL: FIRST_ATTEMPT_REJECTION_MARKER"
+        manifest = self.write_manifest(
+            "structured-rescue",
+            self.manifest(
+                "structured-rescue",
+                {
+                    "key": "rescue",
+                    "engine": "write_done",
+                    "spec": "Write done.",
+                    "expect_files": ["out.txt"],
+                    "check": (
+                        "if test ! -f .first-check-failed; then "
+                        "touch .first-check-failed; "
+                        f"printf '{marker}\\n'; exit 7; "
+                        "fi; test \"$(cat out.txt)\" = done"
+                    ),
+                },
+            ),
+        )
+
+        result = self.run_ringer(manifest)
+
+        self.assertEqual(0, result.returncode, result.stdout)
+        rows = self.read_rows()
+        self.assertEqual([1, 2], [row["attempt"] for row in rows])
+        self.assertEqual(7, rows[0]["check_returncode"])
+        self.assertIn(marker, rows[0]["notes"])
+
+        state = self.read_final_state()
+        task = state["tasks"][0]
+        records = task["attempt_records"]
+        self.assertEqual([1, 2], [record["attempt"] for record in records])
+        self.assertEqual("FAIL", records[0]["verdict"])
+        self.assertEqual(7, records[0]["check_returncode"])
+        self.assertFalse(records[0]["check_timed_out"])
+        self.assertIn(marker, records[0]["check_output_excerpt"])
+        self.assertEqual("PASS", records[1]["verdict"])
 
     def test_crashed_check_is_logged_distinctly_and_not_retried(self) -> None:
         manifest = self.write_manifest(
@@ -473,6 +518,8 @@ class RingerCliTests(unittest.TestCase):
                 "user.name=Ringer Test",
                 "-c",
                 "user.email=ringer-test@example.invalid",
+                "-c",
+                "commit.gpgsign=false",
                 "commit",
                 "-m",
                 "base",

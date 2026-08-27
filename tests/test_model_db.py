@@ -180,14 +180,16 @@ class ModelDbTests(unittest.TestCase):
             conn.commit()
 
         self.assertEqual("wal", str(journal_mode).lower())
-        self.assertEqual(3, user_version)
-        self.assertEqual(3, version)
+        self.assertEqual(4, user_version)
+        self.assertEqual(4, version)
 
     def test_rebuild_ingests_rows_and_counts_skipped_lines(self) -> None:
+        first_attempt = attempt(run_id="run-1")
+        first_attempt.update({"attempt": 1, "check_returncode": 0})
         write_jsonl(
             self.log_path,
             [
-                attempt(run_id="run-1"),
+                first_attempt,
                 attempt(run_id="run-2", verdict="FAIL", logged_at="2026-07-06T11:00:00+00:00"),
             ],
             extra="not-json\n",
@@ -213,6 +215,12 @@ class ModelDbTests(unittest.TestCase):
         with sqlite3.connect(self.db_path) as conn:
             self.assertEqual(1, conn.execute("SELECT COUNT(*) FROM catalog_models").fetchone()[0])
             self.assertEqual(2, conn.execute("SELECT COUNT(*) FROM identity").fetchone()[0])
+            self.assertEqual(
+                (1, 0),
+                conn.execute(
+                    "SELECT attempt, check_returncode FROM attempts WHERE run_id = 'run-1'"
+                ).fetchone(),
+            )
 
     def test_sync_consumes_only_new_bytes_and_rebuilds_after_truncation(self) -> None:
         write_jsonl(self.log_path, [attempt(run_id="run-1")])

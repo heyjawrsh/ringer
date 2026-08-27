@@ -161,7 +161,7 @@ access = "OpenRouter API"
             runner._log_attempt(runtime, runtime.task.spec, False, worker, verify, "PASS", 10)
         return [json.loads(line) for line in log_path.read_text(encoding="utf-8").splitlines()]
 
-    def test_schema_v3_migration_preserves_v2_attempt(self) -> None:
+    def test_schema_v4_migration_preserves_v2_attempt(self) -> None:
         db = self.root / "ringer.db"
         with sqlite3.connect(db) as conn:
             conn.executescript(
@@ -181,15 +181,22 @@ access = "OpenRouter API"
             )
             create_read_model_schema(conn)
             columns = {row[1] for row in conn.execute("PRAGMA table_info(attempts)")}
-            self.assertTrue({"reported_model", "expected_model"}.issubset(columns))
+            self.assertTrue(
+                {
+                    "reported_model",
+                    "expected_model",
+                    "attempt",
+                    "check_returncode",
+                }.issubset(columns)
+            )
             self.assertEqual(
                 ("gpt-5.6-sol", "PASS", "high", None, None),
                 conn.execute(
                     "SELECT model, verdict, reasoning_effort, reported_model, expected_model FROM attempts"
                 ).fetchone(),
             )
-            self.assertEqual(3, conn.execute("PRAGMA user_version").fetchone()[0])
-            self.assertEqual(3, conn.execute("SELECT version FROM schema_version").fetchone()[0])
+            self.assertEqual(4, conn.execute("PRAGMA user_version").fetchone()[0])
+            self.assertEqual(4, conn.execute("SELECT version FROM schema_version").fetchone()[0])
             conn.execute(
                 """
                 INSERT INTO attempts(model, reported_model, expected_model, verdict)

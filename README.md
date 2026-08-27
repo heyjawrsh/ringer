@@ -113,7 +113,7 @@ the JSON booleans `true` or `false`, not quoted strings.
 | `timeout_s` | Per-task kill timer (default 900). On expiry the worker's process group is signalled and the attempt is recorded with `worker_terminated=true` — read that, not the exit status, which a shell can report as `0` after its child was killed. Known and accepted: a group member that ignores SIGTERM may finish inside the 5s grace, so a timed-out worker can still write into its taskdir before it goes |
 | `check_timeout_s` | Per-task kill timer for `check` (default 60) |
 | `max_attempts` | How many times this task may run (default 2 — one try plus one retry after `FAIL` or `TIMEOUT`, with the check's failure output injected). `CRASHED` checks are not retried. Set `1` for a hard no-retry lane |
-| `redact_spec` | Replace this task's spec with `[redacted request packet]` in the run state, the logged command line, and the eval row, for specs carrying sensitive material. Redacts Ringer's own records only — captured worker output is never rewritten (invariant), so a worker that echoes its request still puts that text in `worker.log` |
+| `redact_spec` | Replace this task's spec with `[redacted request packet]` in the run state, the logged command line, and the eval row, for specs carrying sensitive material. The run state's structured attempt excerpts are redacted too. Captured worker output is never rewritten (invariant), so a worker that echoes its request still puts that text in `worker.log` |
 | `engine_args` | Extra CLI flags for this task's worker, spliced in at the engine's `{engine_args}` placeholder — e.g. `["-c", "model_reasoning_effort=low"]` so the orchestrator picks reasoning depth per task |
 | `verified` | One plain-English sentence saying what the check proves — shown on the results page next to "finished & checked" |
 | `full_access` | Boolean. Worker runs unsandboxed — required for workers that spawn their own sub-workers; must also be enabled in config |
@@ -525,7 +525,7 @@ check_interval_s = 3600
 
 ![Timed, verified, logged](docs/eval-loop.png)
 
-Every worker attempt — pass, fail, timeout, crashed check, retry — is logged with its spec, engine, duration, token count, and the raw check output. Local JSONL by default; point `[eval.postgres]` at a database to aggregate across machines. Failure rows are the point: they tell you which spec styles, engines, and task shapes actually work, so the swarm gets better on evidence instead of vibes. `CRASHED` rows remain in the record for diagnosing authoring defects but are excluded from model pass/fail aggregation.
+Every worker attempt — pass, fail, timeout, crashed check, retry — is logged with its spec, engine, duration, token count, and the raw check output. Each task in the run-state JSON also has an `attempt_records` list. A record carries `attempt`, `verdict`, `check_returncode`, `check_timed_out`, and a `check_output_excerpt`; the list is capped at 20 records (retaining attempt 1), and each excerpt is capped at 500 characters. Local JSONL is the default eval sink; point `[eval.postgres]` at a database to aggregate across machines. Failure rows are the point: they tell you which spec styles, engines, and task shapes actually work, so the swarm gets better on evidence instead of vibes. `CRASHED` rows remain in the record for diagnosing authoring defects but are excluded from model pass/fail aggregation.
 
 ## Model performance log
 
@@ -533,7 +533,7 @@ Every worker attempt — pass, fail, timeout, crashed check, retry — is logged
 
 The scoreboard keeps the trained model, its lab, the invoking harness, the access plan, and any explicit reasoning effort as separate fields. Reserved test names never render, and historical rows without a stamped model are quarantined instead of being credited to an engine default. Models with a declared canonical access route are enforced at lint and run time — a manifest that reaches a model through a non-sanctioned harness/slug is refused unless you pass `--allow-noncanonical-route`, and historical rows from such routes display as `misrouted` and are never ranked. See the normative [model identity taxonomy](docs/TAXONOMY.md).
 
-Every task attempt is logged **automatically and locally** to `~/.ringer/runs.jsonl` — no setup, no account, nothing leaves your machine. Each row carries the per-attempt verdict (`PASS`, `FAIL`, `TIMEOUT`, `ERROR`, or `CRASHED`), plus duration, tokens, the resolved `model`, the task's `task_type` (if the manifest set one), and the `retry` number.
+Every task attempt is logged **automatically and locally** to `~/.ringer/runs.jsonl` — no setup, no account, nothing leaves your machine. Each row carries the 1-based integer `attempt`, structured `check_returncode`, per-attempt verdict (`PASS`, `FAIL`, `TIMEOUT`, `ERROR`, or `CRASHED`), duration, tokens, the resolved `model`, the task's `task_type` (if the manifest set one), and the boolean `retry` flag. The existing `notes` text, including `raw_check_output_first_2000_chars`, remains intact. Historical rows without `attempt` still use their original `logged_at` plus `retry` ordering during aggregation.
 
 Read it with:
 
