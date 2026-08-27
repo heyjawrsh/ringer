@@ -2430,3 +2430,46 @@ task(s)" — the task-coverage line added in the previous round, which counts
 TASKS, not mutations. A gate can be fooled by an adjacent true statement. The
 assertion now requires a digit next to the words mutation/case, and the gate
 carries a comment saying why so it is not reintroduced.
+
+## 2026-08-27 (night, cont.) — attempt history: structure, not retention
+
+One lane, codex gpt-5.6-sol high, PASS first try, 158k tokens, 521s, integration
+passing, no questions. 449 tests.
+
+**I HAD TO NARROW MY OWN CLAIM BEFORE SPECIFYING.** I had reported that a
+rescued lane "discards why attempt 1 failed". Investigating properly showed the
+rejection text IS kept — inside the eval row's free-text `notes` blob as
+`raw_check_output_first_2000_chars`. The defect was narrower and structural: no
+`attempt` number (first-vs-final was derived from `logged_at` plus a retry
+flag), no `check_returncode` field, and no per-attempt record in the RUN STATE at
+all — where the reason survived only incidentally because the retry SPEC embeds
+the failure context it was handed. Specifying from my first framing would have
+asked a lane to re-add data that already existed. RULE: before writing the spec,
+go and look at the actual record, not at the finding's summary of it.
+
+Verified after: eval rows read `attempt=1 verdict=FAIL check_rc=1` then
+`attempt=2 verdict=PASS check_rc=0`; run state carries structured
+`attempt_records` with a capped excerpt per attempt.
+
+**DRIVING A REAL RETRY COSTS NOTHING.** The gate uses this repo's own
+`engines/mock_worker.py` with a counter-based check that rejects attempt 1 and
+accepts attempt 2. That produces a genuine two-attempt run — real verdicts, real
+eval rows, real state file — for zero model spend. Any behaviour that only
+appears across attempts should be gated this way rather than reasoned about.
+
+**THE ANCHOR LESSON, THIRD OCCURRENCE, FINALLY OPERATIONALISED.** Twice before I
+guessed a string instead of reading it. This time I wrote a five-line script that
+COUNTS each candidate anchor in the source before using it, found the collision
+immediately, and moved on. That is the difference between recording a lesson and
+having a procedure. I still slipped once more afterwards — reading the run state
+I assumed the field was `attempt_history` when the lane had shipped
+`attempt_records` — but the GATE had been written to accept any of several
+plausible names, so it never mattered. Tolerant gates absorb the author's
+assumptions; exact ones enforce them. Prefer tolerant when naming is the lane's
+call, exact when the name is a contract.
+
+**A NUDGE I SHIPPED AN HOUR EARLIER FIRED ON MY OWN MANIFEST**, suggesting
+`known_bad_cases` because my check is `gate && git diff && test -s`. False
+positive here — the chained parts are patch-export plumbing, not assertions — so
+the heuristic should probably ignore trailing export/plumbing commands. Worth
+watching before it trains people to ignore nudges.
