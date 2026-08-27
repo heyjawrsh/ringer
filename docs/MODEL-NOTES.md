@@ -2388,3 +2388,45 @@ and broke a test. The spec named that test in advance, said the fix was the
 FIXTURE and not the rule, and the lane changed exactly one line. Naming the
 collateral in the spec is what kept a lane from "fixing" it by weakening the
 classifier.
+
+## 2026-08-27 (late) — known_bad_cases: one mutation stops proving a whole check
+
+One lane, codex gpt-5.6-sol high, PASS first try, 171k tokens, 850s, integration
+passing, no questions. Closes F14, the last big hole in the gating machinery.
+
+**WHAT IT FIXES.** One `known_bad` fabricated one broken state, the check ran
+once, and any non-zero result printed `proved`. A check is rarely one assertion,
+so a mutation caught by the FIRST failing assertion established nothing about
+the rest. `known_bad_cases` takes labelled mutations, each run independently,
+each optionally declaring `expect` — a marker the rejection must actually
+contain. Verified by hand: three cases each trip their own assertion; a case
+declaring `expect: ALPHA` whose rejection says "does not contain BETA" reports
+`NOT PROVED (rejection output did not contain expected marker 'ALPHA')` and
+exits 1; an accepted case is still BROKEN. The summary now reads "3 mutations
+exercised across 1 covered task; proof is per mutation, not per check assertion."
+
+**`expect` EXISTS BECAUSE I KEPT MAKING THE SAME MISTAKE.** Twice today a gate
+of mine reported proof having established nothing: a timeout assertion passed
+because the FIXTURE's activity text contained the word "window", and a setup
+assertion passed because the LANE WAS NAMED "broken-setup". The check failed; it
+failed for the wrong reason; prove-fail could not tell. That is now mechanically
+detectable, and the same idea should be applied to the gates in
+`~/.ringer/jobs/ux-audit/` — they are exactly the multi-assertion checks this
+was built for.
+
+**I REPEATED A LESSON I HAD WRITTEN DOWN AN HOUR EARLIER.** The previous entry
+says: read the vocabulary out of the IMPLEMENTATION, not out of the fabricator.
+Writing this round's fabricator I then anchored on the coverage-line text my OWN
+earlier fabricator had used, not what the lane shipped (`covered = total -
+skipped`, different print structure). Two more anchors were also guessed rather
+than read — a pattern that occurs in BOTH prove-fail and prove-pass, and
+`known_bad=known_bad.strip()` rather than the bare form. Three wasted iterations,
+all fixed by opening the file. Writing a lesson down is not the same as applying
+it; the operational form is "grep the anchor before you assert it is unique".
+
+**AND MY GATE FALSE-PASSED ON MY OWN EARLIER FIX.** The assertion checking that
+mutation counts get reported was satisfied by the string "covered 1 of 1
+task(s)" — the task-coverage line added in the previous round, which counts
+TASKS, not mutations. A gate can be fooled by an adjacent true statement. The
+assertion now requires a digit next to the words mutation/case, and the gate
+carries a comment saying why so it is not reintroduced.
