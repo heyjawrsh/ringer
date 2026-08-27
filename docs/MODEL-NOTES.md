@@ -2473,3 +2473,43 @@ call, exact when the name is a contract.
 positive here — the chained parts are patch-export plumbing, not assertions — so
 the heuristic should probably ignore trailing export/plumbing commands. Worth
 watching before it trains people to ignore nudges.
+
+## 2026-08-27 (night, cont.) — round history: the panel and the scoreboard now agree
+
+One lane, codex gpt-5.6-sol high, PASS first try, 113k tokens, 378s, integration
+passing, no questions. Eight gates green, 449 tests.
+
+**TWO SURFACES ON ONE PAGE WERE CONTRADICTING EACH OTHER.** The models scoreboard
+reports a 25-point gap between `first_try_pass_rate` and `pass_rate` — a quarter
+of results only pass on their second attempt — while `appendRoundMatrix` coloured
+every attempted round with the lane's FINAL state, drawing every rescued lane as
+uniformly clean. Nothing was broken in isolation; the defect only existed in the
+disagreement. Worth looking for more of these: when two surfaces derive from the
+same run, ask what each would claim about the SAME lane and see whether the
+answers match.
+
+Verified after: `round-dot fail` then `round-dot pass` for the rescued lane, the
+panel showing `ROUND 1 · FAIL — CHECK REJECTED · CHECK_RETURNCODE 1` above the
+real rejection text, and a clean first-try lane still drawn clean.
+
+**A NEW GATE TECHNIQUE: SERVE THE PAGE PLUS A CLICK SHIM.** The round matrix
+lives only inside the slide-over panel, and `?run=` focuses a run without opening
+it, so `--dump-dom` alone cannot reach it. Rather than retreat to asserting on
+source — which is what I would have had to do a week ago — the gate serves the
+REAL page with a small appended script that clicks the target lane after render,
+then reads the DOM Chrome built. The repo's file is untouched; only the served
+copy carries the harness. Any panel, modal or drawer is now gateable the same
+way, and this should replace source-level assertions wherever one is currently
+standing in for a rendered check.
+
+**THE ACCESSIBLE NAME WAS THE SHARPEST FINDING AND THE EASIEST TO MISS.** The
+matrix is `role="img"`, so its `aria-label` is the ONLY thing a screen reader
+gets, and it read "2 of 5 rounds attempted" — a count with the outcomes omitted.
+It now reads "Round 1: FAIL — CHECK REJECTED; Round 2: PASS; Round 3: not
+attempted". On a surface read by agents as well as people, an accessible name is
+not an accessibility nicety; it is the machine-readable summary of the widget.
+
+**VOCABULARY HELD ACROSS SURFACES.** The panel independently rendered "CHECK
+REJECTED" rather than "check fault" for an rc=1 rejection with a diagnostic —
+the distinction introduced earlier today on the lane wall. Naming a rule once,
+precisely, in a spec is what makes a later lane reproduce it without being told.
