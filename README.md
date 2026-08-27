@@ -10,7 +10,7 @@ Frontier models are finally good enough to trust with real implementation — bu
 
 So split the roles. Your best model writes the specs and reviews the results. A swarm of cheap workers — Codex, Grok, anything with a CLI — does the implementation in parallel. Your premium budget stops scaling with lines of code written and starts scaling with decisions made.
 
-One problem: parallel agents lie. "Done" doesn't mean working. Ringer doesn't take the worker's word for anything — it **executes your check command** against the artifact. Pass or fail is decided by running the code, not by reading the agent's summary. Failures retry once with the failure context injected, and every attempt is logged so your setup gets measurably better over time.
+One problem: parallel agents lie. "Done" doesn't mean working. Ringer doesn't take the worker's word for anything — it **executes your check command** against the artifact. Pass or fail is decided by running the code, not by reading the agent's summary. Honest rejections retry once with the failure context injected, and every attempt is logged so your setup gets measurably better over time.
 
 And because a swarm you can't see is a swarm you don't trust: **Ringside**, a local web page every run opens automatically, showing every live swarm on your machine — who's running it, what each worker is doing, elapsed time, token burn — in real time, plus a versioned library of what past runs produced.
 
@@ -84,9 +84,9 @@ Run your own batch:
 }
 ```
 
-Each task gets its own directory, its own worker, its own log, and its own verdict. `check` is any shell command — exit 0 is the only thing Ringer believes.
+Each task gets its own directory, its own worker, its own log, and its own verdict. `check` is any shell command. Exit 0 is `PASS`; a nonzero exit with an intentional diagnostic is `FAIL`; a check that could not execute is `CRASHED`. Worker or check timeouts remain `TIMEOUT`, and worker startup/runtime errors remain `ERROR`.
 
-> **Write checks that print why they fail.** A silent `exit 1` (the `git diff --quiet` style) costs you twice: the retry prompt gets no failure context to fix against, and the eval log records an undiagnosable row. `diff` beats `diff -q`; an assert with a message beats a bare test.
+> **Write checks that print why they fail.** A silent nonzero exit (the `git diff --quiet` style) is treated as a broken check: `CRASHED`, not retried, and excluded from model-routing pass/fail data. This is the same rule enforced by the no-worker gates and encouraged by lint. If the check ran and rejected the work, print why: `diff` beats `diff -q`; an assert with a message beats a bare test. That diagnostic makes the verdict `FAIL`, supplies the retry with actionable context, and keeps the rejection in the model's measured rate.
 
 **Identity**: runs are stamped with an orchestrator identity (shown in Ringside and eval rows). Resolution order: `--identity` > `FLEET_IDENTITY`/`RINGER_IDENTITY` env > a `.fleet-agent` file found walking up from the working directory (drop one in a repo root to give that repo's swarms their own name) > `identity_default` in config > short hostname.
 
@@ -111,7 +111,7 @@ the JSON booleans `true` or `false`, not quoted strings.
 | `task_type` | Optional free-form string naming the kind of work this task is, so the model-performance log can slice pass rates by task shape rather than only by model. Suggested vocabulary: `code-feature`, `code-fix`, `code-review`, `test-hardening`, `docs`, `research`, `persona-review`, `copywriting`, `site-build`, `motion-design`, `image-gen`, `data-pipeline`, `format-conversion`, `probe`, `bakeoff`. Empty is allowed; the log just reports it under `(none)`. |
 | `timeout_s` | Per-task kill timer (default 900). On expiry the worker's process group is signalled and the attempt is recorded with `worker_terminated=true` — read that, not the exit status, which a shell can report as `0` after its child was killed. Known and accepted: a group member that ignores SIGTERM may finish inside the 5s grace, so a timed-out worker can still write into its taskdir before it goes |
 | `check_timeout_s` | Per-task kill timer for `check` (default 60) |
-| `max_attempts` | How many times this task may run (default 2 — one try plus one retry with the check's failure output injected). Set `1` for a hard no-retry lane |
+| `max_attempts` | How many times this task may run (default 2 — one try plus one retry after `FAIL` or `TIMEOUT`, with the check's failure output injected). `CRASHED` checks are not retried. Set `1` for a hard no-retry lane |
 | `redact_spec` | Replace this task's spec with `[redacted request packet]` in the run state, the logged command line, and the eval row, for specs carrying sensitive material. Redacts Ringer's own records only — captured worker output is never rewritten (invariant), so a worker that echoes its request still puts that text in `worker.log` |
 | `engine_args` | Extra CLI flags for this task's worker, spliced in at the engine's `{engine_args}` placeholder — e.g. `["-c", "model_reasoning_effort=low"]` so the orchestrator picks reasoning depth per task |
 | `verified` | One plain-English sentence saying what the check proves — shown on the results page next to "finished & checked" |
@@ -218,7 +218,7 @@ Lint reads the manifest; `--baseline` executes it — every task's `check` runs 
 ./ringer.py run swarm.json --baseline
 ```
 
-Each check runs in a fresh scratch dir (a detached worktree when the manifest uses worktrees) through the same verifier as a real run. Reading the results: an assertion that demands the NEW behavior workers will build is *expected* to FAIL baseline; an assertion about UNCHANGED behavior that fails baseline is a bug in the check itself, and at run time it would burn a worker's attempts against something no model can satisfy. Fix the check before spawning. An ordinary **FAIL** still exits 0 because only the author can make that distinction. A check that **CRASHED** or otherwise could not run is an **error** and exits nonzero: it rendered no verdict, proves nothing, and would burn every worker attempt.
+Each check runs in a fresh scratch dir (a detached worktree when the manifest uses worktrees) through the same verifier as a real run. Reading the results: an assertion that demands the NEW behavior workers will build is *expected* to FAIL baseline; an assertion about UNCHANGED behavior that fails baseline is a bug in the check itself. Fix the check before spawning. An ordinary **FAIL** still exits 0 because only the author can make that distinction. A check that **CRASHED** or otherwise could not run is an **error** and exits nonzero: it proves nothing; in a live run it is recorded distinctly, not retried, and excluded from model-routing rates.
 
 ### Prove-fail: prove your checks can catch a lie
 
@@ -506,7 +506,7 @@ check_interval_s = 3600
 
 ![Timed, verified, logged](docs/eval-loop.png)
 
-Every worker attempt — pass, fail, timeout, retry — is logged with its spec, engine, duration, token count, and the raw check output. Local JSONL by default; point `[eval.postgres]` at a database to aggregate across machines. Failure rows are the point: they tell you which spec styles, engines, and task shapes actually work, so the swarm gets better on evidence instead of vibes.
+Every worker attempt — pass, fail, timeout, crashed check, retry — is logged with its spec, engine, duration, token count, and the raw check output. Local JSONL by default; point `[eval.postgres]` at a database to aggregate across machines. Failure rows are the point: they tell you which spec styles, engines, and task shapes actually work, so the swarm gets better on evidence instead of vibes. `CRASHED` rows remain in the record for diagnosing authoring defects but are excluded from model pass/fail aggregation.
 
 ## Model performance log
 
@@ -514,7 +514,7 @@ Every worker attempt — pass, fail, timeout, retry — is logged with its spec,
 
 The scoreboard keeps the trained model, its lab, the invoking harness, the access plan, and any explicit reasoning effort as separate fields. Reserved test names never render, and historical rows without a stamped model are quarantined instead of being credited to an engine default. Models with a declared canonical access route are enforced at lint and run time — a manifest that reaches a model through a non-sanctioned harness/slug is refused unless you pass `--allow-noncanonical-route`, and historical rows from such routes display as `misrouted` and are never ranked. See the normative [model identity taxonomy](docs/TAXONOMY.md).
 
-Every task attempt is logged **automatically and locally** to `~/.ringer/runs.jsonl` — no setup, no account, nothing leaves your machine. Each row carries the per-attempt verdict straight from the EXECUTED check, plus duration, tokens, the resolved `model`, the task's `task_type` (if the manifest set one), and the `retry` number.
+Every task attempt is logged **automatically and locally** to `~/.ringer/runs.jsonl` — no setup, no account, nothing leaves your machine. Each row carries the per-attempt verdict (`PASS`, `FAIL`, `TIMEOUT`, `ERROR`, or `CRASHED`), plus duration, tokens, the resolved `model`, the task's `task_type` (if the manifest set one), and the `retry` number.
 
 Read it with:
 
@@ -522,7 +522,7 @@ Read it with:
 ./ringer.py models          # per-(model, task_type) scoreboard across the local log
 ```
 
-The scoreboard reports, per model and task_type: tasks, attempts, `pass_rate`, `first_try_pass_rate`, median duration and token count, and `last_seen`. The signal for routing is `first_try_pass_rate` — the share of tasks that passed on attempt 1 without a retry; `pass_rate` is the rescued rate after Ringer's single retry, so the gap between the two is the cost of the retry lane. Slice the log with `--log` (a different JSONL), `--task-type`, `--model`, `--engine`, `--since`, or `--json` for piping elsewhere.
+The scoreboard reports, per model and task_type: evaluative tasks and attempts, `pass_rate`, `first_try_pass_rate`, median duration and token count, and `last_seen`. The signal for routing is `first_try_pass_rate` — the share of evaluative tasks that passed on attempt 1 without a retry; `pass_rate` is the rescued rate after Ringer's single retry, so the gap between the two is the cost of the retry lane. A task whose final verdict is `CRASHED` is an authoring defect and does not enter either denominator; real `FAIL`, `TIMEOUT`, and `ERROR` outcomes remain model misses. Slice the log with `--log` (a different JSONL), `--task-type`, `--model`, `--engine`, `--since`, or `--json` for piping elsewhere.
 
 History from before the `model` / `task_type` / `retry` columns existed can be seeded in one pass:
 

@@ -485,6 +485,22 @@
       return "";
     }
 
+    function checkCrashed(returncode, output) {
+      if (returncode === null || returncode === undefined || returncode === "" || Number(returncode) === 0) return false;
+
+      const text = String(output || "").trim();
+      const intentionalDiagnostic = /^\s*(?:(?:CHECK\s+)?FAIL\b|Ran\s+\d+\s+tests?\b|FAILED\s*\(|OK\s*$)/m.test(text);
+      if (intentionalDiagnostic) return false;
+
+      if (Number(returncode) === 126 || Number(returncode) === 127) return true;
+      if (/(?:\bcommand not found\b|can't open file\b|bad interpreter:\s*no such file or directory|:\s*not found\s*$)/im.test(text)) return true;
+      if (!text || text.includes("[ringer] check failed silently")) return true;
+
+      const finalLine = text.split(/\r?\n/).at(-1).trim();
+      return /^[A-Za-z_][A-Za-z0-9_.]*(?:Error|Exception)(?::.*)?$/.test(finalLine)
+        || /(?:^|:\s)syntax error(?:\b|:)/i.test(finalLine);
+    }
+
     function laneCause(task) {
       const lane = task && typeof task === "object" ? task : {};
       const setupError = typeof lane.setup_error === "string" ? lane.setup_error.trim() : "";
@@ -513,10 +529,21 @@
         };
       }
       if (checkRcSet && Number(rawCheckRc) !== 0) {
+        if (checkCrashed(rawCheckRc, lane.check_output_tail)) {
+          return {
+            label: "CHECK COULD NOT RUN",
+            sentence: "The check never executed; this lane therefore says nothing about the model.",
+            evidence: withCheck([`worker rc=${workerRc || "not recorded (clean exit)"}`, `check rc=${checkRc}`, "timed-out=false", "setup-error=none"]),
+            note: "No model verdict: the check could not run.",
+            tone: "fail",
+            isFailure: true
+          };
+        }
         return {
-          label: "CHECK FAULT",
-          sentence: "The worker finished cleanly; the check rejected the work.",
+          label: "CHECK REJECTED",
+          sentence: "The check ran and rejected the work; this is evidence about the deliverable, not a fault in the check.",
           evidence: withCheck([`worker rc=${workerRc || "not recorded (clean exit)"}`, `check rc=${checkRc}`, "timed-out=false", "setup-error=none"]),
+          note: "Blame is undetermined; the check ran correctly.",
           tone: "fail",
           isFailure: true
         };
@@ -1004,7 +1031,7 @@
         row.type = "button";
         row.className = `lane-wall-grid lane-wall-row ${entry.kind}${staleText ? " stale" : ""}`;
         row.dataset.key = `shell-lane:${entry.run.__id}:${entry.key}`;
-        row.setAttribute("aria-label", `${entry.key}, ${entry.run.run_name}, ${statusText}, route ${engine}, model ${model}, ${formatTokens(tokens)}, ${burnShare.toFixed(1)} percent of run burn, ${formatDuration(elapsedSeconds)} of ${timeoutSeconds ? formatDuration(timeoutSeconds) : "no timeout reported"}${staleText ? `, ${staleText}` : ""}, ${cause.label}, ${evidenceText}. Open lane detail.`);
+        row.setAttribute("aria-label", `${entry.key}, ${entry.run.run_name}, ${statusText}, route ${engine}, model ${model}, ${formatTokens(tokens)}, ${burnShare.toFixed(1)} percent of run burn, ${formatDuration(elapsedSeconds)} of ${timeoutSeconds ? formatDuration(timeoutSeconds) : "no timeout reported"}${staleText ? `, ${staleText}` : ""}, ${cause.label}. ${cause.sentence} Evidence: ${evidenceText}. Open lane detail.`);
 
         const dot = document.createElement("span");
         dot.className = `lane-dot ${entry.kind}`;
@@ -1294,7 +1321,7 @@
         lane.className = "canvas-lane-track";
         lane.dataset.key = `canvas-lane:${run.__id}:${key}`;
         if (laneStartKnown) lane.dataset.laneStartS = String(laneStart);
-        lane.setAttribute("aria-label", `${key}, ${statusText}, ${laneStartText}, ${formatTokens(taskTokens)}, ${traceState}, ${retrySummary}, ${cause.label}. ${activity}`);
+        lane.setAttribute("aria-label", `${key}, ${statusText}, ${laneStartText}, ${formatTokens(taskTokens)}, ${traceState}, ${retrySummary}, ${cause.label}. ${cause.sentence} ${activity}`);
 
         const laneMeta = document.createElement("div");
         laneMeta.className = "canvas-lane-meta";
@@ -1574,7 +1601,7 @@
       // The expander's aria-expanded state controls this region; violation labels remain textual, not colour-only.
       const expandedKey=expansionKey(run.__id,key); const logState=state.expanded.get(expandedKey); const panel=document.createElement("section"); panel.id=`slide-lane-detail-${index}`; panel.className="slide-expanded"; panel.dataset.key=`slide-detail:${key}`; panel.setAttribute("aria-label",`${key} lane detail`);
       const cause=laneCause(task);
-      if(kind==="fail"||cause.isFailure){const causeBlock=document.createElement("section");causeBlock.className="slide-cause";causeBlock.setAttribute("aria-label",`Cause and evidence: ${cause.label}`);const causeHead=document.createElement("div");causeHead.className="slide-cause-head";causeHead.append(Object.assign(document.createElement("span"),{className:"slide-cause-title",textContent:"Cause and evidence"}),Object.assign(document.createElement("span"),{className:`lane-cause-chip ${cause.tone}`,textContent:cause.label}));const sentence=document.createElement("p");sentence.className="slide-cause-sentence";sentence.textContent=cause.sentence;const grid=document.createElement("div");grid.className="slide-cause-grid";const evidenceCells=[["check_returncode",task.check_returncode===null||task.check_returncode===undefined||task.check_returncode===""?"Not recorded":String(task.check_returncode)],["check_timed_out",task.check_timed_out===true?"true":"false"],["setup_error",String(task.setup_error||"").trim()||"None recorded"]];evidenceCells.forEach(([label,value])=>{const cell=document.createElement("div");cell.className="slide-cause-cell";cell.append(Object.assign(document.createElement("span"),{className:"micro-label",textContent:label}),Object.assign(document.createElement("b"),{textContent:value}));grid.appendChild(cell);});const note=document.createElement("p");note.className="slide-cause-note";note.textContent="This is check evidence, not a model verdict.";causeBlock.append(causeHead,sentence,grid,note);panel.appendChild(causeBlock);}
+      if(kind==="fail"||cause.isFailure){const causeBlock=document.createElement("section");causeBlock.className="slide-cause";causeBlock.setAttribute("aria-label",`Cause and evidence: ${cause.label}. ${cause.sentence}`);const causeHead=document.createElement("div");causeHead.className="slide-cause-head";causeHead.append(Object.assign(document.createElement("span"),{className:"slide-cause-title",textContent:"Cause and evidence"}),Object.assign(document.createElement("span"),{className:`lane-cause-chip ${cause.tone}`,textContent:cause.label}));const sentence=document.createElement("p");sentence.className="slide-cause-sentence";sentence.textContent=cause.sentence;const grid=document.createElement("div");grid.className="slide-cause-grid";const evidenceCells=[["check_returncode",task.check_returncode===null||task.check_returncode===undefined||task.check_returncode===""?"Not recorded":String(task.check_returncode)],["check_timed_out",task.check_timed_out===true?"true":"false"],["setup_error",String(task.setup_error||"").trim()||"None recorded"]];evidenceCells.forEach(([label,value])=>{const cell=document.createElement("div");cell.className="slide-cause-cell";cell.append(Object.assign(document.createElement("span"),{className:"micro-label",textContent:label}),Object.assign(document.createElement("b"),{textContent:value}));grid.appendChild(cell);});const note=document.createElement("p");note.className="slide-cause-note";note.textContent=cause.note||"This is check evidence, not a model verdict.";causeBlock.append(causeHead,sentence,grid,note);panel.appendChild(causeBlock);}
       appendRoundMatrix(panel,task,`${key} rounds`); const attempts=Math.max(1,numberOrZero(task.attempts||task.round||1)); const metadata=document.createElement("p"); metadata.className="slide-lane-meta"; metadata.textContent=[String(task.engine||"").trim()||"engine not reported",String(task.model||"").trim()||"model not reported",`${attempts} attempt${attempts===1?"":"s"}`,formatTokens(task.tokens)].join(" · "); panel.appendChild(metadata);
       const proof=document.createElement("div"); proof.className="slide-proof"; appendPanelProof(proof,"Brief / spec",task.spec); appendPanelProof(proof,"Check command",task.check); appendPanelProof(proof,"Verification",task.verified); appendPanelProof(proof,"Check output",task.check_output_tail); panel.appendChild(proof);
       const violations=Array.isArray(task.violations)?task.violations.map(violationParts):[]; if(violations.length){const list=document.createElement("ul");list.className="slide-violations";list.setAttribute("aria-label",`${violations.length} task violation${violations.length===1?"":"s"}`);violations.forEach(violation=>{const item=document.createElement("li");const label=document.createElement("b");const name=violation.kind==="ownership"?"Ownership":violation.kind==="contract"?"Contract":"Recorded";label.textContent=`${name} violation:`;item.append(label,document.createTextNode(` ${violation.detail}`));list.appendChild(item);});panel.appendChild(list);}

@@ -28,6 +28,50 @@ def toml_string(value: object) -> str:
 
 
 class CheckCrashedUnitTests(unittest.TestCase):
+    def test_live_verdict_distinguishes_crash_from_honest_rejection(self) -> None:
+        worker = RINGER.WorkerResult(returncode=0, timed_out=False, tokens=None)
+        crashed = RINGER.VerifyResult(
+            ok=False,
+            check_returncode=127,
+            check_timed_out=False,
+            raw_output_excerpt="/bin/sh: missing-check: not found\n",
+        )
+        rejected = RINGER.VerifyResult(
+            ok=False,
+            check_returncode=1,
+            check_timed_out=False,
+            raw_output_excerpt="FAIL: expected clean content\n",
+        )
+
+        self.assertEqual("CRASHED", RINGER.verdict_for(worker, crashed))
+        self.assertEqual("FAIL", RINGER.verdict_for(worker, rejected))
+        self.assertNotIn(RINGER.verdict_for(worker, crashed), {"FAIL", "TIMEOUT"})
+
+    def test_live_verdict_preserves_pass_timeout_and_worker_error(self) -> None:
+        worker = RINGER.WorkerResult(returncode=0, timed_out=False, tokens=None)
+        passed = RINGER.VerifyResult(
+            ok=True,
+            check_returncode=0,
+            check_timed_out=False,
+            raw_output_excerpt="",
+        )
+        timed_out = RINGER.VerifyResult(
+            ok=False,
+            check_returncode=None,
+            check_timed_out=True,
+            raw_output_excerpt="",
+        )
+        errored_worker = RINGER.WorkerResult(
+            returncode=None,
+            timed_out=False,
+            tokens=None,
+            error="worker could not start",
+        )
+
+        self.assertEqual("PASS", RINGER.verdict_for(worker, passed))
+        self.assertEqual("TIMEOUT", RINGER.verdict_for(worker, timed_out))
+        self.assertEqual("ERROR", RINGER.verdict_for(errored_worker, passed))
+
     def test_unhandled_exception_is_a_crash(self) -> None:
         output = (
             "Traceback (most recent call last):\n"
@@ -273,7 +317,7 @@ class CrashedCheckModeTests(unittest.TestCase):
         self.assertIn("baseline: 0 pass, 0 fail, 1 error of 1 check(s).", output)
         self.assertIn("1 check(s) could not run", output)
         self.assertIn("A crashed check proves nothing", output)
-        self.assertIn("will burn every worker attempt", output)
+        self.assertIn("will not retry it or count it against the model", output)
 
 
 if __name__ == "__main__":

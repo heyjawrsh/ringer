@@ -23,6 +23,7 @@ from ringer import (  # noqa: E402
     VerifyResult,
     WorkerResult,
     aggregate_model_log_rows,
+    aggregate_model_scoreboard_rows,
     model_log_row_is_retry,
     read_model_log_rows,
 )
@@ -328,6 +329,43 @@ class ModelLogTests(unittest.TestCase):
             self.assertEqual(2, group["attempts"])
             self.assertEqual(0.0, group["first_try_pass_rate"])
             self.assertEqual(1.0, group["pass_rate"])
+
+    def test_crashed_checks_are_excluded_but_honest_failures_lower_rates(self) -> None:
+        def row(run_id: str, task_key: str, verdict: str) -> dict[str, object]:
+            return {
+                "run_id": run_id,
+                "task_key": task_key,
+                "worker_engine": "opencode",
+                "model": "openrouter/x",
+                "task_type": "code-fix",
+                "verdict": verdict,
+                "duration_ms": 100,
+                "worker_tokens": 10,
+                "retry": False,
+                "logged_at": f"2026-07-0{run_id[-1]}T10:00:00+00:00",
+            }
+
+        crash_rows = [
+            row("run1", "pass", "PASS"),
+            row("run2", "broken-check", "CRASHED"),
+        ]
+        with_crash = aggregate_model_log_rows(crash_rows)[0]
+        with_failure = aggregate_model_log_rows(
+            [row("run1", "pass", "PASS"), row("run3", "rejected", "FAIL")]
+        )[0]
+        scoreboard_with_crash = aggregate_model_scoreboard_rows(crash_rows)[0]
+
+        self.assertEqual(1, with_crash["tasks"])
+        self.assertEqual(1, with_crash["attempts"])
+        self.assertEqual(0, with_crash["failed"])
+        self.assertEqual(1.0, with_crash["pass_rate"])
+        self.assertEqual(1.0, with_crash["first_try_pass_rate"])
+        self.assertEqual(1, scoreboard_with_crash["tasks"])
+        self.assertEqual(1.0, scoreboard_with_crash["first_try_pass_rate"])
+        self.assertEqual(2, with_failure["tasks"])
+        self.assertEqual(1, with_failure["failed"])
+        self.assertEqual(0.5, with_failure["pass_rate"])
+        self.assertEqual(0.5, with_failure["first_try_pass_rate"])
 
 
 if __name__ == "__main__":

@@ -178,6 +178,48 @@ class RingerCliTests(unittest.TestCase):
         self.assertIn("Previous attempt failed", rows[1]["spec"])
         self.assertIn("expected=expected actual=done", rows[1]["spec"])
 
+    def test_crashed_check_is_logged_distinctly_and_not_retried(self) -> None:
+        manifest = self.write_manifest(
+            "crashed-check",
+            self.manifest(
+                "crashed-check",
+                {
+                    "key": "crash",
+                    "engine": "write_done",
+                    "spec": "Write done.",
+                    "check": "false",
+                },
+            ),
+        )
+
+        result = self.run_ringer(manifest)
+
+        self.assertEqual(result.returncode, 1, result.stdout)
+        rows = self.read_rows()
+        self.assertEqual(["CRASHED"], [row["verdict"] for row in rows])
+        self.assertEqual([False], [row["retry"] for row in rows])
+
+    def test_honest_check_failure_is_retried_and_counted_as_fail(self) -> None:
+        manifest = self.write_manifest(
+            "honest-failure",
+            self.manifest(
+                "honest-failure",
+                {
+                    "key": "reject",
+                    "engine": "write_done",
+                    "spec": "Write done.",
+                    "check": "printf 'FAIL: no deliverable\\n'; exit 1",
+                },
+            ),
+        )
+
+        result = self.run_ringer(manifest)
+
+        self.assertEqual(result.returncode, 1, result.stdout)
+        rows = self.read_rows()
+        self.assertEqual(["FAIL", "FAIL"], [row["verdict"] for row in rows])
+        self.assertEqual([False, True], [row["retry"] for row in rows])
+
     def test_missing_expected_file_fails_even_when_check_passes(self) -> None:
         manifest = self.write_manifest(
             "missing-file",

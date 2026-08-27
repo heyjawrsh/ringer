@@ -7018,7 +7018,10 @@ def aggregate_model_log_rows(
         )
         first = ordered[0]
         final = ordered[-1]
-        if model_log_row_is_reserved_fixture(final):
+        if (
+            model_log_row_is_reserved_fixture(final)
+            or model_log_text(final.get("verdict")).upper() == "CRASHED"
+        ):
             continue
         group_engine = model_log_row_engine(final)
         group_model = model_log_row_model(final)
@@ -8498,7 +8501,10 @@ def aggregate_model_scoreboard_rows(
         )
         first = ordered[0]
         final = ordered[-1]
-        if model_log_row_is_reserved_fixture(final):
+        if (
+            model_log_row_is_reserved_fixture(final)
+            or model_log_text(final.get("verdict")).upper() == "CRASHED"
+        ):
             continue
         group_engine = model_log_row_engine(final)
         group_model = model_log_row_model(final)
@@ -9773,12 +9779,12 @@ class Verifier:
             missing_message = f"[ringer] missing expected files: {', '.join(missing_files)}"
             output = f"{missing_message}\n{output}" if output.strip() else missing_message
         elif not check_timed_out and check_returncode != 0 and not output.strip():
-            # A silent failing check wastes the retry (no failure context to
-            # inject) and blinds the eval row. Say so, in both places.
+            # A silent nonzero exit is a crashed check, not evidence that the
+            # worker's result was rejected. Explain how to make it evaluative.
             output = (
                 f"[ringer] check failed silently (exit {check_returncode}, no output). "
-                "Prefer checks that print WHY they fail — the retry prompt and the "
-                "eval log both depend on it."
+                "Print WHY it failed to request a retry and count the rejection "
+                "in model routing data."
             )
         return VerifyResult(
             ok=ok,
@@ -11465,6 +11471,8 @@ def verdict_for(worker: WorkerResult, verify: VerifyResult) -> str:
         return "TIMEOUT"
     if verify.ok:
         return "PASS"
+    if check_crashed(verify.check_returncode, verify.raw_output_excerpt):
+        return "CRASHED"
     return "FAIL"
 
 
@@ -12278,7 +12286,7 @@ async def run_baseline(manifest: Manifest, *, config: AppConfig) -> int:
     if errors:
         print(
             f"baseline: {errors} check(s) could not run. A crashed check proves "
-            "nothing and will burn every worker attempt."
+            "nothing; a live run will not retry it or count it against the model."
         )
     return 0 if errors == 0 else 1
 

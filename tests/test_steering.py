@@ -521,7 +521,7 @@ class SteeringIntegrationFailOpenTests(unittest.IsolatedAsyncioTestCase):
                             "key": "task-a",
                             "engine": "mock",
                             "spec": "MOCK_FAIL",
-                            "check": "false",
+                            "check": "sh -c 'echo \"FAIL: no deliverable\"; exit 1'",
                         }
                     ],
                 }
