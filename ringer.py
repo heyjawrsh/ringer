@@ -1629,6 +1629,54 @@ def require_bool(value: Any, key: str, field: str) -> bool:
     return value
 
 
+# Keep these sets beside the parsers they describe. Whenever a parser starts or
+# stops reading a field, update its allowlist in the same edit. ``x-`` keys are
+# deliberately outside the sets: they are the reserved annotation namespace.
+TASK_SPEC_FIELDS = frozenset(
+    {
+        "key",
+        "spec",
+        "check",
+        "known_bad",
+        "known_good",
+        "expect_files",
+        "engine",
+        "timeout_s",
+        "check_timeout_s",
+        "max_attempts",
+        "redact_spec",
+        "full_access",
+        "engine_args",
+        "verified",
+        "model",
+        "task_type",
+        "owns",
+    }
+)
+
+MANIFEST_FIELDS = frozenset(
+    {
+        "run_name",
+        "workdir",
+        "max_parallel",
+        "worktrees",
+        "repo",
+        "tasks",
+        "integration_check",
+        "integration_timeout_s",
+        "pilot",
+        "pilot_wait_s",
+        "pilot_max_revisions",
+        "foundation",
+        "contracts",
+        "protect_assertions",
+        "budget_wall_clock_s",
+        "failure_breaker",
+        "questions_file",
+    }
+)
+
+
 @dataclass(frozen=True)
 class TaskSpec:
     key: str
@@ -1652,7 +1700,22 @@ class TaskSpec:
     owns: tuple[str, ...] = ()
 
     @classmethod
-    def from_obj(cls, obj: dict[str, Any]) -> "TaskSpec":
+    def from_obj(
+        cls, obj: dict[str, Any], *, location: str | None = None
+    ) -> "TaskSpec":
+        unknown = sorted(
+            field
+            for field in obj
+            if not (isinstance(field, str) and field.startswith("x-"))
+            and field not in TASK_SPEC_FIELDS
+        )
+        if unknown:
+            field = unknown[0]
+            key_hint = obj.get("key")
+            context = location or (
+                f"task {key_hint}" if isinstance(key_hint, str) and key_hint else "task"
+            )
+            raise ValueError(f"{context}: unknown field {field!r}")
         key_raw = obj.get("key", "")
         if not isinstance(key_raw, str):
             raise ValueError("task key must be a string")
@@ -1736,7 +1799,9 @@ class TaskSpec:
             check_timeout_s=check_timeout_s,
             max_attempts=max_attempts,
             redact_spec=require_bool(obj.get("redact_spec", False), key, "redact_spec"),
-            full_access=bool(obj.get("full_access", False)),
+            full_access=require_bool(
+                obj.get("full_access", False), key, "full_access"
+            ),
             engine_args=tuple(engine_args),
             verified=verified.strip(),
             model=model.strip(),
@@ -1801,6 +1866,14 @@ class Manifest:
 
     @classmethod
     def from_obj(cls, obj: dict[str, Any]) -> "Manifest":
+        unknown = sorted(
+            field
+            for field in obj
+            if not (isinstance(field, str) and field.startswith("x-"))
+            and field not in MANIFEST_FIELDS
+        )
+        if unknown:
+            raise ValueError(f"unknown field {unknown[0]!r}")
         run_name = str(obj.get("run_name", "")).strip()
         if not run_name:
             raise ValueError("run_name is required")
@@ -1818,7 +1891,12 @@ class Manifest:
         tasks_raw = obj.get("tasks")
         if not isinstance(tasks_raw, list) or not tasks_raw:
             raise ValueError("tasks must be a non-empty list")
-        tasks = tuple(TaskSpec.from_obj(task) for task in tasks_raw)
+        tasks_list = []
+        for index, task in enumerate(tasks_raw):
+            if not isinstance(task, dict):
+                raise ValueError(f"tasks[{index}] must be an object")
+            tasks_list.append(TaskSpec.from_obj(task, location=f"tasks[{index}]"))
+        tasks = tuple(tasks_list)
         integration_check = obj.get("integration_check", "")
         if not isinstance(integration_check, str):
             raise ValueError("integration_check must be a string")
@@ -1913,7 +1991,15 @@ class Manifest:
             )
         if raw_pilot_max_revisions < 0:
             raise ValueError("pilot_max_revisions must be non-negative")
-        worktrees = bool(obj.get("worktrees", False))
+        raw_worktrees = obj.get("worktrees", False)
+        if not isinstance(raw_worktrees, bool):
+            raise ValueError(
+                "worktrees must be true or false, "
+                f"got {type(raw_worktrees).__name__} {raw_worktrees!r}"
+            )
+        worktrees = raw_worktrees
+        if worktrees and repo is None:
+            raise ValueError("worktrees true requires repo to be set")
         if foundation and (not worktrees or repo is None):
             raise ValueError(
                 "foundation output cannot be propagated without worktrees true and repo set"

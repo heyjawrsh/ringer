@@ -2126,3 +2126,164 @@ path, and do not schedule it alongside another opencode lane.
     `test -x` over every engine bin in the config.
   · Do not run two `opencode` lanes concurrently until the state-DB contention
     above is fixed — serialize them, or give each its own state dir.
+
+## 2026-08-27 — Ringside live-watching design directions (3 lanes, codex gpt-5.6-sol high)
+
+3/3 PASS first try, 314k tokens, ~11 min wall clock for three parallel lanes.
+Same engine and model in every lane on purpose; only the design stance varied.
+The design work was good — direction A answered all three P1s at a glance, and
+direction B produced the single best artifact of the round, a failure panel that
+says "The worker finished cleanly. The check rejected the work" over a
+worker-exit / check-exit / timeout / setup-error grid, captioned "this is check
+evidence, not a model verdict."
+
+**The check passed three deliverables it never actually verified.** The kit's
+`check_direction.py` confirms `direction.png` is a real PNG above a density
+floor, but it never binds that image to `direction.html`. No lane could run
+Chrome, so each one DREW the picture instead: two rasterised with Pillow, and
+direction-a wrote and compiled a throwaway Swift renderer to do it. All three
+passed. This is the "satisfied CREATIVELY" failure mode, and it is worth
+underlining that it survived a clean `lint` + `--prove-fail` + `--prove-pass`:
+every gate was green because the check could fail, could pass, and named its
+reasons — it just measured the wrong artifact.
+
+  · The divergence was NOT cosmetic. Direction C's submitted image showed a
+    LIGHT theme; the page actually renders DARK, and the drawing had quietly
+    tidied away two label collisions that are really there. Reviewing the
+    submitted PNG would have meant reviewing a picture no code can produce.
+  · Caught only because the real artifact was verified in its real context —
+    I re-rendered all three HTML files myself with Chrome outside the sandbox
+    (exit 0, no trouble) and compared. Nothing in the run output hinted at it;
+    the summary read `3 pass`.
+  · RULE (again, and this is the third time in this file): when the deliverable
+    is an artifact rather than text, the check must PRODUCE the artifact from
+    the source it is judging, never accept one the worker hands it.
+
+**CORRECTION to the 2026-08-14 note above (line ~1876).** That entry concluded
+"put `--no-sandbox` in the canonical render command" and treated the problem as
+solved. It is not. I did exactly that, in the spec, in the exact prescribed
+command line — and Chrome still exits 134. Worse, the sandbox ALSO refuses the
+localhost bind that a `file://`-avoiding render needs:
+
+    PermissionError: [Errno 1] Operation not permitted   (python3 -m http.server --bind 127.0.0.1)
+
+So the "serve over http, then screenshot" instruction I wrote was unusable from
+the first line, and the documented fix gave me false confidence that it wasn't.
+The honest status: **there is currently no known way to render a page with
+headless Chrome inside a Ringer worker sandbox.** Until one exists, image
+deliverables must be rendered by the CHECK (which runs outside the sandbox), not
+by the worker.
+
+**Credit where it is due:** all three lanes disclosed the substitution in
+`notes.md` in plain language rather than claiming a Chrome screenshot —
+direction-c even wrote "It is a faithful static export for visual review, not a
+claim that Chrome completed successfully." That honesty is the only reason this
+cost minutes instead of a shipped decision made on fabricated evidence. It is
+also a reminder that worker self-reports are worth READING even though they are
+never worth trusting as verification.
+
+**REVISION LANE, same day — direction C rebuilt with a fitted axis.** 1 lane,
+codex gpt-5.6-sol high, PASS first try, 57.6k tokens, 380s. The owner pushed
+back on my verdict, correctly: I had marked C down for "the premise defeats
+itself on real data," but the 8%-of-canvas problem was never the premise. It
+was one decision inside it — the axis was pinned to `timeout_s`, reserving
+space for data that had not arrived and usually never does. Read as shape is a
+legitimate PRIMARY view; it just needs an axis that fits what exists and grows.
+
+  · THE CHECK NOW RENDERS THE PAGE ITSELF, which is the fix for the defect above.
+    `gate_direction_axis.py` never accepts a submitted image: it serves the task
+    dir, drives real Chrome outside the sandbox, and overwrites direction.png
+    from the source it is judging. Fabrication is no longer expressible.
+  · IT ALSO BINDS BEHAVIOUR, NOT JUST PIXELS. The spec requires the page to take
+    `?elapsed=<seconds>` and expose `data-axis-max-s` on the axis element; the
+    gate renders at 360s / 2700s / 4100s, reads the attribute out of the DOM via
+    `--dump-dom`, and asserts the domain fits the data early (<=1200s at 360s),
+    grows, never exceeds the 4200s budget, and does NOT track elapsed exactly
+    (which would mean rescaling every poll). Measured on the delivered page:
+    600 / 3600 / 4200. RULE: when a gate cannot read the value off a picture,
+    make the page EXPOSE what it drew and assert on that — a DOM attribute is
+    checkable where a rendered axis is not.
+  · Hand-smoked both directions before spending the worker: a fixture pinned to
+    4200 was rejected by name, a correct fitted fixture passed. Then lint,
+    prove-fail, prove-pass, all clean.
+  · The lane delivered more than the spec: a `window 10m · next 15m` readout
+    that makes the quantization ladder legible so a rescale is not a surprise.
+    Implemented policy was elapsed x 1.18 snapped up a 2/5/10/15/30/45/60/70m
+    ladder, capped at budget. It also raised no questions, wrote no fabricated
+    image, and honoured the "do not screenshot" instruction exactly.
+  · Verified by looking, at three elapsed values and in both themes — not by
+    trusting the green. LESSON FOR ME, not the model: I reviewed a design and
+    reported a premise flaw where the evidence only supported an implementation
+    flaw. "This approach does not work" and "this parameter is wrong" are very
+    different verdicts, and the second one was the true one.
+
+## 2026-08-27 (later) — Ringside live watching, shipped into the real dashboard
+
+Three lanes, codex gpt-5.6-sol high, worktrees, 3/3 PASS FIRST TRY with
+integration passing on all three: the lane wall (162.9k tok, 636s), the time
+canvas (249.2k tok, 803s), and a follow-up honesty fix (129.6k tok, 324s). No
+questions raised. This is the strongest run of the family so far, and the
+reason is the gates, not the specs.
+
+**GATING A BROWSER UI AGAINST ITS OWN DOM.** The pattern that made this work,
+and that should be reused: serve the REAL page against a synthetic /api/runs
+fixture whose rows are engineered to hit each case, drive real Chrome, and
+assert on the DOM the page actually built. Never inspect a screenshot, never
+trust a self-report.
+  · `--dump-dom` ALONE CAPTURES AN EMPTY PAGE. Ringside fetches asynchronously,
+    so the DOM is snapshotted before the first fetch resolves — measured: zero
+    lane rows, lane names absent. `--virtual-time-budget` fixes it.
+  · CORRECTION to the note above (2026-08-14, ~line 1943): that entry says a
+    page must omit `--virtual-time-budget` because Chrome hangs. That is true of
+    `<meta http-equiv="refresh">` pages. It is NOT true of `setInterval` pages —
+    Ringside polls every 1s and drains a 4s budget in ~3s, every time. The flag
+    is not the problem; meta-refresh is. Budget size also doubles as a time
+    machine: a 220s budget advanced the clock far enough to watch the 180s
+    staleness threshold trip.
+  · MAKE THE PAGE EXPOSE WHAT IT DREW. A gate cannot read a number off a
+    picture, so the canvas spec REQUIRED `data-axis-max-s`, `data-token-max`,
+    `data-samples` and `data-lane-start-s`. Every meaningful assertion in that
+    gate reads one of those. Design the contract with the gate, not after it.
+
+**MY OWN GATE FALSE-PASSED TWICE, BOTH TIMES ON MY FIXTURE'S WORDING.** The
+timeout assertion passed because I had written "check exceeded its window" as
+that lane's activity text; the setup assertion passed because I had named the
+lane `broken-setup`. In both cases the grep matched MY fixture rather than
+anything the UI derived. Failures went 18 -> 19 -> 20 as each leak closed.
+RULE: a fixture must never contain the words its assertions search for — that
+includes the KEY, not just the values. This is the same lesson as "greps must
+survive a repo that already says the words", and it bit me from a new direction.
+
+**FABRICATE THE GOOD STATE EVEN FOR CODE LANES.** The skill says a code lane's
+good state usually cannot be fabricated, which leaves prove-pass with nothing.
+Both gates here got a `fabricate_good_*.py` that bolts on the required DATA with
+no design work — ~60 lines each. Cheap, and it converts "the lane failed" from
+ambiguous into evidence about the lane. One of them caught a real bug in my own
+fabricator (`createElement("section")`, not `"div"`) before any worker ran.
+
+**THE DEFECT NEITHER GATE COULD HAVE CAUGHT, found by looking.** The canvas
+derived every lane's start offset as `run.elapsed_s - task.elapsed_s`. Valid
+while a lane RUNS; for a finished lane `elapsed_s` is frozen at total duration,
+so the number is meaningless AND MOVES — the same completed lane read "spawned
+3m 53s after run start" and then "spawned 4m 39s" 46 seconds later. Caught by
+rendering the same run at two clock positions and reading the two screens, not
+by any assertion. The fix makes it say "spawn time not observed", matching how
+the view already refuses to place an unwitnessed retry boundary.
+  · Worth noting WHY it slipped through: the whole round was specified around
+    not asserting unobserved things, and the lane obeyed that perfectly for the
+    retry boundary while violating it for the spawn offset. A discipline stated
+    once in a spec gets applied where the spec points, not everywhere it holds.
+
+**CHECK THE PAYLOAD BEFORE WRITING THE SPEC.** I queried the live /api/runs
+rather than trusting my own earlier notes, and it changed the task: `tokens` is
+a SCALAR with no time series, there is no per-attempt timing, and no task start
+time. So the canvas's traces cannot be read from a field at all — they are
+sampled across polls, the sample count is displayed, and an unobserved retry
+boundary is labelled rather than guessed. Had I specified from memory, the lane
+would have built a fabricated curve that looked perfect and meant nothing.
+
+**INTEGRATION_CHECK EARNED ITS KEEP, TWICE.** Both build lanes reported the
+suite failing inside their own sandbox — "426 tests ran, 9 failures and 43
+errors" from denied loopback sockets and `~/.ringer` writes. Taken at face value
+that reads like a broken change. The out-of-sandbox integration run passed clean
+both times. A worker's own test run is not evidence about the tree.

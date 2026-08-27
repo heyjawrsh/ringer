@@ -92,6 +92,12 @@ Each task gets its own directory, its own worker, its own log, and its own verdi
 
 ### Manifest fields
 
+Manifest fields are strict: an unknown run-level or task-level field is an
+error, so a misspelling cannot silently disable a feature. Keys beginning with
+`x-` are reserved for your own annotations at either level and are preserved by
+`rerun` (for example, `x-ticket` or `x-job-metadata`). Boolean fields must use
+the JSON booleans `true` or `false`, not quoted strings.
+
 | Field | What it does |
 |---|---|
 | `key` | Task name — becomes the working subdirectory and the label everywhere |
@@ -109,10 +115,10 @@ Each task gets its own directory, its own worker, its own log, and its own verdi
 | `redact_spec` | Replace this task's spec with `[redacted request packet]` in the run state, the logged command line, and the eval row, for specs carrying sensitive material. Redacts Ringer's own records only — captured worker output is never rewritten (invariant), so a worker that echoes its request still puts that text in `worker.log` |
 | `engine_args` | Extra CLI flags for this task's worker, spliced in at the engine's `{engine_args}` placeholder — e.g. `["-c", "model_reasoning_effort=low"]` so the orchestrator picks reasoning depth per task |
 | `verified` | One plain-English sentence saying what the check proves — shown on the results page next to "finished & checked" |
-| `full_access` | Worker runs unsandboxed — required for workers that spawn their own sub-workers; must also be enabled in config |
+| `full_access` | Boolean. Worker runs unsandboxed — required for workers that spawn their own sub-workers; must also be enabled in config |
 | `owns` | Per-task list of repo-relative paths or globs; after the worker exits and before the check runs, any changed path outside it is an ownership violation that fails the attempt — offending paths named in the failure output that reaches the retry prompt. Paths the foundation patch touched are excluded; tasks without `owns` are not checked (opt-in) |
 | `protect_assertions` (run-level) | Opt-in list of repo-relative path globs whose existing files may not lose recognizable assertions. A removed assertion fails the attempt and is quoted with its file in the retry output. Files newly added by a lane are exempt |
-| `worktrees` (run-level) | Give each task an isolated git worktree of `repo` so parallel workers can't collide |
+| `worktrees` (run-level) | Boolean. Give each task an isolated git worktree of `repo` so parallel workers can't collide; setting it to `true` requires `repo` |
 | `integration_check` (run-level) | Optional shell command run once after ALL tasks pass, against the combined result; nonzero fails the run |
 | `integration_timeout_s` (run-level) | Kill timer for `integration_check` (default 600) |
 | `pilot` (run-level) | Optional key of the one task to run first; the run pauses for review after it passes |

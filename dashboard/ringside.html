@@ -76,9 +76,9 @@
     .lane-strip{display:flex;gap:var(--rs-lane-gap);height:var(--rs-lane-strip-height)}.lane-segment{flex:1;min-width:1px;background:var(--rs-waiting)}.lane-segment.pass{background:var(--rs-pass)}.lane-segment.fail{background:var(--rs-fail)}.lane-segment.working{background:var(--rs-working)}.lane-segment.retry{background:var(--rs-pilot)}.overview-count{text-align:right;font:600 14px/1 var(--rs-mono);font-variant-numeric:tabular-nums}.overview-count small{color:var(--rs-label-muted);font-size:inherit;font-weight:400}.overview-outcome{text-align:right;font:500 12px/1 var(--rs-mono);font-variant-numeric:tabular-nums}.elapsed-cell{display:grid;gap:3px}.elapsed-track{height:var(--rs-elapsed-height);background:var(--rs-hairline-soft)}.elapsed-fill{display:block;height:100%;background:var(--rs-ink)}.died .elapsed-fill{background:var(--rs-fail)}.elapsed-label,.started-label{color:var(--rs-label-muted);font:var(--rs-micro);font-weight:400;font-variant-numeric:tabular-nums}.started-label{text-align:right;font-size:10px;color:var(--rs-body-muted)}
     .overview-legend{display:flex;gap:18px;padding:12px var(--rs-content-gutter);border-bottom:1px solid var(--rs-hairline);color:var(--rs-label-muted);font:500 9px/1 var(--rs-mono);text-transform:uppercase}.legend-item{display:inline-flex;align-items:center;gap:6px}.legend-swatch{width:8px;height:8px;background:var(--rs-waiting)}.legend-swatch.working{background:var(--rs-working)}.legend-swatch.pass{background:var(--rs-pass)}.legend-swatch.fail{background:var(--rs-fail)}.legend-swatch.pilot{background:var(--rs-pilot)}.legend-swatch.waiting{border:1.5px solid var(--rs-waiting);background:transparent}
     .shell-view[hidden]{display:none}.rail-review-badge{min-width:16px;padding:3px 5px;background:var(--rs-pilot);color:var(--rs-ink);font:700 8px/1 var(--rs-mono);letter-spacing:.1em;text-align:center}.view-title-row{min-height:76px;display:flex;align-items:flex-end;gap:20px;padding:0 var(--rs-content-gutter) 16px;border-bottom:2px solid var(--rs-rule-ink)}.view-title-row h1{margin:0;font:700 26px/1 var(--rs-grotesk);letter-spacing:-.01em}.view-meta{margin:0;color:var(--rs-body-muted);font:400 10px/1.5 var(--rs-mono)}.view-sort{margin-left:auto;color:var(--rs-label-muted);font:600 9px/1.4 var(--rs-mono);letter-spacing:.1em;text-transform:uppercase}
-    .lane-wall-grid{display:grid;grid-template-columns:10px 150px minmax(150px,1fr) 100px minmax(180px,2fr) 90px;align-items:center;column-gap:16px}.lane-wall-columns{padding:8px var(--rs-content-gutter) 8px 16px;border-bottom:1px solid var(--rs-rule-strong);color:var(--rs-label-muted);font:600 9px/1.2 var(--rs-mono);letter-spacing:.12em;text-transform:uppercase}.lane-wall-row{min-height:59px;padding:12px var(--rs-content-gutter) 12px 16px;border-bottom:1px solid var(--rs-hairline)}.lane-wall-row.working{background:var(--rs-surface-active)}.lane-wall-row.pilot{background:var(--rs-pilot-tint)}.lane-wall-row.fail{background:var(--rs-fail-tint)}.lane-dot{width:8px;height:8px;background:var(--rs-waiting)}.lane-dot.waiting{border:1.5px solid var(--rs-waiting);background:transparent}.lane-dot.working{background:var(--rs-working)}.lane-dot.pass{background:var(--rs-pass)}.lane-dot.fail{background:var(--rs-fail)}.lane-dot.pilot,.lane-dot.retry{background:var(--rs-pilot)}.lane-name{font:600 12px/1.3 var(--rs-mono)}.lane-run,.lane-activity,.lane-elapsed{overflow:hidden;color:var(--rs-body-muted);font:400 10px/1.45 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}.lane-run b{display:block;color:var(--rs-ink);font-family:var(--rs-grotesk);font-size:11px}.lane-state{font:600 9px/1.3 var(--rs-mono);letter-spacing:.08em;text-transform:uppercase}.lane-held{color:var(--rs-pilot-text)}
+    .lane-wall-grid{display:grid;grid-template-columns:8px minmax(110px,.75fr) minmax(100px,.75fr) minmax(110px,.85fr) minmax(140px,1.2fr) minmax(125px,.9fr) minmax(135px,.95fr) minmax(180px,1.35fr);align-items:center;column-gap:12px}.lane-wall-columns{padding:8px var(--rs-content-gutter) 8px 16px;border-bottom:1px solid var(--rs-rule-strong);color:var(--rs-label-muted);font:600 9px/1.2 var(--rs-mono);letter-spacing:.12em;text-transform:uppercase}.lane-wall-row{min-height:92px;padding:12px var(--rs-content-gutter) 12px 16px;border-bottom:1px solid var(--rs-hairline)}.lane-wall-row.working{background:var(--rs-surface-active)}.lane-wall-row.pilot{background:var(--rs-pilot-tint)}.lane-wall-row.fail{background:var(--rs-fail-tint)}.lane-dot{width:8px;height:8px;background:var(--rs-waiting)}.lane-dot.waiting{border:1.5px solid var(--rs-waiting);background:transparent}.lane-dot.working{background:var(--rs-working)}.lane-dot.pass{background:var(--rs-pass)}.lane-dot.fail{background:var(--rs-fail)}.lane-dot.pilot,.lane-dot.retry{background:var(--rs-pilot)}.lane-identity,.lane-route,.lane-activity-cell,.lane-burn,.lane-timeout,.lane-cause{min-width:0;display:block}.lane-name{display:block;overflow:hidden;font:600 12px/1.3 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}.lane-run,.lane-activity,.lane-route-model{display:block;overflow:hidden;color:var(--rs-body-muted);font:400 9px/1.4 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}.lane-run b{display:block;color:var(--rs-ink);font-family:var(--rs-grotesk);font-size:10px}.lane-state{display:block;margin-top:6px;font:600 8px/1.3 var(--rs-mono);letter-spacing:.08em;text-transform:uppercase}.lane-held{color:var(--rs-pilot-text)}.lane-route-engine{display:block;overflow:hidden;color:var(--rs-ink);font:600 10px/1.35 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}.lane-signal{display:block;margin-top:6px;color:var(--rs-label-muted);font:600 8px/1.25 var(--rs-mono);letter-spacing:.07em;text-transform:uppercase}.lane-signal.stale{color:var(--rs-ink)}.lane-meter-top{display:flex;align-items:baseline;justify-content:space-between;gap:5px;color:var(--rs-ink);font:600 10px/1.2 var(--rs-mono);font-variant-numeric:tabular-nums}.lane-meter-top small{color:var(--rs-label-muted);font-size:8px;font-weight:400;white-space:nowrap}.lane-meter{height:5px;display:block;margin-top:7px;background:var(--rs-hairline-soft)}.lane-meter-fill{height:100%;display:block;background:var(--rs-ink)}.lane-timeout .lane-meter{background-image:repeating-linear-gradient(90deg,transparent 0,transparent calc(25% - 1px),var(--rs-rule-strong) calc(25% - 1px),var(--rs-rule-strong) 25%)}.lane-meter-caption{display:block;margin-top:5px;color:var(--rs-label-muted);font:500 8px/1.25 var(--rs-mono);font-variant-numeric:tabular-nums;text-transform:uppercase}.burn-leader{color:var(--rs-ink);font-weight:700;letter-spacing:.06em}.lane-cause-chip{display:inline-block;max-width:100%;padding:4px 5px;border:1px solid currentColor;color:var(--rs-label-muted);font:700 8px/1 var(--rs-mono);letter-spacing:.08em;text-transform:uppercase}.lane-cause-chip.pass{color:var(--rs-pass-text)}.lane-cause-chip.fail{color:var(--rs-fail)}.lane-cause-chip.pending{color:var(--rs-working)}.lane-cause-evidence{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 5px;margin-top:5px;color:var(--rs-body-strong-muted);font:600 7px/1.3 var(--rs-mono)}.lane-evidence-item,.lane-cause-check{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lane-cause-check{margin-top:4px;color:var(--rs-body-muted);font:400 8px/1.3 var(--rs-mono);letter-spacing:0}.lane-wall-row:focus-visible{outline:2px solid var(--rs-ink);outline-offset:-2px}
     .reviews-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;min-height:calc(100vh - 76px)}.review-evidence{min-width:0;padding:24px var(--rs-content-gutter)}.review-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid var(--rs-hairline);border-left:1px solid var(--rs-hairline)}.review-grid>div{min-height:86px;padding:14px;border-right:1px solid var(--rs-hairline);border-bottom:1px solid var(--rs-hairline)}.micro-label{display:block;margin-bottom:7px;color:var(--rs-label-muted);font:600 9px/1.4 var(--rs-mono);letter-spacing:.13em;text-transform:uppercase}.review-value{color:var(--rs-ink);font:400 11px/1.55 var(--rs-mono);overflow-wrap:anywhere}.round-block{margin-top:24px}.round-matrix{display:flex;gap:var(--rs-round-gap)}.round-dot{width:var(--rs-round-size);height:var(--rs-round-size);border:1px solid var(--rs-waiting);background:transparent}.round-dot.pass{border-color:var(--rs-pass);background:var(--rs-pass)}.round-dot.fail{border-color:var(--rs-fail);background:var(--rs-fail)}.round-dot.working{border-color:var(--rs-working);background:var(--rs-working)}.terminal-block{margin:24px 0 0;padding:14px 16px;background:var(--rs-terminal);color:var(--rs-terminal-ink);font:400 10px/1.6 var(--rs-mono);white-space:pre-wrap;max-height:210px;overflow:auto}.held-callout{margin-top:18px;padding:12px 14px;border-left:3px solid var(--rs-pilot);background:var(--rs-surface-active);color:var(--rs-body-strong-muted);font:400 11px/1.5 var(--rs-grotesk)}.decision-aside{display:flex;min-height:calc(100vh - 76px);flex-direction:column;padding:24px 20px;border-left:1px solid var(--rs-hairline);background:var(--rs-surface-active)}.decision-aside button{border-radius:0;font:600 10px/1 var(--rs-mono);letter-spacing:.04em;text-transform:uppercase}.decision-approve{width:100%;height:38px;border:0;background:var(--rs-ink);color:var(--rs-ground)}.decision-note-label{margin:22px 0 7px;color:var(--rs-pilot-text);font:600 10px/1.4 var(--rs-mono)}.decision-note{min-height:112px;padding:10px;border:1px solid var(--rs-waiting);border-radius:0;background:var(--rs-ground);color:var(--rs-ink);font:11px/1.5 var(--rs-mono);resize:vertical}.decision-revise{width:100%;min-height:38px;margin-top:8px;border:1px solid var(--rs-pilot-text);background:transparent;color:var(--rs-pilot-text)}.decision-aside button:disabled,.decision-aside textarea:disabled{opacity:.45}.decision-reject{align-self:flex-start;margin-top:20px;padding:0;border:0;background:transparent;color:var(--rs-fail);font-weight:400!important;text-decoration:underline;text-underline-offset:3px;text-transform:none!important}.decision-status{color:var(--rs-body-muted);font:10px/1.5 var(--rs-mono)}.decision-cli{margin-top:auto;padding-top:20px;border-top:1px solid var(--rs-hairline);color:var(--rs-label-muted);font:9px/1.65 var(--rs-mono);overflow-wrap:anywhere}
-    .slide-backdrop{position:fixed;z-index:50;inset:0;background:rgba(20,20,18,.18)}.run-slide{position:absolute;top:0;right:0;width:560px;max-width:80vw;height:100%;display:flex;flex-direction:column;border-left:1px solid var(--rs-rule-ink);background:var(--rs-ground);box-shadow:-24px 0 48px rgba(20,20,18,.18);font-family:var(--rs-grotesk)}.slide-head{display:grid;grid-template-columns:4px 1fr auto;gap:14px;align-items:center;padding:14px 18px;border-bottom:2px solid var(--rs-rule-ink)}.slide-mark{height:34px;background:var(--rs-working)}.slide-breadcrumb{color:var(--rs-label-muted);font:10px/1.4 var(--rs-mono)}.slide-title{font:700 20px/1.2 var(--rs-grotesk)}.slide-close{width:32px;height:32px;border:0;background:transparent;font-size:18px}.slide-stats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--rs-hairline)}.slide-stat{padding:16px;border-right:1px solid var(--rs-hairline)}.slide-stat:last-child{border:0}.slide-stat b{display:block;font:700 26px/1 var(--rs-mono)}.slide-stat span{color:var(--rs-label-muted);font:600 9px/1.5 var(--rs-mono);letter-spacing:.1em;text-transform:uppercase}.slide-body{flex:1;overflow:auto}.slide-lane{display:grid;grid-template-columns:8px 128px 84px minmax(0,1fr) 54px;gap:12px;align-items:center;width:100%;padding:11px 16px;border:0;border-bottom:1px solid var(--rs-hairline-soft);background:transparent;color:inherit;text-align:left}.slide-lane:hover{background:var(--rs-surface-hover)}.slide-lane[aria-expanded="true"]{background:#eceae5}.slide-expanded{padding:18px;background:var(--rs-surface-active)}.slide-expanded .round-block{margin-top:0}.slide-lane-meta{margin:10px 0 0;color:var(--rs-body-muted);font:400 10px/1.5 var(--rs-mono)}.slide-proof{display:grid;gap:10px;margin-top:14px}.slide-proof-section{padding-top:10px;border-top:1px solid var(--rs-hairline)}.slide-proof-section p,.slide-proof-section pre{margin:0;color:var(--rs-body-strong-muted);font:400 10px/1.55 var(--rs-mono);white-space:pre-wrap;overflow-wrap:anywhere}.slide-proof-section .micro-label{margin-bottom:5px}.slide-violations{margin:14px 0 0;padding:10px 12px 10px 28px;border-left:3px solid var(--rs-fail);background:var(--rs-fail-tint);color:var(--rs-body-strong-muted);font:400 10px/1.5 var(--rs-mono)}.slide-violations li+li{margin-top:6px}.slide-violations b{color:var(--rs-fail)}.slide-stream-head{display:flex;justify-content:space-between;gap:10px;margin-top:16px;color:var(--rs-label-muted);font:600 9px/1.4 var(--rs-mono);letter-spacing:.08em;text-transform:uppercase}.slide-log{margin:7px 0 0;padding:14px 16px;max-height:280px;overflow:auto;background:var(--rs-terminal);color:var(--rs-terminal-ink);font:400 10px/1.6 var(--rs-mono);white-space:pre-wrap;tab-size:2}.slide-log-error{margin:7px 0 0;color:var(--rs-fail);font:400 10px/1.4 var(--rs-mono)}.slide-foot{display:flex;justify-content:space-between;gap:12px;padding:10px 16px;border-top:1px solid var(--rs-hairline);color:var(--rs-label-muted);font:9px/1.4 var(--rs-mono)}
+    .slide-backdrop{position:fixed;z-index:50;inset:0;background:rgba(20,20,18,.18)}.run-slide{position:absolute;top:0;right:0;width:560px;max-width:80vw;height:100%;display:flex;flex-direction:column;border-left:1px solid var(--rs-rule-ink);background:var(--rs-ground);box-shadow:-24px 0 48px rgba(20,20,18,.18);font-family:var(--rs-grotesk)}.slide-head{display:grid;grid-template-columns:4px 1fr auto;gap:14px;align-items:center;padding:14px 18px;border-bottom:2px solid var(--rs-rule-ink)}.slide-mark{height:34px;background:var(--rs-working)}.slide-breadcrumb{color:var(--rs-label-muted);font:10px/1.4 var(--rs-mono)}.slide-title{font:700 20px/1.2 var(--rs-grotesk)}.slide-close{width:32px;height:32px;border:0;background:transparent;font-size:18px}.slide-stats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--rs-hairline)}.slide-stat{padding:16px;border-right:1px solid var(--rs-hairline)}.slide-stat:last-child{border:0}.slide-stat b{display:block;font:700 26px/1 var(--rs-mono)}.slide-stat span{color:var(--rs-label-muted);font:600 9px/1.5 var(--rs-mono);letter-spacing:.1em;text-transform:uppercase}.slide-body{flex:1;overflow:auto}.slide-lane{display:grid;grid-template-columns:8px 128px 84px minmax(0,1fr) 54px;gap:12px;align-items:center;width:100%;padding:11px 16px;border:0;border-bottom:1px solid var(--rs-hairline-soft);background:transparent;color:inherit;text-align:left}.slide-lane:hover{background:var(--rs-surface-hover)}.slide-lane[aria-expanded="true"]{background:#eceae5}.slide-expanded{padding:18px;background:var(--rs-surface-active)}.slide-expanded .round-block{margin-top:0}.slide-cause{margin:0 0 16px;padding:12px;border-top:1px solid var(--rs-fail);border-bottom:1px solid var(--rs-fail);background:var(--rs-fail-tint)}.slide-cause-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.slide-cause-title{color:var(--rs-label-muted);font:600 9px/1.3 var(--rs-mono);letter-spacing:.12em;text-transform:uppercase}.slide-cause-sentence{margin:10px 0 0;color:var(--rs-body-strong-muted);font:600 11px/1.45 var(--rs-grotesk)}.slide-cause-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:12px;border-top:1px solid var(--rs-hairline);border-left:1px solid var(--rs-hairline)}.slide-cause-cell{min-width:0;padding:9px;border-right:1px solid var(--rs-hairline);border-bottom:1px solid var(--rs-hairline)}.slide-cause-cell b{display:block;overflow-wrap:anywhere;color:var(--rs-ink);font:600 10px/1.4 var(--rs-mono)}.slide-cause-note{margin:9px 0 0;color:var(--rs-fail);font:700 9px/1.4 var(--rs-mono);letter-spacing:.06em;text-transform:uppercase}.slide-lane-meta{margin:10px 0 0;color:var(--rs-body-muted);font:400 10px/1.5 var(--rs-mono)}.slide-proof{display:grid;gap:10px;margin-top:14px}.slide-proof-section{padding-top:10px;border-top:1px solid var(--rs-hairline)}.slide-proof-section p,.slide-proof-section pre{margin:0;color:var(--rs-body-strong-muted);font:400 10px/1.55 var(--rs-mono);white-space:pre-wrap;overflow-wrap:anywhere}.slide-proof-section .micro-label{margin-bottom:5px}.slide-violations{margin:14px 0 0;padding:10px 12px 10px 28px;border-left:3px solid var(--rs-fail);background:var(--rs-fail-tint);color:var(--rs-body-strong-muted);font:400 10px/1.5 var(--rs-mono)}.slide-violations li+li{margin-top:6px}.slide-violations b{color:var(--rs-fail)}.slide-stream-head{display:flex;justify-content:space-between;gap:10px;margin-top:16px;color:var(--rs-label-muted);font:600 9px/1.4 var(--rs-mono);letter-spacing:.08em;text-transform:uppercase}.slide-log{margin:7px 0 0;padding:14px 16px;max-height:280px;overflow:auto;background:var(--rs-terminal);color:var(--rs-terminal-ink);font:400 10px/1.6 var(--rs-mono);white-space:pre-wrap;tab-size:2}.slide-log-error{margin:7px 0 0;color:var(--rs-fail);font:400 10px/1.4 var(--rs-mono)}.slide-foot{display:flex;justify-content:space-between;gap:12px;padding:10px 16px;border-top:1px solid var(--rs-hairline);color:var(--rs-label-muted);font:9px/1.4 var(--rs-mono)}
     @media(prefers-reduced-motion:no-preference){.slide-backdrop{animation:fadeIn .2s}.run-slide{animation:slideIn .28s cubic-bezier(.2,.8,.2,1)}}@keyframes slideIn{from{transform:translateX(40px)}}
     @media(prefers-reduced-motion:no-preference){.run-status-bar.working,.lane-segment.working,.rail-live.live{animation:pulse 1.4s ease-in-out infinite}}
     @media(max-width:950px){.overview-grid{grid-template-columns:10px minmax(170px,1.3fr) minmax(130px,1fr) 60px 80px 100px}.overview-grid>:last-child{display:none}}
@@ -90,11 +90,44 @@
     .artifact-list-pane{min-width:0;overflow:auto;border-right:1px solid var(--rs-hairline);scrollbar-color:var(--rs-rule-strong) var(--rs-hairline-soft);scrollbar-width:thin}.artifact-list-head{height:52px;display:flex;align-items:center;gap:8px;padding:0 10px 0 16px;border-bottom:2px solid var(--rs-rule-ink);font:700 12px/1 var(--rs-mono);letter-spacing:.12em;text-transform:uppercase}.artifact-list-title{white-space:nowrap}.artifact-sort{min-width:0;margin-left:auto;padding:3px 18px 3px 5px;border:1px solid var(--rs-hairline);border-radius:0;background:var(--rs-ground);color:var(--rs-body-muted);font:600 8px/1.2 var(--rs-mono);letter-spacing:0;text-transform:none}
     .artifact-list-new{list-style:none;margin:0;padding:0}.artifact-list-button{width:100%;min-height:54px;display:grid;grid-template-columns:4px minmax(0,1fr);gap:12px;align-items:center;padding:9px 14px 9px 0;border:0;border-bottom:1px solid var(--rs-hairline);border-radius:0;background:var(--rs-ground);color:var(--rs-ink);text-align:left}.artifact-list-button:hover{background:var(--rs-surface-hover)}.artifact-list-button[aria-selected="true"]{background:var(--rs-surface-active);box-shadow:inset -3px 0 0 var(--rs-ink)}.artifact-list-bar{width:4px;height:34px;background:var(--rs-waiting)}.artifact-list-bar.live{background:var(--rs-working)}.artifact-list-bar.pass{background:var(--rs-pass)}.artifact-list-bar.fail,.artifact-list-bar.died{background:var(--rs-fail)}.artifact-list-name{display:block;overflow:hidden;font:600 12px/1.35 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}.artifact-list-meta{display:block;margin-top:3px;overflow:hidden;color:var(--rs-label-muted);font:400 9px/1.35 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}
     .artifact-stage{min-width:0;min-height:0;display:grid;grid-template-rows:52px minmax(0,1fr) 48px}.artifact-stage-toolbar{display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:2px solid var(--rs-rule-ink)}.artifact-working-dot{width:8px;height:8px;background:var(--rs-working)}.artifact-stage-name{font:600 12px/1.2 var(--rs-mono)}.artifact-stage-meta{color:var(--rs-label-muted);font:400 9px/1.3 var(--rs-mono)}.artifact-stage-controls{margin-left:auto;display:flex}.artifact-stage-controls button,.artifact-stage-controls select{height:28px;padding:0 9px;border:1px solid var(--rs-hairline);border-right:0;border-radius:0;background:var(--rs-surface-active);color:var(--rs-body-strong-muted);font:500 9px/1 var(--rs-mono)}.artifact-stage-controls>*:last-child{border-right:1px solid var(--rs-hairline)}.artifact-stage-body{min-height:0;background:var(--rs-surface-active)}.artifact-stage-body iframe{width:100%;height:100%;min-height:300px;display:block;border:0;background:var(--rs-ground)}.artifact-stage-message{height:100%;display:grid;place-items:center;color:var(--rs-label-muted);font:400 11px var(--rs-mono)}.artifact-summary{display:flex;align-items:center;gap:14px;padding:0 16px;border-top:1px solid var(--rs-hairline);font:500 10px/1 var(--rs-mono)}.artifact-summary .lane-strip{width:min(340px,34%);height:8px}.artifact-detail-link{margin-left:auto;border:0;background:transparent;color:var(--rs-working);font:600 10px/1 var(--rs-mono)}
-    .models-view{font-family:var(--rs-grotesk)}.models-table{width:100%;border-collapse:collapse;table-layout:fixed}.models-table col:nth-child(1){width:auto}.models-table col:nth-child(2){width:92px}.models-table col:nth-child(4),.models-table col:nth-child(5){width:80px}.models-table col:nth-child(6){width:90px}.models-table th{padding:8px 8px;border-bottom:1px solid var(--rs-rule-strong);color:var(--rs-label-muted);font:600 9px/1.2 var(--rs-mono);letter-spacing:.12em;text-align:left;text-transform:uppercase}.models-table th:first-child,.models-table td:first-child{padding-left:var(--rs-content-gutter)}.models-table th:last-child,.models-table td:last-child{padding-right:var(--rs-content-gutter)}.models-table td{height:58px;padding:10px 8px;border-bottom:1px solid var(--rs-hairline);vertical-align:middle}.models-table tbody tr:hover{background:var(--rs-surface-hover)}.model-display-name{display:block;font:600 13px/1.3 var(--rs-grotesk)}.model-slug{display:block;overflow:hidden;color:var(--rs-label-muted);font:400 9px/1.3 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}.tier-badge-new{display:inline-block;padding:3px 6px;border:1px solid currentColor;color:var(--rs-label-muted);font:700 8px/1 var(--rs-mono);letter-spacing:.1em;text-transform:uppercase}.tier-badge-new.proven{color:var(--rs-pass-text)}.tier-badge-new.probation{color:var(--rs-pilot-text)}.win-cell{display:grid;gap:4px}.win-track{height:6px;background:var(--rs-hairline-soft)}.win-fill{display:block;height:100%;background:var(--rs-waiting)}.win-fill.proven{background:var(--rs-pass)}.win-fill.probation{background:var(--rs-pilot)}.win-caption{color:var(--rs-label-muted);font:400 9px/1 var(--rs-mono)}.model-number{text-align:right;font:500 13px/1 var(--rs-mono)}.models-message{margin:24px var(--rs-content-gutter);padding:14px;border-left:3px solid var(--rs-fail);background:var(--rs-surface-active);color:var(--rs-body-strong-muted);font:400 11px/1.5 var(--rs-mono)}
+    .models-view{font-family:var(--rs-grotesk)}.models-slice-bar{min-height:52px;display:flex;align-items:center;gap:14px;padding:9px var(--rs-content-gutter);border-bottom:1px solid var(--rs-hairline);background:var(--rs-surface-active)}.models-slice-copy{min-width:0}.models-slice-copy strong{display:block;font:600 11px/1.35 var(--rs-grotesk)}.models-slice-copy span{display:block;color:var(--rs-label-muted);font:400 9px/1.4 var(--rs-mono)}.models-slice-control{margin-left:auto;display:flex;align-items:center;gap:8px;color:var(--rs-label-muted);font:600 9px/1.3 var(--rs-mono);letter-spacing:.1em;text-transform:uppercase}.models-slice-select{min-width:190px;height:30px;padding:0 28px 0 9px;border:1px solid var(--rs-rule-strong);border-radius:0;background:var(--rs-ground);color:var(--rs-body-strong-muted);font:500 10px/1 var(--rs-mono);letter-spacing:0;text-transform:none}.models-table{width:100%;border-collapse:collapse;table-layout:fixed}.models-table col:nth-child(1){width:auto}.models-table col:nth-child(2){width:92px}.models-table col:nth-child(4){width:138px}.models-table col:nth-child(5){width:100px}.models-table col:nth-child(6){width:90px}.models-table th{padding:8px 8px;border-bottom:1px solid var(--rs-rule-strong);color:var(--rs-label-muted);font:600 9px/1.2 var(--rs-mono);letter-spacing:.12em;text-align:left;text-transform:uppercase}.models-table th:first-child,.models-table td:first-child{padding-left:var(--rs-content-gutter)}.models-table th:last-child,.models-table td:last-child{padding-right:var(--rs-content-gutter)}.models-table td{height:66px;padding:10px 8px;border-bottom:1px solid var(--rs-hairline);vertical-align:middle}.models-table tbody tr:hover{background:var(--rs-surface-hover)}.model-display-name{display:block;font:600 13px/1.3 var(--rs-grotesk)}.model-slug{display:block;overflow:hidden;color:var(--rs-label-muted);font:400 9px/1.3 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}.tier-badge-new{display:inline-block;padding:3px 6px;border:1px solid currentColor;color:var(--rs-label-muted);font:700 8px/1 var(--rs-mono);letter-spacing:.1em;text-transform:uppercase}.tier-badge-new.proven{color:var(--rs-pass-text)}.tier-badge-new.probation{color:var(--rs-pilot-text)}.win-cell{display:grid;gap:5px}.win-track{height:7px;display:flex;background:var(--rs-hairline-soft);overflow:hidden}.win-fill,.rescue-fill{display:block;height:100%;flex:none}.win-fill{background:var(--rs-waiting)}.win-fill.proven{background:var(--rs-pass)}.win-fill.probation{background:var(--rs-pilot)}.rescue-fill{background:var(--rs-working)}.win-caption,.rate-detail,.volume-detail{color:var(--rs-label-muted);font:400 9px/1.25 var(--rs-mono)}.win-caption strong,.final-rate strong,.volume-cell strong{color:var(--rs-ink);font:600 13px/1 var(--rs-mono)}.final-rate,.volume-cell{display:grid;gap:4px;font-variant-numeric:tabular-nums}.rate-detail.rescued{color:var(--rs-working);font-weight:600}.model-number{text-align:right;font:500 13px/1 var(--rs-mono)}.models-message{margin:24px var(--rs-content-gutter);padding:14px;border-left:3px solid var(--rs-fail);background:var(--rs-surface-active);color:var(--rs-body-strong-muted);font:400 11px/1.5 var(--rs-mono)}
     .system-region{font-family:var(--rs-grotesk)}.system-bar{min-height:42px;display:flex;align-items:center;gap:10px;padding:8px var(--rs-content-gutter);border-bottom:1px solid var(--rs-hairline);background:var(--rs-surface-active);font:400 10px/1.4 var(--rs-mono)}.system-bar.reconnecting,.system-bar.build-mismatch{border-left:3px solid var(--rs-waiting)}.system-bar.build-mismatch{border-left-color:var(--rs-pilot)}.system-bar.update-state{border-left:3px solid var(--rs-working)}.system-pulse{width:8px;height:8px;background:var(--rs-waiting)}.system-label{font-weight:700;letter-spacing:.08em}.system-note{color:var(--rs-label-muted)}.system-action,.system-dismiss{margin-left:auto;padding:5px 9px;border:1px solid var(--rs-rule-ink);border-radius:0;background:transparent;font:600 9px/1 var(--rs-mono)}.system-dismiss{border:0;font-size:15px}.build-chip{padding:3px 6px;border:1px solid var(--rs-pilot-text);color:var(--rs-pilot-text);font:700 8px/1 var(--rs-mono);letter-spacing:.08em;text-transform:uppercase}.empty-swarms{min-height:330px;display:grid;place-content:center;justify-items:center;gap:8px;text-align:center}.empty-zero{color:var(--rs-waiting);font:700 34px/1 var(--rs-mono)}.empty-label{font:600 10px/1 var(--rs-mono);letter-spacing:.14em}.empty-cli{margin-top:5px;padding:7px 10px;background:var(--rs-surface-active);color:var(--rs-body-muted);font:400 10px/1 var(--rs-mono)}
-    .models-table{table-layout:auto}.models-table tr{display:grid;grid-template-columns:minmax(200px,1.2fr) 92px minmax(140px,1fr) 80px 80px 90px;column-gap:16px}.models-table colgroup{display:none}.models-table th,.models-table td{padding-left:0;padding-right:0}
+    .models-table{table-layout:auto}.models-table tr{display:grid;grid-template-columns:minmax(200px,1.2fr) 92px minmax(150px,1fr) 138px 100px 90px;column-gap:16px}.models-table colgroup{display:none}.models-table th,.models-table td{padding-left:0;padding-right:0}
     @media(prefers-reduced-motion:no-preference){.artifact-working-dot,.system-pulse{animation:pulse 1.4s ease-in-out infinite}.models-table tbody tr{animation:fadeUp .3s ease both}.models-table tbody tr:nth-child(2){animation-delay:.05s}.models-table tbody tr:nth-child(3){animation-delay:.1s}.models-view,.artifacts-view{animation:fadeIn .25s ease}}
-    @media(max-width:760px){.artifacts-view{grid-template-columns:180px minmax(0,1fr)}.artifact-summary .lane-strip{display:none}.models-table col:nth-child(2){width:76px}.models-table th:nth-child(4),.models-table td:nth-child(4),.models-table th:nth-child(5),.models-table td:nth-child(5){display:none}}
+    @media(max-width:760px){.artifacts-view{grid-template-columns:180px minmax(0,1fr)}.artifact-summary .lane-strip{display:none}.models-slice-bar{align-items:flex-start;flex-direction:column}.models-slice-control{width:100%;margin-left:0}.models-slice-select{min-width:0;flex:1}.models-table tr{grid-template-columns:minmax(150px,1fr) minmax(128px,.8fr) 118px;column-gap:10px}.models-table th:nth-child(2),.models-table td:nth-child(2),.models-table th:nth-child(5),.models-table td:nth-child(5),.models-table th:nth-child(6),.models-table td:nth-child(6){display:none}}
+  </style>
+  <style>
+    .time-canvas-view{min-width:0;background:var(--rs-ground);color:var(--rs-ink);font-family:var(--rs-grotesk)}
+    .canvas-census{display:grid;grid-template-columns:1.2fr repeat(3,minmax(120px,.7fr));border-bottom:2px solid var(--rs-rule-ink)}
+    .canvas-census-cell{min-width:0;padding:22px var(--rs-content-gutter) 18px;border-right:1px solid var(--rs-hairline)}.canvas-census-cell:last-child{border-right:0}
+    .canvas-census-label{display:block;color:var(--rs-label-muted);font:600 9px/1.2 var(--rs-mono);letter-spacing:.14em;text-transform:uppercase}
+    .canvas-census-value{display:block;margin-top:8px;overflow:hidden;color:var(--rs-ink);font:700 24px/1 var(--rs-mono);font-variant-numeric:tabular-nums;text-overflow:ellipsis;white-space:nowrap}
+    .canvas-census-note{display:block;margin-top:8px;color:var(--rs-body-muted);font:400 9px/1.35 var(--rs-mono)}
+    .canvas-wall{padding:0 var(--rs-content-gutter)}
+    .canvas-axis,.canvas-lane-track,.canvas-footer{display:grid;grid-template-columns:minmax(190px,230px) minmax(320px,1fr) minmax(170px,210px);column-gap:18px}
+    .canvas-axis{min-height:58px;align-items:end;border-bottom:1px solid var(--rs-rule-strong)}.canvas-axis-intro{padding-bottom:11px}
+    .canvas-kicker{display:block;color:var(--rs-ink);font:700 8px/1.3 var(--rs-mono);letter-spacing:.14em;text-transform:uppercase}.canvas-axis-sub{display:block;margin-top:5px;color:var(--rs-body-muted);font:400 9px/1.2 var(--rs-mono)}
+    .canvas-axis-stage{position:relative;height:44px;overflow:hidden}.canvas-tick{position:absolute;inset-block:0;border-left:1px solid var(--rs-hairline-soft);transform:translateX(-.5px)}.canvas-tick.major{border-left-color:var(--rs-rule-strong)}
+    .canvas-tick-label{position:absolute;left:5px;bottom:10px;color:var(--rs-label-muted);font:500 8px/1 var(--rs-mono);font-variant-numeric:tabular-nums;white-space:nowrap}.canvas-tick.end .canvas-tick-label{right:5px;left:auto}
+    .canvas-now-head{position:absolute;inset-block:0;width:0;border-left:1px solid var(--rs-working);transition:left 240ms ease}.canvas-now-head span{position:absolute;top:2px;left:6px;color:var(--rs-working);font:800 8px/1 var(--rs-mono);letter-spacing:.12em}.canvas-now-head.near-edge span{right:6px;left:auto}
+    .canvas-timeout-head{height:44px;display:flex;align-items:center;justify-content:flex-end;padding-bottom:10px;color:var(--rs-body-muted);font:700 9px/1 var(--rs-mono);letter-spacing:.06em;text-align:right}.canvas-timeout-head.in-domain{color:var(--rs-ink)}
+    .canvas-lane-track{position:relative;min-height:118px;border-bottom:1px solid var(--rs-hairline)}.canvas-lane-meta{min-width:0;padding:14px 0 12px}
+    .canvas-lane-top{display:flex;align-items:center;justify-content:space-between;gap:10px}.canvas-lane-key{overflow:hidden;font:700 12px/1.2 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}
+    .canvas-status{display:inline-flex;flex:none;align-items:center;gap:6px;font:700 8px/1 var(--rs-mono);letter-spacing:.1em;text-transform:uppercase}.canvas-status::before{width:6px;height:6px;background:currentColor;content:""}.canvas-status.working{color:var(--rs-working)}.canvas-status.pass{color:var(--rs-pass-text)}.canvas-status.fail{color:var(--rs-fail)}.canvas-status.retry{color:var(--rs-pilot-text)}.canvas-status.waiting{color:var(--rs-label-muted)}.canvas-status.waiting::before{border:1px solid var(--rs-waiting);background:transparent}
+    .canvas-route{display:block;margin-top:8px;overflow:hidden;color:var(--rs-body-muted);font:400 9px/1.3 var(--rs-mono);text-overflow:ellipsis;white-space:nowrap}.canvas-route code{color:var(--rs-ink);font:inherit}
+    .canvas-lane-stats{display:flex;flex-wrap:wrap;gap:5px 12px;margin-top:10px;color:var(--rs-body-muted);font:500 8px/1.2 var(--rs-mono);font-variant-numeric:tabular-nums}.canvas-lane-stats strong{color:var(--rs-ink)}
+    .canvas-track-plot{position:relative;min-width:0;overflow:hidden}.canvas-grid-line,.canvas-baseline,.canvas-now-line,.canvas-timeout-line,.canvas-spawn-line,.canvas-retry-line,.canvas-queue-gap{position:absolute;pointer-events:none}
+    .canvas-grid-line{inset-block:0;border-left:1px solid var(--rs-hairline-soft)}.canvas-grid-line.major{border-left-color:var(--rs-hairline)}.canvas-baseline{right:0;bottom:25px;left:0;border-top:1px solid var(--rs-rule-strong)}
+    .canvas-now-line{inset-block:0;width:0;border-left:1px solid var(--rs-working);opacity:.5;transition:left 240ms ease}.canvas-timeout-line{inset-block:0;width:0;border-left:1px dashed var(--rs-body-muted)}.canvas-spawn-line{bottom:20px;height:11px;border-left:1px solid var(--rs-ink)}.canvas-retry-line{top:8px;bottom:25px;border-left:1px dashed var(--rs-pilot-text)}.canvas-queue-gap{bottom:25px;left:0;border-top:1px dashed var(--rs-rule-strong)}
+    .canvas-trace{position:absolute;right:0;bottom:25px;left:0;width:100%;height:calc(100% - 35px);overflow:hidden}.canvas-trace polyline{fill:none;vector-effect:non-scaling-stroke;stroke-width:2;stroke-linecap:square;stroke-linejoin:miter}.canvas-trace polyline.working{stroke:var(--rs-working)}.canvas-trace polyline.pass{stroke:var(--rs-pass-text)}.canvas-trace polyline.fail{stroke:var(--rs-fail)}.canvas-trace polyline.retry{stroke:var(--rs-pilot-text)}
+    .canvas-endpoint{vector-effect:non-scaling-stroke;stroke:var(--rs-ground);stroke-width:1.5}.canvas-endpoint.working{fill:var(--rs-working)}.canvas-endpoint.pass{fill:var(--rs-pass-text)}.canvas-endpoint.fail{fill:var(--rs-fail)}.canvas-endpoint.retry{fill:var(--rs-pilot-text)}
+    .canvas-collecting{position:absolute;top:14px;left:10px;color:var(--rs-label-muted);font:600 8px/1.3 var(--rs-mono);letter-spacing:.1em;text-transform:uppercase}
+    .canvas-track-foot{position:absolute;right:0;bottom:7px;left:0;display:flex;justify-content:space-between;gap:14px;color:var(--rs-label-muted);font:600 7px/1 var(--rs-mono);letter-spacing:.08em;text-transform:uppercase;pointer-events:none}.canvas-track-foot span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.canvas-burn-rank{color:var(--rs-ink)}
+    .canvas-lane-note{min-width:0;padding:14px 0 12px 14px;border-left:1px solid var(--rs-hairline)}.canvas-note-kicker{display:block;color:var(--rs-label-muted);font:700 8px/1 var(--rs-mono);letter-spacing:.14em;text-transform:uppercase}.canvas-note-main{display:block;margin-top:7px;color:var(--rs-ink);font:600 10px/1.25 var(--rs-mono)}.canvas-note-sub{display:block;margin-top:7px;color:var(--rs-body-muted);font:400 8px/1.35 var(--rs-mono)}.canvas-note-sub.fail,.canvas-note-main.fail{color:var(--rs-fail)}
+    .canvas-footer{padding:11px 0 16px;color:var(--rs-body-muted);font:500 8px/1.35 var(--rs-mono);letter-spacing:.05em}.canvas-footer strong{color:var(--rs-ink)}.canvas-legend{display:flex;flex-wrap:wrap;gap:8px 17px}.canvas-legend-item{display:inline-flex;align-items:center;gap:6px}.canvas-legend-line{width:18px;border-top:2px solid var(--rs-ink)}.canvas-legend-line.flat{border-top-color:var(--rs-working)}.canvas-legend-line.gap{border-top:1px dashed var(--rs-rule-strong)}.canvas-window{text-align:right;font-variant-numeric:tabular-nums}.canvas-empty{margin:24px var(--rs-content-gutter);color:var(--rs-body-muted);font:400 11px/1.5 var(--rs-mono)}
+    @media(prefers-reduced-motion:no-preference){.canvas-rescaled .canvas-axis-stage,.canvas-rescaled .canvas-track-plot{animation:canvasWindowGrow 280ms ease-out}@keyframes canvasWindowGrow{from{opacity:.58;transform:scaleX(.985);transform-origin:left center}to{opacity:1;transform:scaleX(1);transform-origin:left center}}}
+    @media(prefers-reduced-motion:reduce){.canvas-now-head,.canvas-now-line{transition:none}}
+    @media(max-width:980px){.canvas-axis,.canvas-lane-track,.canvas-footer{grid-template-columns:180px minmax(280px,1fr) 165px;column-gap:12px}.canvas-census{grid-template-columns:repeat(2,minmax(0,1fr))}.canvas-census-cell:nth-child(2){border-right:0}.canvas-census-cell:nth-child(-n+2){border-bottom:1px solid var(--rs-hairline)}}
   </style>
 </head>
 <body>
@@ -104,6 +137,7 @@
     <nav class="rail-nav" aria-label="Dashboard views">
       <button class="rail-nav-item" type="button" data-shell-view="runs" aria-current="page"><span>Runs</span><span id="rail-runs-count" class="rail-count">0</span></button>
       <button class="rail-nav-item" type="button" data-shell-view="lanes"><span>Lanes</span><span id="rail-lanes-count" class="rail-count">0</span></button>
+      <button class="rail-nav-item" type="button" data-shell-view="canvas"><span>Canvas</span></button>
       <button class="rail-nav-item" type="button" data-shell-view="reviews"><span>Reviews</span><span id="rail-reviews-count" class="rail-count rail-review-badge">0</span></button>
       <button class="rail-nav-item" type="button" data-shell-view="artifacts"><span>Artifacts</span><span id="rail-artifacts-count" class="rail-count">0</span></button>
       <button class="rail-nav-item" type="button" data-shell-view="models"><span>Models</span></button>
@@ -122,6 +156,7 @@
   <div class="ringside-content">
     <section id="runs-overview" class="runs-overview shell-view" data-shell-panel="runs" aria-label="Runs overview" aria-live="polite"></section>
     <section id="lanes-view" class="shell-view" data-shell-panel="lanes" aria-label="Lane wall" hidden></section>
+    <section id="canvas-view" class="time-canvas-view shell-view" data-shell-panel="canvas" data-token-max="1" data-samples="0" aria-label="Time Canvas" hidden></section>
     <section id="reviews-view" class="shell-view" data-shell-panel="reviews" aria-label="Pilot reviews" hidden></section>
     <template id="artifact-sort-label-template"><label class="visually-hidden" for="artifact-sort">Sort artifacts</label></template>
     <section id="artifacts-view" class="shell-view" data-shell-panel="artifacts" aria-label="Artifact preview" hidden></section>
@@ -170,7 +205,7 @@
       if (focus) document.querySelector(`[data-theme-choice="${themeChoice}"]`)?.focus();
     }
     applyThemeChoice();
-    const SHELL_VIEWS = ["runs", "lanes", "reviews", "artifacts", "models"];
+    const SHELL_VIEWS = ["runs", "lanes", "canvas", "reviews", "artifacts", "models"];
     function normalizeShellView(value) {
       const view = String(value || "").trim().toLowerCase();
       return SHELL_VIEWS.includes(view) ? view : "";
@@ -232,14 +267,19 @@
       selectedLaneKey: "",
       panelReturnFocus: null,
       restoreRunFromUrl: Boolean(queryRun),
+      activityChanges: new Map(),
+      canvasSamples: new Map(),
+      canvasAxisMax: new Map(),
+      canvasSamplingReady: false,
       pilotDecisions: new Map(),
       pilotNotes: new Map()
     };
-    Object.assign(state, {models: null, modelsError: "", modelsFetched: false, modelsFetching: false, artifactLoading: false, artifactRefreshKey: "", updateDismissed: false});
+    Object.assign(state, {models: null, modelsError: "", modelsFetched: false, modelsFetching: false, modelsTaskType: "(all)", artifactLoading: false, artifactRefreshKey: "", updateDismissed: false});
 
     const els = {
       runsOverview: document.getElementById("runs-overview"),
       lanesView: document.getElementById("lanes-view"),
+      canvasView: document.getElementById("canvas-view"),
       reviewsView: document.getElementById("reviews-view"),
       artifactsView: document.getElementById("artifacts-view"),
       modelsView: document.getElementById("models-view"),
@@ -394,6 +434,7 @@
           ...run,
           __index: index,
           __id: runId(run, index),
+          __reported_elapsed_s: Number.isFinite(Number(run.elapsed_s)) ? Math.max(0, Number(run.elapsed_s)) : elapsedForRun({...run, state: stateName}),
           state: stateName,
           run_name: String(run.run_name || "ringer"),
           identity: String(run.identity || "unknown"),
@@ -423,6 +464,231 @@
       if (status === "running" || status === "verifying" || status === "working") return "working";
       if (status === "fail" || status === "failed" || status === "error" || status === "errored" || status === "timeout" || status === "died" || verdict === "FAIL") return "fail";
       return "waiting";
+    }
+
+    function taskWorkerReturncode(task) {
+      const direct = task?.worker_returncode ?? task?.returncode;
+      if (direct !== null && direct !== undefined && direct !== "") return String(direct);
+      const lines = Array.isArray(task?.log_tail) ? task.log_tail : [];
+      const patterns = [
+        /\bworker_returncode=(null|-?\d+)\b/i,
+        /\battempt\s+\d+\s+exited\s+rc=(null|-?\d+)\b/i,
+        /\bworker(?:\s+exited)?\s+rc[=:]\s*(null|-?\d+)\b/i
+      ];
+      for (let index = lines.length - 1; index >= 0; index -= 1) {
+        const text = String(lines[index] || "");
+        for (const pattern of patterns) {
+          const match = text.match(pattern);
+          if (match) return match[1];
+        }
+      }
+      return "";
+    }
+
+    function laneCause(task) {
+      const lane = task && typeof task === "object" ? task : {};
+      const setupError = typeof lane.setup_error === "string" ? lane.setup_error.trim() : "";
+      const rawCheckRc = lane.check_returncode;
+      const checkRcSet = rawCheckRc !== null && rawCheckRc !== undefined && rawCheckRc !== "";
+      const checkRc = checkRcSet ? String(rawCheckRc) : "not recorded";
+      const workerRc = taskWorkerReturncode(lane);
+      const checkName = String(lane.check || "").trim();
+      const withCheck = evidence => checkName ? [...evidence, `check=${checkName}`] : evidence;
+      if (setupError) {
+        return {
+          label: "HARNESS FAULT",
+          sentence: "Setup failed before the model ran; this lane must not be counted against the model.",
+          evidence: ["worker rc=not run", "check rc=not run", "timed-out=false", `setup-error=${setupError}`],
+          tone: "fail",
+          isFailure: true
+        };
+      }
+      if (lane.check_timed_out === true) {
+        return {
+          label: "TIMED OUT",
+          sentence: "The worker finished; the check exceeded its time window.",
+          evidence: withCheck([`worker rc=${workerRc || "not recorded (clean exit)"}`, `check rc=${checkRc}`, "timed-out=true", "setup-error=none"]),
+          tone: "fail",
+          isFailure: true
+        };
+      }
+      if (checkRcSet && Number(rawCheckRc) !== 0) {
+        return {
+          label: "CHECK FAULT",
+          sentence: "The worker finished cleanly; the check rejected the work.",
+          evidence: withCheck([`worker rc=${workerRc || "not recorded (clean exit)"}`, `check rc=${checkRc}`, "timed-out=false", "setup-error=none"]),
+          tone: "fail",
+          isFailure: true
+        };
+      }
+      if (taskKind(lane) === "fail") {
+        return {
+          label: "MODEL FAILURE",
+          sentence: "The model's worker failed; no setup or check fault was recorded.",
+          evidence: [`worker rc=${workerRc || "not reported"}`, `check rc=${checkRc}`, "timed-out=false", "setup-error=none"],
+          tone: "fail",
+          isFailure: true
+        };
+      }
+      if (taskKind(lane) === "pass") {
+        return {
+          label: "VERIFIED",
+          sentence: "The check accepted the work.",
+          evidence: [`check rc=${checkRcSet ? checkRc : "not recorded"}`],
+          tone: "pass",
+          isFailure: false
+        };
+      }
+      return {
+        label: "PENDING",
+        sentence: "No final verdict has been recorded.",
+        evidence: [checkRcSet ? `check rc=${checkRc}` : "check not run"],
+        tone: "pending",
+        isFailure: false
+      };
+    }
+
+    const STALE_ACTIVITY_MS = 180000;
+
+    function updateActivityChanges(runs) {
+      const now = Date.now();
+      const present = new Set();
+      runs.forEach(run => run.tasks.forEach((task, index) => {
+        const key = expansionKey(run.__id, taskKey(task, index));
+        const activity = String(task?.activity || "");
+        present.add(key);
+        const observed = state.activityChanges.get(key);
+        if (!observed || observed.activity !== activity) {
+          state.activityChanges.set(key, {activity, changedAt: now});
+        }
+      }));
+      for (const key of state.activityChanges.keys()) {
+        if (!present.has(key)) state.activityChanges.delete(key);
+      }
+    }
+
+    const CANVAS_SAMPLE_LIMIT = 900;
+    const CANVAS_HEADROOM = 1.18;
+    const CANVAS_STEPS = [120, 300, 600, 900, 1800, 2700, 3600];
+
+    function updateCanvasSamples(runs) {
+      const presentRuns = new Set(runs.map(run => run.__id));
+      runs.forEach(run => {
+        let buffer = state.canvasSamples.get(run.__id);
+        if (!buffer) {
+          buffer = {samples: [], retryEvents: new Map(), observedStarts: new Map()};
+          state.canvasSamples.set(run.__id, buffer);
+        }
+        const atS = canvasElapsed(run);
+        const previous = buffer.samples[buffer.samples.length - 1];
+        const lanes = new Map();
+        run.tasks.forEach((task, index) => {
+          const key = taskKey(task, index);
+          const kind = taskKind(task);
+          const taskElapsed = Math.max(0, numberOrZero(task.elapsed_s));
+          lanes.set(key, {
+            tokens: Math.max(0, numberOrZero(task.tokens)),
+            attempts: Math.max(0, Math.floor(numberOrZero(task.attempts))),
+            kind
+          });
+          const prior = previous?.lanes.get(key);
+          const appearedWhilePolling = (previous ? !prior : state.canvasSamplingReady)
+            && (kind === "working" || kind === "retry");
+          const startedWhilePolling = prior?.kind === "waiting"
+            && (kind === "working" || kind === "retry");
+          if (!buffer.observedStarts.has(key) && (appearedWhilePolling || startedWhilePolling)) {
+            buffer.observedStarts.set(key, Math.max(0, Math.round(atS - taskElapsed)));
+          }
+        });
+        if (previous) {
+          lanes.forEach((lane, key) => {
+            const prior = previous.lanes.get(key);
+            if (!prior || lane.attempts === prior.attempts) return;
+            const events = buffer.retryEvents.get(key) || [];
+            if (!events.length || events[events.length - 1].atS !== atS) {
+              events.push({atS, from: prior.attempts, to: lane.attempts});
+              buffer.retryEvents.set(key, events.slice(-32));
+            }
+          });
+        }
+        buffer.samples.push({atS, lanes});
+        if (buffer.samples.length > CANVAS_SAMPLE_LIMIT) {
+          buffer.samples.splice(0, buffer.samples.length - CANVAS_SAMPLE_LIMIT);
+        }
+      });
+      for (const runIdValue of state.canvasSamples.keys()) {
+        if (!presentRuns.has(runIdValue)) state.canvasSamples.delete(runIdValue);
+      }
+      for (const runIdValue of state.canvasAxisMax.keys()) {
+        if (!presentRuns.has(runIdValue)) state.canvasAxisMax.delete(runIdValue);
+      }
+      state.canvasSamplingReady = true;
+    }
+
+    function canvasRun() {
+      const live = runningNowRuns();
+      return live.find(run => run.__id === state.focusedRunId)
+        || state.runs.find(run => run.__id === state.focusedRunId)
+        || live[0]
+        || state.runs[0]
+        || null;
+    }
+
+    function canvasBudget(run) {
+      return Math.max(0, ...run.tasks.map(task => Math.floor(numberOrZero(task.timeout_s))));
+    }
+
+    function canvasElapsed(run) {
+      return Math.max(0, numberOrZero(run.__reported_elapsed_s ?? run.elapsed_s));
+    }
+
+    function canvasAxisDomain(run) {
+      const elapsed = Math.ceil(canvasElapsed(run));
+      const budget = canvasBudget(run);
+      const desired = Math.max(1, elapsed * CANVAS_HEADROOM);
+      const steps = CANVAS_STEPS.filter(step => !budget || step <= budget);
+      if (budget && !steps.includes(budget)) steps.push(budget);
+      steps.sort((left, right) => left - right);
+      const fitted = steps.find(step => step >= desired);
+      if (fitted) return {axisMax: fitted, budget, steps};
+      if (budget) return {axisMax: budget, budget, steps};
+      const axisMax = Math.ceil(desired / 3600) * 3600;
+      return {axisMax: Math.max(120, axisMax), budget: 0, steps: [...steps, Math.max(120, axisMax)]};
+    }
+
+    function canvasTokenMax(run, buffer) {
+      let highest = Math.max(0, ...run.tasks.map(task => numberOrZero(task.tokens)));
+      buffer?.samples.forEach(sample => sample.lanes.forEach(lane => { highest = Math.max(highest, lane.tokens); }));
+      if (highest <= 0) return 1;
+      const target = highest * 1.08;
+      const magnitude = 10 ** Math.floor(Math.log10(target));
+      const factors = [1, 1.25, 1.5, 2, 2.5, 5, 7.5, 10];
+      return Math.max(1, Math.ceil((factors.find(factor => factor * magnitude >= target) || 10) * magnitude));
+    }
+
+    function canvasTime(seconds) {
+      const total = Math.max(0, Math.round(numberOrZero(seconds)));
+      const hours = Math.floor(total / 3600);
+      const minutes = Math.floor((total % 3600) / 60);
+      const secs = total % 60;
+      if (hours) return minutes ? `${hours}h ${minutes}m` : `${hours}h`;
+      if (minutes) return secs ? `${minutes}m ${String(secs).padStart(2, "0")}s` : `${minutes}m`;
+      return `${secs}s`;
+    }
+
+    function canvasTickEvery(axisMax) {
+      if (axisMax <= 600) return 120;
+      if (axisMax <= 1800) return 300;
+      if (axisMax <= 3600) return 600;
+      return 900;
+    }
+
+    function laneStaleness(run, task, key) {
+      if (!taskIsRunning(task)) return null;
+      const observed = state.activityChanges.get(expansionKey(run.__id, key));
+      if (!observed) return null;
+      const ageMs = Math.max(0, Date.now() - observed.changedAt);
+      return ageMs >= STALE_ACTIVITY_MS ? ageMs / 1000 : null;
     }
 
     function taskStateText(kind) {
@@ -706,10 +972,493 @@
       })).sort((a,b) => a.rank-b.rank || a.key.localeCompare(b.key));
       const attention = entries.filter(entry => entry.rank === 0).length; const working = entries.filter(entry => entry.kind === "working").length;
       const head = document.createElement("header"); head.className = "view-title-row"; head.innerHTML = `<h1 id="lanes-title">Lane wall</h1><p class="view-meta">${entries.length} lanes · ${working} working · ${attention} need attention</p><p class="view-sort">attention → working → pass</p>`; staging.appendChild(head);
-      const columns = document.createElement("div"); columns.className = "lane-wall-grid lane-wall-columns"; ["","Lane","Run","State","Activity","Elapsed"].forEach(text => columns.append(Object.assign(document.createElement("span"), {textContent:text}))); staging.appendChild(columns);
-      entries.forEach(entry => { const row=document.createElement("button"); row.type="button"; row.className=`lane-wall-grid lane-wall-row ${entry.kind}`; row.dataset.key=`shell-lane:${entry.run.__id}:${entry.key}`; row.setAttribute("aria-label",`${entry.key}, ${entry.run.run_name}, ${entry.kind === "pilot" ? "review" : taskStateText(entry.kind)}. Open lane detail.`); const dot=document.createElement("span"); dot.className=`lane-dot ${entry.kind}`; dot.setAttribute("aria-hidden","true"); const lane=document.createElement("span"); lane.className="lane-name"; lane.textContent=entry.key; const run=document.createElement("span"); run.className="lane-run"; run.innerHTML=`<b></b>${projectInfo(entry.run).name}`; run.firstChild.textContent=entry.run.run_name; const status=document.createElement("span"); status.className=`lane-state status-${entry.kind === "pilot" ? "pilot" : entry.kind}`; status.textContent=entry.kind === "pilot" ? "review" : taskStateText(entry.kind); const activity=document.createElement("span"); activity.className=`lane-activity${entry.kind === "pilot" ? " lane-held" : ""}`; activity.textContent=entry.kind === "pilot" ? `Held while pilot ${entry.run.pilot?.task || "lane"} awaits review` : (taskActivity(entry.task) || "No activity reported"); const elapsed=document.createElement("span"); elapsed.className="lane-elapsed"; elapsed.textContent=formatDuration(entry.task.elapsed_s); row.append(dot,lane,run,status,activity,elapsed); row.addEventListener("click",event=>{openRunPanel(entry.run.__id,event.currentTarget);selectPanelLane(entry.run,entry.key);}); staging.appendChild(row); });
+      const columns = document.createElement("div");
+      columns.className = "lane-wall-grid lane-wall-columns";
+      ["", "Lane / state", "Run", "Route", "Activity", "Burn / run share", "Timeout progress", "Verdict / cause"].forEach(text => columns.append(Object.assign(document.createElement("span"), {textContent: text})));
+      staging.appendChild(columns);
+      const burnLeaders = new Map();
+      entries.forEach(entry => {
+        const tokens = Math.max(0, numberOrZero(entry.task.tokens));
+        const leader = burnLeaders.get(entry.run.__id);
+        if (!leader || tokens > leader.tokens) burnLeaders.set(entry.run.__id, {key: entry.key, tokens});
+      });
+      entries.forEach(entry => {
+        const cause = laneCause(entry.task);
+        const tokens = Math.max(0, numberOrZero(entry.task.tokens));
+        const runTokens = Math.max(0, numberOrZero(entry.run.tokens));
+        const burnShare = runTokens > 0 ? (tokens / runTokens) * 100 : 0;
+        const burnLeader = tokens > 0 && burnLeaders.get(entry.run.__id)?.key === entry.key;
+        const elapsedSeconds = Math.max(0, numberOrZero(entry.task.elapsed_s));
+        const timeoutSeconds = Math.max(0, numberOrZero(entry.task.timeout_s));
+        const timeoutPercent = timeoutSeconds > 0 ? (elapsedSeconds / timeoutSeconds) * 100 : 0;
+        const staleSeconds = laneStaleness(entry.run, entry.task, entry.key);
+        const engine = String(entry.task.engine || "").trim() || "engine not reported";
+        const model = String(entry.task.model || "").trim() || "model not reported";
+        const statusText = entry.kind === "pilot" ? "review" : taskStateText(entry.kind);
+        const activityText = entry.kind === "pilot"
+          ? `Held while pilot ${entry.run.pilot?.task || "lane"} awaits review`
+          : (taskActivity(entry.task) || "No activity reported");
+        const staleText = staleSeconds === null ? "" : `no change ${formatDuration(staleSeconds)}`;
+        const evidenceText = cause.evidence.join("; ");
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = `lane-wall-grid lane-wall-row ${entry.kind}${staleText ? " stale" : ""}`;
+        row.dataset.key = `shell-lane:${entry.run.__id}:${entry.key}`;
+        row.setAttribute("aria-label", `${entry.key}, ${entry.run.run_name}, ${statusText}, route ${engine}, model ${model}, ${formatTokens(tokens)}, ${burnShare.toFixed(1)} percent of run burn, ${formatDuration(elapsedSeconds)} of ${timeoutSeconds ? formatDuration(timeoutSeconds) : "no timeout reported"}${staleText ? `, ${staleText}` : ""}, ${cause.label}, ${evidenceText}. Open lane detail.`);
+
+        const dot = document.createElement("span");
+        dot.className = `lane-dot ${entry.kind}`;
+        dot.setAttribute("aria-hidden", "true");
+
+        const identity = document.createElement("span");
+        identity.className = "lane-identity";
+        const lane = document.createElement("span");
+        lane.className = "lane-name";
+        lane.textContent = entry.key;
+        const status = document.createElement("span");
+        status.className = `lane-state status-${entry.kind === "pilot" ? "pilot" : entry.kind}`;
+        status.textContent = statusText;
+        identity.append(lane, status);
+
+        const run = document.createElement("span");
+        run.className = "lane-run";
+        const runName = document.createElement("b");
+        runName.textContent = entry.run.run_name;
+        run.append(runName, document.createTextNode(projectInfo(entry.run).name));
+
+        const route = document.createElement("span");
+        route.className = "lane-route";
+        route.append(
+          Object.assign(document.createElement("span"), {className: "lane-route-engine", textContent: engine}),
+          Object.assign(document.createElement("span"), {className: "lane-route-model", textContent: `· ${model}`})
+        );
+
+        const activity = document.createElement("span");
+        activity.className = "lane-activity-cell";
+        const activityValue = document.createElement("span");
+        activityValue.className = `lane-activity${entry.kind === "pilot" ? " lane-held" : ""}`;
+        activityValue.textContent = activityText;
+        const signal = document.createElement("span");
+        signal.className = `lane-signal${staleText ? " stale" : ""}`;
+        signal.textContent = staleText || (taskIsRunning(entry.task) ? "activity observed" : entry.kind === "pilot" ? "held" : "resolved");
+        activity.append(activityValue, signal);
+
+        const burn = document.createElement("span");
+        burn.className = "lane-burn";
+        const burnTop = document.createElement("span");
+        burnTop.className = "lane-meter-top";
+        burnTop.append(
+          Object.assign(document.createElement("span"), {textContent: formatTokens(tokens)}),
+          Object.assign(document.createElement("small"), {textContent: `${burnShare.toFixed(1)}%`})
+        );
+        const burnMeter = document.createElement("span");
+        burnMeter.className = "lane-meter";
+        burnMeter.setAttribute("role", "meter");
+        burnMeter.setAttribute("aria-valuemin", "0");
+        burnMeter.setAttribute("aria-valuemax", "100");
+        burnMeter.setAttribute("aria-valuenow", String(Math.min(100, burnShare)));
+        burnMeter.setAttribute("aria-label", `${entry.key} used ${burnShare.toFixed(1)} percent of ${formatTokens(runTokens)} run tokens`);
+        const burnFill = document.createElement("span");
+        burnFill.className = "lane-meter-fill";
+        burnFill.style.width = `${Math.min(100, burnShare)}%`;
+        burnMeter.appendChild(burnFill);
+        const burnCaption = document.createElement("span");
+        burnCaption.className = `lane-meter-caption${burnLeader ? " burn-leader" : ""}`;
+        burnCaption.textContent = burnLeader ? "Burn leader · run share" : "of run total";
+        burn.append(burnTop, burnMeter, burnCaption);
+
+        const timeout = document.createElement("span");
+        timeout.className = "lane-timeout";
+        const timeoutTop = document.createElement("span");
+        timeoutTop.className = "lane-meter-top";
+        timeoutTop.append(
+          Object.assign(document.createElement("span"), {textContent: formatDuration(elapsedSeconds)}),
+          Object.assign(document.createElement("small"), {textContent: timeoutSeconds ? `/ ${formatDuration(timeoutSeconds)}` : "/ no budget"})
+        );
+        const timeoutMeter = document.createElement("span");
+        timeoutMeter.className = "lane-meter";
+        timeoutMeter.setAttribute("role", "meter");
+        timeoutMeter.setAttribute("aria-valuemin", "0");
+        timeoutMeter.setAttribute("aria-valuemax", String(timeoutSeconds || 100));
+        timeoutMeter.setAttribute("aria-valuenow", String(timeoutSeconds ? Math.min(timeoutSeconds, elapsedSeconds) : 0));
+        timeoutMeter.setAttribute("aria-label", timeoutSeconds ? `${entry.key} has used ${timeoutPercent.toFixed(1)} percent of its timeout` : `${entry.key} timeout budget not reported`);
+        const timeoutFill = document.createElement("span");
+        timeoutFill.className = "lane-meter-fill";
+        timeoutFill.style.width = `${Math.min(100, timeoutPercent)}%`;
+        timeoutMeter.appendChild(timeoutFill);
+        const attempts = Math.max(0, Math.floor(numberOrZero(entry.task.attempts)));
+        const maxAttempts = Math.max(attempts, Math.floor(numberOrZero(entry.task.max_attempts)));
+        const timeoutCaption = document.createElement("span");
+        timeoutCaption.className = "lane-meter-caption";
+        timeoutCaption.textContent = `${timeoutPercent.toFixed(1)}% · attempt ${attempts || "—"}/${maxAttempts || "—"}`;
+        timeout.append(timeoutTop, timeoutMeter, timeoutCaption);
+
+        const causeCell = document.createElement("span");
+        causeCell.className = "lane-cause";
+        const chip = document.createElement("span");
+        chip.className = `lane-cause-chip ${cause.tone}`;
+        chip.textContent = `${statusText} · ${cause.label}`;
+        const causeEvidence = document.createElement("span");
+        causeEvidence.className = "lane-cause-evidence";
+        cause.evidence.filter(item => !item.startsWith("check=")).forEach(item => {
+          const evidenceItem = document.createElement("span");
+          evidenceItem.className = "lane-evidence-item";
+          evidenceItem.textContent = item;
+          evidenceItem.title = item;
+          causeEvidence.appendChild(evidenceItem);
+        });
+        causeEvidence.title = evidenceText;
+        causeCell.append(chip, causeEvidence);
+        if (cause.isFailure && String(entry.task.check || "").trim()) {
+          const check = document.createElement("span");
+          check.className = "lane-cause-check";
+          check.textContent = `check: ${String(entry.task.check).trim()}`;
+          check.title = String(entry.task.check).trim();
+          causeCell.appendChild(check);
+        }
+
+        row.append(dot, identity, run, route, activity, burn, timeout, causeCell);
+        const runIdValue = entry.run.__id;
+        const laneKeyValue = entry.key;
+        row.addEventListener("click", event => {
+          const currentRun = state.runs.find(runItem => runItem.__id === runIdValue);
+          openRunPanel(runIdValue, event.currentTarget);
+          if (currentRun) selectPanelLane(currentRun, laneKeyValue);
+        });
+        staging.appendChild(row);
+      });
       if (!entries.length) staging.append(Object.assign(document.createElement("p"), {className:"held-callout",textContent:"No lanes have reported in yet."}));
       morphChildren(els.lanesView, staging);
+    }
+
+    function renderCanvasView() {
+      const staging = document.createElement("div");
+      appendSystemStates(staging);
+      const run = canvasRun();
+      if (!run) {
+        els.canvasView.dataset.tokenMax = "1";
+        els.canvasView.dataset.samples = "0";
+        const head = document.createElement("header");
+        head.className = "view-title-row";
+        head.dataset.key = "canvas-head";
+        head.innerHTML = '<h1 id="canvas-title">Time Canvas</h1><p class="view-meta">Observed token traces on run-relative time</p><p class="view-sort">fitted window</p>';
+        const empty = document.createElement("p");
+        empty.className = "canvas-empty";
+        empty.dataset.key = "canvas-empty";
+        empty.textContent = "No run telemetry is available for the canvas yet.";
+        staging.append(head, empty);
+        morphChildren(els.canvasView, staging);
+        return;
+      }
+
+      const buffer = state.canvasSamples.get(run.__id) || {samples: [], retryEvents: new Map(), observedStarts: new Map()};
+      const samples = buffer.samples.length;
+      const {axisMax, budget, steps} = canvasAxisDomain(run);
+      const previousAxis = state.canvasAxisMax.get(run.__id);
+      const rescaled = Boolean(previousAxis && previousAxis !== axisMax);
+      state.canvasAxisMax.set(run.__id, axisMax);
+      const tokenMax = canvasTokenMax(run, buffer);
+      const elapsed = canvasElapsed(run);
+      const nowPercent = Math.min(100, (elapsed / axisMax) * 100);
+      const tickEvery = canvasTickEvery(axisMax);
+      const highestTokens = Math.max(0, ...run.tasks.map(task => numberOrZero(task.tokens)));
+      const nextStep = steps[steps.indexOf(axisMax) + 1];
+      els.canvasView.dataset.tokenMax = String(tokenMax);
+      els.canvasView.dataset.samples = String(samples);
+
+      const head = document.createElement("header");
+      head.className = "view-title-row";
+      head.dataset.key = "canvas-head";
+      const title = document.createElement("h1");
+      title.id = "canvas-title";
+      title.textContent = "Time Canvas";
+      const meta = document.createElement("p");
+      meta.className = "view-meta";
+      meta.textContent = `${projectInfo(run).name} / ${run.run_name} · ${run.tasks.length} lanes`;
+      const sort = document.createElement("p");
+      sort.className = "view-sort";
+      sort.textContent = run.state === "live" ? "run active · observed each poll" : "run complete · observed samples";
+      head.append(title, meta, sort);
+      staging.appendChild(head);
+
+      const census = document.createElement("section");
+      census.className = "canvas-census";
+      census.dataset.key = `canvas-census:${run.__id}`;
+      census.setAttribute("aria-label", `${run.run_name} Time Canvas summary`);
+      const addCensus = (label, value, note) => {
+        const cell = document.createElement("div");
+        cell.className = "canvas-census-cell";
+        const labelNode = document.createElement("span");
+        labelNode.className = "canvas-census-label";
+        labelNode.textContent = label;
+        const valueNode = document.createElement("span");
+        valueNode.className = "canvas-census-value";
+        valueNode.textContent = value;
+        const noteNode = document.createElement("span");
+        noteNode.className = "canvas-census-note";
+        noteNode.textContent = note;
+        cell.append(labelNode, valueNode, noteNode);
+        census.appendChild(cell);
+      };
+      addCensus("Run", run.run_name, `${projectInfo(run).name} · max parallel ${Math.max(0, Math.floor(numberOrZero(run.max_parallel))) || "—"}`);
+      addCensus("Elapsed", canvasTime(elapsed), run.state === "live" ? "run-relative now" : "final observed time");
+      addCensus("Tokens so far", formatTokens(run.tokens).replace(" tok", ""), `shared lane scale · 0—${tokenMax.toLocaleString()}`);
+      addCensus("Observed samples", String(samples), samples < 2 ? "collecting history · no trace yet" : "real poll snapshots · buffer capped at 900");
+      staging.appendChild(census);
+
+      const wall = document.createElement("section");
+      wall.className = `canvas-wall${rescaled ? " canvas-rescaled" : ""}`;
+      wall.dataset.key = `canvas-wall:${run.__id}`;
+      wall.setAttribute("aria-label", `${run.run_name} lanes on a shared run-relative time and token scale`);
+      const axis = document.createElement("div");
+      axis.className = "canvas-axis";
+      axis.dataset.key = `canvas-axis:${run.__id}`;
+      axis.dataset.axisMaxS = String(Math.round(axisMax));
+      axis.setAttribute("aria-label", `Fitted run-relative axis from zero to ${canvasTime(axisMax)}; now ${canvasTime(elapsed)}${budget ? `; timeout ${canvasTime(budget)}` : "; no timeout reported"}`);
+      const axisIntro = document.createElement("div");
+      axisIntro.className = "canvas-axis-intro";
+      axisIntro.dataset.key = "canvas-axis-intro";
+      axisIntro.append(
+        Object.assign(document.createElement("span"), {className: "canvas-kicker", textContent: "Trace height = tokens"}),
+        Object.assign(document.createElement("span"), {className: "canvas-axis-sub", textContent: "one vertical scale across every lane"})
+      );
+      const axisStage = document.createElement("div");
+      axisStage.className = "canvas-axis-stage";
+      axisStage.dataset.key = "canvas-axis-stage";
+      axisStage.setAttribute("aria-hidden", "true");
+      const tickValues = [];
+      for (let tick = 0; tick <= axisMax; tick += tickEvery) tickValues.push(tick);
+      if (tickValues[tickValues.length - 1] !== axisMax) tickValues.push(axisMax);
+      tickValues.forEach((tick, index) => {
+        const tickNode = document.createElement("span");
+        const end = tick === axisMax;
+        tickNode.className = `canvas-tick${index % 2 === 0 || end ? " major" : ""}${end ? " end" : ""}`;
+        tickNode.dataset.key = `canvas-axis-tick:${tick}`;
+        tickNode.style.left = `${(tick / axisMax) * 100}%`;
+        const tickLabel = document.createElement("span");
+        tickLabel.className = "canvas-tick-label";
+        tickLabel.textContent = canvasTime(tick);
+        tickNode.appendChild(tickLabel);
+        axisStage.appendChild(tickNode);
+      });
+      const nowHead = document.createElement("span");
+      nowHead.className = `canvas-now-head${nowPercent > 86 ? " near-edge" : ""}`;
+      nowHead.dataset.key = "canvas-now-head";
+      nowHead.style.left = `${nowPercent}%`;
+      nowHead.appendChild(Object.assign(document.createElement("span"), {textContent: "NOW"}));
+      axisStage.appendChild(nowHead);
+      const timeoutHead = document.createElement("div");
+      timeoutHead.className = `canvas-timeout-head${budget && budget <= axisMax ? " in-domain" : ""}`;
+      timeoutHead.dataset.key = "canvas-timeout-head";
+      timeoutHead.textContent = budget ? (budget <= axisMax ? `timeout marker · ${canvasTime(budget)}` : `→ timeout ${canvasTime(budget)}`) : "timeout not reported";
+      axis.append(axisIntro, axisStage, timeoutHead);
+      wall.appendChild(axis);
+
+      run.tasks.forEach((task, index) => {
+        const key = taskKey(task, index);
+        const kind = taskKind(task);
+        const statusText = taskStateText(kind);
+        const taskTokens = Math.max(0, numberOrZero(task.tokens));
+        const taskElapsed = Math.max(0, numberOrZero(task.elapsed_s));
+        const laneFinished = kind === "pass" || kind === "fail";
+        const observedStart = buffer.observedStarts.get(key);
+        const laneStart = laneFinished
+          ? (Number.isFinite(observedStart) ? observedStart : null)
+          : Math.max(0, Math.round(elapsed - taskElapsed));
+        const laneStartKnown = laneStart !== null;
+        const laneStartText = laneStartKnown
+          ? `spawned ${canvasTime(laneStart)} after run start`
+          : "spawn time not observed";
+        const attempts = Math.max(0, Math.floor(numberOrZero(task.attempts)));
+        const maxAttempts = Math.max(attempts, Math.floor(numberOrZero(task.max_attempts)));
+        const timeout = Math.max(0, Math.floor(numberOrZero(task.timeout_s)));
+        const retryEvents = buffer.retryEvents.get(key) || [];
+        const points = buffer.samples.flatMap(sample => {
+          const lane = sample.lanes.get(key);
+          if (!lane || (laneStartKnown && sample.atS < laneStart) || sample.atS > axisMax) return [];
+          return [{atS: sample.atS, tokens: lane.tokens}];
+        });
+        const pointText = points.map(point => {
+          const x = Math.max(0, Math.min(1000, (point.atS / axisMax) * 1000));
+          const y = Math.max(4, Math.min(96, 96 - (point.tokens / tokenMax) * 90));
+          return `${x.toFixed(2)},${y.toFixed(2)}`;
+        }).join(" ");
+        const lastPoint = points[points.length - 1];
+        const cause = laneCause(task);
+        const activity = taskActivity(task) || "No activity reported";
+        const traceState = points.length < 2 ? "collecting observed history" : `${points.length} observed points`;
+        const retrySummary = retryEvents.length
+          ? `${retryEvents.length} retry boundary${retryEvents.length === 1 ? "" : "ies"} observed`
+          : attempts > 1 ? "multi-attempt; retry boundary was not observed" : "single attempt observed";
+        const lane = document.createElement("article");
+        lane.className = "canvas-lane-track";
+        lane.dataset.key = `canvas-lane:${run.__id}:${key}`;
+        if (laneStartKnown) lane.dataset.laneStartS = String(laneStart);
+        lane.setAttribute("aria-label", `${key}, ${statusText}, ${laneStartText}, ${formatTokens(taskTokens)}, ${traceState}, ${retrySummary}, ${cause.label}. ${activity}`);
+
+        const laneMeta = document.createElement("div");
+        laneMeta.className = "canvas-lane-meta";
+        laneMeta.dataset.key = `canvas-lane-meta:${key}`;
+        const laneTop = document.createElement("div");
+        laneTop.className = "canvas-lane-top";
+        const laneKeyNode = document.createElement("span");
+        laneKeyNode.className = "canvas-lane-key";
+        laneKeyNode.textContent = key;
+        const status = document.createElement("span");
+        status.className = `canvas-status ${kind}`;
+        status.textContent = statusText;
+        laneTop.append(laneKeyNode, status);
+        const route = document.createElement("span");
+        route.className = "canvas-route";
+        route.append(document.createTextNode(`${String(task.engine || "engine not reported")} · `), Object.assign(document.createElement("code"), {textContent: String(task.model || "model not reported")}));
+        const stats = document.createElement("span");
+        stats.className = "canvas-lane-stats";
+        const laneStatValues = [
+          [`${canvasTime(taskElapsed)} / ${timeout ? canvasTime(timeout) : "no timeout"}`, "elapsed"],
+          [formatTokens(taskTokens), "tokens"],
+          [`${attempts || "—"}/${maxAttempts || "—"}`, "attempt"]
+        ];
+        laneStatValues.forEach(([value, label]) => {
+          const stat = document.createElement("span");
+          const strong = document.createElement("strong");
+          strong.textContent = value;
+          stat.append(strong, document.createTextNode(` ${label}`));
+          stats.appendChild(stat);
+        });
+        laneMeta.append(laneTop, route, stats);
+
+        const plot = document.createElement("div");
+        plot.className = "canvas-track-plot";
+        plot.dataset.key = `canvas-plot:${key}`;
+        plot.setAttribute("aria-hidden", "true");
+        tickValues.forEach(tick => {
+          const line = document.createElement("span");
+          line.className = `canvas-grid-line${tick % (tickEvery * 2) === 0 ? " major" : ""}`;
+          line.dataset.key = `canvas-grid:${key}:${tick}`;
+          line.style.left = `${(tick / axisMax) * 100}%`;
+          plot.appendChild(line);
+        });
+        const baseline = document.createElement("span");
+        baseline.className = "canvas-baseline";
+        baseline.dataset.key = `canvas-baseline:${key}`;
+        plot.appendChild(baseline);
+        if (laneStartKnown && laneStart > 0) {
+          const queueGap = document.createElement("span");
+          queueGap.className = "canvas-queue-gap";
+          queueGap.dataset.key = `canvas-queue-gap:${key}`;
+          queueGap.style.width = `${Math.min(100, (laneStart / axisMax) * 100)}%`;
+          plot.appendChild(queueGap);
+        }
+        if (laneStartKnown) {
+          const spawnLine = document.createElement("span");
+          spawnLine.className = "canvas-spawn-line";
+          spawnLine.dataset.key = `canvas-spawn:${key}`;
+          spawnLine.style.left = `${Math.min(100, (laneStart / axisMax) * 100)}%`;
+          plot.appendChild(spawnLine);
+        }
+        const nowLine = document.createElement("span");
+        nowLine.className = "canvas-now-line";
+        nowLine.dataset.key = `canvas-now:${key}`;
+        nowLine.style.left = `${nowPercent}%`;
+        plot.appendChild(nowLine);
+        if (timeout && timeout <= axisMax) {
+          const timeoutLine = document.createElement("span");
+          timeoutLine.className = "canvas-timeout-line";
+          timeoutLine.dataset.key = `canvas-timeout:${key}`;
+          timeoutLine.style.left = `${(timeout / axisMax) * 100}%`;
+          plot.appendChild(timeoutLine);
+        }
+        retryEvents.filter(event => (!laneStartKnown || event.atS >= laneStart) && event.atS <= axisMax).forEach((event, eventIndex) => {
+          const retry = document.createElement("span");
+          retry.className = "canvas-retry-line";
+          retry.dataset.key = `canvas-retry:${key}:${eventIndex}:${event.atS}`;
+          retry.style.left = `${(event.atS / axisMax) * 100}%`;
+          plot.appendChild(retry);
+        });
+        if (points.length >= 2) {
+          const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+          svg.setAttribute("class", "canvas-trace");
+          svg.setAttribute("viewBox", "0 0 1000 100");
+          svg.setAttribute("preserveAspectRatio", "none");
+          svg.dataset.key = `canvas-trace:${key}`;
+          const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+          polyline.setAttribute("class", kind);
+          polyline.setAttribute("points", pointText);
+          polyline.dataset.key = `canvas-trace-line:${key}`;
+          const endX = Math.max(0, Math.min(1000, (lastPoint.atS / axisMax) * 1000));
+          const endY = Math.max(4, Math.min(96, 96 - (lastPoint.tokens / tokenMax) * 90));
+          const endpoint = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+          endpoint.setAttribute("class", `canvas-endpoint ${kind}`);
+          endpoint.setAttribute("x", String(endX - 3));
+          endpoint.setAttribute("y", String(endY - 3));
+          endpoint.setAttribute("width", "6");
+          endpoint.setAttribute("height", "6");
+          endpoint.dataset.key = `canvas-endpoint:${key}`;
+          svg.append(polyline, endpoint);
+          plot.appendChild(svg);
+        } else {
+          const collecting = document.createElement("span");
+          collecting.className = "canvas-collecting";
+          collecting.dataset.key = `canvas-collecting:${key}`;
+          collecting.textContent = "Collecting observed history — trace starts after the next poll";
+          plot.appendChild(collecting);
+        }
+        const foot = document.createElement("span");
+        foot.className = "canvas-track-foot";
+        foot.dataset.key = `canvas-track-foot:${key}`;
+        const activityNode = document.createElement("span");
+        activityNode.textContent = activity;
+        const rankNode = document.createElement("span");
+        rankNode.className = "canvas-burn-rank";
+        rankNode.textContent = taskTokens > 0 && taskTokens === highestTokens ? "highest burn" : "";
+        foot.append(activityNode, rankNode);
+        plot.appendChild(foot);
+
+        const note = document.createElement("div");
+        note.className = "canvas-lane-note";
+        note.dataset.key = `canvas-note:${key}`;
+        const noteKicker = document.createElement("span");
+        noteKicker.className = "canvas-note-kicker";
+        noteKicker.textContent = cause.label;
+        const noteMain = document.createElement("span");
+        noteMain.className = `canvas-note-main${cause.isFailure ? " fail" : ""}`;
+        noteMain.textContent = cause.sentence;
+        const noteSub = document.createElement("span");
+        noteSub.className = `canvas-note-sub${cause.isFailure ? " fail" : ""}`;
+        noteSub.textContent = retryEvents.length
+          ? `retry observed at ${canvasTime(retryEvents[retryEvents.length - 1].atS)} · ${laneStartKnown ? `spawned ${canvasTime(laneStart)}` : laneStartText}`
+          : attempts > 1
+            ? `multi-attempt · boundary not observed · ${laneStartKnown ? `spawned ${canvasTime(laneStart)}` : laneStartText}`
+            : laneStartText;
+        note.append(noteKicker, noteMain, noteSub);
+        lane.append(laneMeta, plot, note);
+        wall.appendChild(lane);
+      });
+
+      const footer = document.createElement("footer");
+      footer.className = "canvas-footer";
+      footer.dataset.key = `canvas-footer:${run.__id}`;
+      const brand = document.createElement("span");
+      brand.append(Object.assign(document.createElement("strong"), {textContent: "TIME CANVAS"}), document.createTextNode(" / fitted window"));
+      const legend = document.createElement("span");
+      legend.className = "canvas-legend";
+      legend.setAttribute("aria-label", "Trace legend");
+      [["", "observed token accumulation"], ["flat", "flat = no token change observed"], ["gap", "gap = queue wait / observed retry"]].forEach(([kindName, label]) => {
+        const item = document.createElement("span");
+        item.className = "canvas-legend-item";
+        const line = document.createElement("span");
+        line.className = `canvas-legend-line${kindName ? ` ${kindName}` : ""}`;
+        line.setAttribute("aria-hidden", "true");
+        item.append(line, document.createTextNode(label));
+        legend.appendChild(item);
+      });
+      const windowPolicy = document.createElement("span");
+      windowPolicy.className = "canvas-window";
+      windowPolicy.textContent = nextStep ? `window ${canvasTime(axisMax)} · next ${canvasTime(nextStep)}` : `window ${canvasTime(axisMax)} · ${budget ? "budget ceiling" : "open ceiling"}`;
+      footer.append(brand, legend, windowPolicy);
+      wall.appendChild(footer);
+      staging.appendChild(wall);
+      preserveScroll(() => morphChildren(els.canvasView, staging));
     }
 
     function renderReviewsView() {
@@ -778,8 +1527,9 @@
 
     function compactTokens(value) { const count=numberOrZero(value); return count >= 1000000 ? `${(count/1000000).toFixed(1)}m` : count >= 1000 ? `${Math.round(count/1000)}k` : String(Math.round(count)); }
     function renderModelsView() {
-      const staging=document.createElement("div"); const view=document.createElement("div"); view.className="models-view"; view.dataset.key="models-shell"; appendSystemStates(view); const rows=Array.isArray(state.models?.rollup)?state.models.rollup:[]; const verdicts=rows.reduce((sum,row)=>sum+numberOrZero(row.tasks),0); const head=document.createElement("header"); head.className="view-title-row"; const title=document.createElement("h1"); title.id="models-title"; title.textContent="Models"; const meta=document.createElement("p"); meta.className="view-meta"; meta.textContent=state.modelsFetching?"local scoreboard · refreshing…":state.models?`local scoreboard · ${verdicts} verdicts · refreshed ${relativeAgo(state.models.generated_at)}`:"local scoreboard"; head.append(title,meta); view.appendChild(head);
-      if(state.modelsError){const error=document.createElement("p");error.className="models-message";error.setAttribute("role","status");error.textContent=`Models scoreboard unavailable: ${state.modelsError}`;view.appendChild(error);} else if(!state.modelsFetched){const message=document.createElement("p");message.className="models-message";message.textContent="Loading model scoreboard…";view.appendChild(message);} else if(!rows.length){const message=document.createElement("p");message.className="models-message";message.textContent="No model results yet. Run ./ringer.py models to build the local scoreboard.";view.appendChild(message);} else {const table=document.createElement("table");table.className="models-table";table.setAttribute("aria-labelledby","models-title");const caption=document.createElement("caption");caption.textContent="Local model performance scoreboard";caption.style.cssText="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)";table.appendChild(caption);const cols=document.createElement("colgroup");for(let i=0;i<6;i++)cols.appendChild(document.createElement("col"));table.appendChild(cols);const thead=document.createElement("thead");const hr=document.createElement("tr");["Model","Tier","Win rate","Pass","Fail","Avg tok"].forEach((label,index)=>{const th=document.createElement("th");th.scope="col";th.textContent=label;if(index>2)th.style.textAlign="right";hr.appendChild(th);});thead.appendChild(hr);table.appendChild(thead);const tbody=document.createElement("tbody");rows.forEach((row,index)=>{const tr=document.createElement("tr");tr.dataset.key=`model:${row.display_bucket_id||row.model||index}`;const tasks=Math.max(0,Math.round(numberOrZero(row.tasks)));const rate=Math.max(0,Math.min(1,numberOrZero(row.pass_rate)));const pass=Math.round(tasks*rate);const fail=Math.max(0,tasks-pass);const rawTier=String(row.tier||"new").toLowerCase();const tier=rawTier==="proven"||rawTier==="probation"?rawTier:"new";const identity=document.createElement("td");identity.innerHTML='<span class="model-display-name"></span><span class="model-slug"></span>';identity.firstChild.textContent=row.model_display||row.model||"unknown";identity.lastChild.textContent=row.model||"model route unavailable";const tierCell=document.createElement("td");const badge=document.createElement("span");badge.className=`tier-badge-new ${tier}`;badge.textContent=tier;tierCell.appendChild(badge);const win=document.createElement("td");win.className="win-cell";const track=document.createElement("span");track.className="win-track";track.setAttribute("role","meter");track.setAttribute("aria-valuemin","0");track.setAttribute("aria-valuemax","100");track.setAttribute("aria-valuenow",String(Math.round(rate*100)));track.setAttribute("aria-label",`${Math.round(rate*100)} percent win rate`);const fill=document.createElement("span");fill.className=`win-fill ${tier}`;fill.style.width=`${rate*100}%`;track.appendChild(fill);const winText=document.createElement("span");winText.className="win-caption";winText.textContent=`${Math.round(rate*100)}% · ${tasks} runs`;win.append(track,winText);const numberCell=value=>{const td=document.createElement("td");td.className="model-number";td.textContent=value;return td;};tr.append(identity,tierCell,win,numberCell(String(pass)),numberCell(String(fail)),numberCell(row.median_tokens==null?"—":compactTokens(row.median_tokens)));tbody.appendChild(tr);});table.appendChild(tbody);view.appendChild(table);} staging.appendChild(view);preserveScroll(()=>morphChildren(els.modelsView,staging));
+      const staging=document.createElement("div"); const view=document.createElement("div"); view.className="models-view"; view.dataset.key="models-shell"; appendSystemStates(view); const rollup=Array.isArray(state.models?.rollup)?state.models.rollup:[]; const groups=Array.isArray(state.models?.groups)?state.models.groups:[]; const taskTypes=[...new Set(groups.map(row=>String(row.task_type||"(untyped)")))].sort((left,right)=>left.localeCompare(right)); if(state.modelsTaskType!=="(all)"&&!taskTypes.includes(state.modelsTaskType))state.modelsTaskType="(all)"; const rows=(state.modelsTaskType==="(all)"?rollup:groups.filter(row=>String(row.task_type||"(untyped)")===state.modelsTaskType)).slice(); const tierFor=row=>{const raw=String(row.tier||"new").toLowerCase();if(raw==="unranked"||raw==="misrouted")return "unranked";if(numberOrZero(row.tasks)<3)return "new";return raw==="proven"||raw==="probation"?raw:"new";}; rows.sort((left,right)=>{const rank={proven:0,probation:1,new:2,unranked:3};return (rank[tierFor(left)]??4)-(rank[tierFor(right)]??4)||numberOrZero(right.first_try_pass_rate)-numberOrZero(left.first_try_pass_rate)||numberOrZero(right.pass_rate)-numberOrZero(left.pass_rate)||numberOrZero(right.tasks)-numberOrZero(left.tasks)||String(left.model||"").localeCompare(String(right.model||""));}); const verdicts=rows.reduce((sum,row)=>sum+numberOrZero(row.tasks),0); const scopeLabel=state.modelsTaskType==="(all)"?"All task types":state.modelsTaskType; const head=document.createElement("header"); head.className="view-title-row"; const title=document.createElement("h1"); title.id="models-title"; title.textContent="Models"; const meta=document.createElement("p"); meta.className="view-meta"; meta.textContent=state.modelsFetching?`${scopeLabel} · refreshing…`:state.models?`${scopeLabel} · ${verdicts} tasks · refreshed ${relativeAgo(state.models.generated_at)}`:scopeLabel; head.append(title,meta); view.appendChild(head);
+      if(state.modelsFetched&&!state.modelsError){const sliceBar=document.createElement("section");sliceBar.className="models-slice-bar";sliceBar.setAttribute("aria-label","Model scoreboard scope");const copy=document.createElement("div");copy.className="models-slice-copy";const scope=document.createElement("strong");scope.textContent=scopeLabel;const explanation=document.createElement("span");explanation.textContent=state.modelsTaskType==="(all)"?"Overview across unlike work; choose a task type before routing.":"Tier and rates use only this task type.";copy.append(scope,explanation);const control=document.createElement("div");control.className="models-slice-control";const label=document.createElement("label");label.htmlFor="models-task-type";label.textContent="Task type";const select=document.createElement("select");select.id="models-task-type";select.dataset.key="models-task-type-control";select.className="models-slice-select";select.setAttribute("aria-label","Task type slice");[{value:"(all)",label:"All task types"},...taskTypes.map(value=>({value,label:value}))].forEach(item=>{const option=document.createElement("option");option.value=item.value;option.textContent=item.label;option.selected=item.value===state.modelsTaskType;select.appendChild(option);});select.addEventListener("change",event=>{state.modelsTaskType=event.currentTarget.value;renderModelsView();});control.append(label,select);sliceBar.append(copy,control);view.appendChild(sliceBar);}
+      if(state.modelsError){const error=document.createElement("p");error.className="models-message";error.setAttribute("role","status");error.textContent=`Models scoreboard unavailable: ${state.modelsError}`;view.appendChild(error);} else if(!state.modelsFetched){const message=document.createElement("p");message.className="models-message";message.textContent="Loading model scoreboard…";view.appendChild(message);} else if(!rows.length){const message=document.createElement("p");message.className="models-message";message.textContent=state.modelsTaskType==="(all)"?"No model results yet. Run ./ringer.py models to build the local scoreboard.":`No model results recorded for ${state.modelsTaskType}.`;view.appendChild(message);} else {const table=document.createElement("table");table.className="models-table";table.setAttribute("aria-labelledby","models-title");const caption=document.createElement("caption");caption.className="visually-hidden";caption.textContent=`Model performance scoreboard for ${scopeLabel}`;table.appendChild(caption);const cols=document.createElement("colgroup");for(let i=0;i<6;i++)cols.appendChild(document.createElement("col"));table.appendChild(cols);const thead=document.createElement("thead");const hr=document.createElement("tr");["Model","Tier","First-try","Final pass","Volume","Med tok"].forEach(label=>{const th=document.createElement("th");th.scope="col";th.textContent=label;hr.appendChild(th);});thead.appendChild(hr);table.appendChild(thead);const tbody=document.createElement("tbody");rows.forEach((row,index)=>{const tr=document.createElement("tr");tr.dataset.key=`model:${state.modelsTaskType}:${row.display_bucket_id||row.bucket_id||row.model||index}`;const tasks=Math.max(0,Math.round(numberOrZero(row.tasks)));const attempts=Math.max(tasks,Math.round(numberOrZero(row.attempts)));const firstTryRate=Math.max(0,Math.min(1,numberOrZero(row.first_try_pass_rate)));const passRate=Math.max(0,Math.min(1,numberOrZero(row.pass_rate)));const rescueGap=Math.max(0,passRate-firstTryRate);const firstPercent=Math.round(firstTryRate*100);const passPercent=Math.round(passRate*100);const rescuePoints=Math.round(rescueGap*100);const tier=tierFor(row);const identity=document.createElement("td");const display=document.createElement("span");display.className="model-display-name";display.textContent=row.model_display||row.model||"unknown";const slug=document.createElement("span");slug.className="model-slug";slug.textContent=row.model||"model route unavailable";identity.append(display,slug);const tierCell=document.createElement("td");const badge=document.createElement("span");badge.className=`tier-badge-new ${tier}`;badge.textContent=tier;badge.title=tier==="new"?"Fewer than 3 tasks; not enough evidence to rank":"Evidence tier for this scope";tierCell.appendChild(badge);const firstTry=document.createElement("td");firstTry.className="win-cell";const track=document.createElement("span");track.className="win-track";track.setAttribute("role","meter");track.setAttribute("aria-valuemin","0");track.setAttribute("aria-valuemax","100");track.setAttribute("aria-valuenow",String(firstPercent));track.setAttribute("aria-label",`${firstPercent} percent first-try; ${passPercent} percent final pass; ${rescuePoints} points rescued by retry`);const fill=document.createElement("span");fill.className=`win-fill ${tier}`;fill.style.width=`${firstPercent}%`;const rescue=document.createElement("span");rescue.className="rescue-fill";rescue.style.width=`${rescuePoints}%`;track.append(fill,rescue);const firstCaption=document.createElement("span");firstCaption.className="win-caption";const firstValue=document.createElement("strong");firstValue.textContent=`${firstPercent}%`;firstCaption.append(firstValue,document.createTextNode(" routing signal"));firstTry.append(track,firstCaption);const finalPass=document.createElement("td");finalPass.className="final-rate";const finalValue=document.createElement("strong");finalValue.textContent=`${passPercent}%`;const gap=document.createElement("span");gap.className=`rate-detail${rescuePoints?" rescued":""}`;gap.textContent=rescuePoints?`+${rescuePoints} pts rescued`:"no retry lift";finalPass.append(finalValue,gap);const volume=document.createElement("td");volume.className="volume-cell";const taskCount=document.createElement("strong");taskCount.textContent=`${tasks} tasks`;const attemptCount=document.createElement("span");attemptCount.className="volume-detail";attemptCount.textContent=`${attempts} attempts`;volume.append(taskCount,attemptCount);const tokens=document.createElement("td");tokens.className="model-number";tokens.textContent=row.median_tokens==null?"—":compactTokens(row.median_tokens);tr.append(identity,tierCell,firstTry,finalPass,volume,tokens);tbody.appendChild(tr);});table.appendChild(tbody);view.appendChild(table);} staging.appendChild(view);preserveScroll(()=>morphChildren(els.modelsView,staging));
     }
 
     async function fetchModels(force=false){if(state.modelsFetching||(!force&&state.shellView!=="models"))return;state.modelsFetching=true;renderModelsView();try{const response=await fetch("/api/models",{cache:"no-store"});if(!response.ok)throw new Error(`HTTP ${response.status}`);const payload=await response.json();state.models=payload;state.modelsError=String(payload?.error||"").trim();state.modelsFetched=true;}catch(error){state.modelsError=error?.message||"scoreboard unavailable";state.modelsFetched=true;}state.modelsFetching=false;if(state.shellView==="models")renderModelsView();}
@@ -788,8 +1538,8 @@
       state.shellView=view;
       try { localStorage.setItem(SHELL_VIEW_KEY, view); } catch (_) { /* private mode */ }
       replaceUrlState();
-      document.querySelectorAll("[data-shell-view]").forEach(button=>button.setAttribute("aria-current",button.dataset.shellView===view?"page":"false")); els.runsOverview.hidden=view!=="runs"; els.lanesView.hidden=view!=="lanes"; els.reviewsView.hidden=view!=="reviews"; els.artifactsView.hidden=view!=="artifacts"; els.modelsView.hidden=view!=="models";
-      if(view==="lanes") renderLanesView(); if(view==="reviews") renderReviewsView(); if(view==="artifacts")renderArtifactsView(); if(view==="models"){renderModelsView();fetchModels();}
+      document.querySelectorAll("[data-shell-view]").forEach(button=>button.setAttribute("aria-current",button.dataset.shellView===view?"page":"false")); els.runsOverview.hidden=view!=="runs"; els.lanesView.hidden=view!=="lanes"; els.canvasView.hidden=view!=="canvas"; els.reviewsView.hidden=view!=="reviews"; els.artifactsView.hidden=view!=="artifacts"; els.modelsView.hidden=view!=="models";
+      if(view==="lanes") renderLanesView(); if(view==="canvas") renderCanvasView(); if(view==="reviews") renderReviewsView(); if(view==="artifacts")renderArtifactsView(); if(view==="models"){renderModelsView();fetchModels();}
     }
 
     function closeRunPanel() {
@@ -823,6 +1573,8 @@
     function renderPanelLaneDetail(run, task, index, key, kind) {
       // The expander's aria-expanded state controls this region; violation labels remain textual, not colour-only.
       const expandedKey=expansionKey(run.__id,key); const logState=state.expanded.get(expandedKey); const panel=document.createElement("section"); panel.id=`slide-lane-detail-${index}`; panel.className="slide-expanded"; panel.dataset.key=`slide-detail:${key}`; panel.setAttribute("aria-label",`${key} lane detail`);
+      const cause=laneCause(task);
+      if(kind==="fail"||cause.isFailure){const causeBlock=document.createElement("section");causeBlock.className="slide-cause";causeBlock.setAttribute("aria-label",`Cause and evidence: ${cause.label}`);const causeHead=document.createElement("div");causeHead.className="slide-cause-head";causeHead.append(Object.assign(document.createElement("span"),{className:"slide-cause-title",textContent:"Cause and evidence"}),Object.assign(document.createElement("span"),{className:`lane-cause-chip ${cause.tone}`,textContent:cause.label}));const sentence=document.createElement("p");sentence.className="slide-cause-sentence";sentence.textContent=cause.sentence;const grid=document.createElement("div");grid.className="slide-cause-grid";const evidenceCells=[["check_returncode",task.check_returncode===null||task.check_returncode===undefined||task.check_returncode===""?"Not recorded":String(task.check_returncode)],["check_timed_out",task.check_timed_out===true?"true":"false"],["setup_error",String(task.setup_error||"").trim()||"None recorded"]];evidenceCells.forEach(([label,value])=>{const cell=document.createElement("div");cell.className="slide-cause-cell";cell.append(Object.assign(document.createElement("span"),{className:"micro-label",textContent:label}),Object.assign(document.createElement("b"),{textContent:value}));grid.appendChild(cell);});const note=document.createElement("p");note.className="slide-cause-note";note.textContent="This is check evidence, not a model verdict.";causeBlock.append(causeHead,sentence,grid,note);panel.appendChild(causeBlock);}
       appendRoundMatrix(panel,task,`${key} rounds`); const attempts=Math.max(1,numberOrZero(task.attempts||task.round||1)); const metadata=document.createElement("p"); metadata.className="slide-lane-meta"; metadata.textContent=[String(task.engine||"").trim()||"engine not reported",String(task.model||"").trim()||"model not reported",`${attempts} attempt${attempts===1?"":"s"}`,formatTokens(task.tokens)].join(" · "); panel.appendChild(metadata);
       const proof=document.createElement("div"); proof.className="slide-proof"; appendPanelProof(proof,"Brief / spec",task.spec); appendPanelProof(proof,"Check command",task.check); appendPanelProof(proof,"Verification",task.verified); appendPanelProof(proof,"Check output",task.check_output_tail); panel.appendChild(proof);
       const violations=Array.isArray(task.violations)?task.violations.map(violationParts):[]; if(violations.length){const list=document.createElement("ul");list.className="slide-violations";list.setAttribute("aria-label",`${violations.length} task violation${violations.length===1?"":"s"}`);violations.forEach(violation=>{const item=document.createElement("li");const label=document.createElement("b");const name=violation.kind==="ownership"?"Ownership":violation.kind==="contract"?"Contract":"Recorded";label.textContent=`${name} violation:`;item.append(label,document.createTextNode(` ${violation.detail}`));list.appendChild(item);});panel.appendChild(list);}
@@ -839,6 +1591,7 @@
     function renderTop() {
       renderRunsOverview();
       if (state.shellView === "lanes") renderLanesView();
+      if (state.shellView === "canvas") renderCanvasView();
       if (state.shellView === "reviews") renderReviewsView();
       if (state.shellView === "artifacts") renderArtifactsView();
       if (state.shellView === "models") renderModelsView();
@@ -1143,7 +1896,10 @@
         const response = await fetch("/api/runs", {cache: "no-store"});
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const payload = await response.json();
-        state.runs = normalizeRuns(payload);
+        const runs = normalizeRuns(payload);
+        updateActivityChanges(runs);
+        updateCanvasSamples(runs);
+        state.runs = runs;
         state.serverVersion = String(payload?.server?.ringer_version || "").trim();
         state.runUnreadable = Math.max(0, Math.trunc(numberOrZero(payload?.unreadable)));
         state.active = payload?.active || {};

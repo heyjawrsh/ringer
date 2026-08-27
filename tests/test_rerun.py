@@ -70,7 +70,7 @@ class RerunCommandTests(unittest.TestCase):
             "max_parallel": 4,
             "integration_check": "python3 -m unittest discover -s tests",
             "integration_timeout_s": 777,
-            "job_metadata": {"ticket": "RNG-42", "labels": ["repair"]},
+            "x-job-metadata": {"ticket": "RNG-42", "labels": ["repair"]},
             "tasks": tasks,
         }
         path = self.root / "round.json"
@@ -133,6 +133,7 @@ class RerunCommandTests(unittest.TestCase):
             engine_args=["-c", "model_reasoning_effort=high"],
             timeout_s=321,
             redact_spec=True,
+            **{"x-repair-owner": "manifest-team"},
         )
         queued = self.task("held-lane", timeout_s=654)
         absent = self.task("never-spawned")
