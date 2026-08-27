@@ -2287,3 +2287,60 @@ suite failing inside their own sandbox — "426 tests ran, 9 failures and 43
 errors" from denied loopback sockets and `~/.ringer` writes. Taken at face value
 that reads like a broken change. The out-of-sandbox integration run passed clean
 both times. A worker's own test run is not evidence about the tree.
+
+## 2026-08-27 (evening) — gate integrity: the proof modes now tell the truth
+
+One lane, codex gpt-5.6-sol high, PASS on attempt 2, 288k tokens, 953s,
+integration passing. Closed three P1s from the authoring audit (F12, F13, F15),
+all in the no-worker gating machinery every other guarantee in this project
+rests on, and all failing in the direction of FALSE CONFIDENCE:
+
+  · `--baseline` returned 0 unconditionally — a check that could not run at all
+    still exited clean. Measured: `definitely-not-a-real-command` -> exit 0.
+  · `--prove-fail` / `--prove-pass` ignored the skipped count. A manifest with no
+    `known_bad` printed "0 proved, 1 skipped" and exited 0. CI or an orchestrating
+    agent received success from a gate that proved nothing.
+  · A timed-out check incremented `proved`. It never finished, so it never
+    rendered a verdict, and it cannot produce the failure output the retry prompt
+    is built from. `--prove-pass` already called the same timeout `broken`.
+
+**THE ASYMMETRY WAS THE TELL, TWICE.** In both F13 and F15 the correct behaviour
+was already implemented in a sibling mode — the proof modes call the crash
+classifier and exit nonzero; prove-pass treats a timeout as broken. When one of
+three parallel modes disagrees with the other two about the same condition, the
+odd one out is the bug. That is a cheap heuristic worth reusing.
+
+**THE FIX THAT WOULD HAVE BEEN WRONG.** The obvious reading of "baseline always
+exits 0" is "make it fail on failure". That breaks the tool. Baseline runs checks
+against the UNMODIFIED tree, so for any task building something new a FAIL is the
+EXPECTED result — it is the normal preflight for every build manifest in this
+repo, including the three that shipped the dashboard work earlier today. Only an
+ERROR is unambiguous. The gate carries an explicit false-positive guard asserting
+an ordinary baseline FAIL still exits 0, and that guard is as load-bearing as the
+assertions it sits beside. Scope was capped the same way: zero coverage fails,
+PARTIAL coverage reports and passes, because shipped kits declare `known_bad`
+without `known_good` and failing them would have been a self-inflicted outage.
+
+**A TEST ARGUED FOR THE DEFECT, BY NAME.**
+`test_baseline_reports_crashed_check_but_still_defers_judgment` asserted exit 0
+for a crashed baseline, and reads like a deliberate decision. It was not one
+worth keeping: there is no judgment to defer when the check never executed. The
+spec said so explicitly and told the lane to UPDATE and rename the test while
+keeping its still-true assertions. Worth remembering that a test name is an
+argument, not evidence — and that a lane will usually defer to it unless told.
+
+**MY GATE HAD TWO BUGS BEFORE IT WAS HONEST**, both caught by smoking it against
+the unmodified tree first:
+  · my fixture check exited 1 SILENTLY, which ringer's own classifier correctly
+    calls CRASHED — my check violated this repo's rule that checks must print why
+    they fail, which made every known_bad case read as a broken check.
+  · I asserted all 19 shipped templates must lint. One
+    (`bakeoff-kit/swarm.model-only.example.json`) already fails lint by design.
+    That assertion was impossible and would have failed the lane for something it
+    did not cause. RULE: before asserting "all X still pass", MEASURE how many X
+    pass today.
+
+**SMALL FINDING, NOT YET FIXED:** the run record keeps only the LAST attempt's
+`check_output_tail`, so when a lane is rescued on attempt 2 the reason attempt 1
+failed is gone. That is precisely the row you want for routing and for judging
+whether a check or a model was at fault. Worth a fix in the same family as F16.
