@@ -2344,3 +2344,47 @@ the unmodified tree first:
 `check_output_tail`, so when a lane is rescued on attempt 2 the reason attempt 1
 failed is gone. That is precisely the row you want for routing and for judging
 whether a check or a model was at fault. Worth a fix in the same family as F16.
+
+## 2026-08-27 (night) — crash attribution: F16, and a mislabel of my own
+
+Two lanes in parallel over disjoint files, codex gpt-5.6-sol high, both PASS
+first try, integration passing: CLI (229k tok, 461s) and dashboard (119k tok,
+292s). Parallel worked cleanly here because `owns` was genuinely disjoint
+(ringer.py + tests vs dashboard/ringside.html) and the dashboard lane was told
+explicitly NOT to depend on any new field the CLI lane might add — it derives
+from `check_output_tail`, which already ships.
+
+**THE DEFECT WAS SYMMETRICAL, AND I OWNED HALF OF IT.** `verdict_for` collapsed
+"the check could not run" into FAIL. The dashboard classifier I shipped this
+morning collapsed "the check ran and rejected the work" into CHECK FAULT. Same
+error, opposite directions: one blames the model for a broken check, the other
+blames the check for a bad deliverable. Both teach the operator to misread the
+most common thing on the screen.
+
+**THE COST OF F16 IS MEASURABLE AND PERMANENT.** `aggregate_model_log_rows`
+counts any final verdict that is not PASS as `failed`, feeding `pass_rate` and
+`first_try_pass_rate` — the routing signal, the input to `model_scoreboard_tier`,
+and the numbers every judgment in this file rests on. So a check the AUTHOR broke
+lowered the measured quality of the MODEL, in the data used to pick models.
+Verified after the fix: one pass + one crashed check now counts ONE task at
+first_try 1.0 (the crash leaves the denominator), while one pass + one honest
+FAIL still counts two tasks at 0.5.
+
+**I ALMOST REPORTED A FALSE FAILURE, FROM MY OWN VERIFICATION.** Checking the fix
+by hand, I built synthetic rows using the verdict string my FABRICATOR had used
+(`CHECK_ERROR`) while the lane had implemented `CRASHED`. The unknown string fell
+through to the non-PASS branch, the numbers looked unfixed, and I was one step
+from telling the owner the round was incomplete. RULE: when hand-verifying an
+implementation, read the vocabulary out of the IMPLEMENTATION, never out of the
+fabricator that only had to satisfy the gate. A known_good is a proof that the
+gate is passable, not a specification of how.
+
+**BLAST RADIUS WORTH REMEMBERING.** `check_crashed` treats a non-zero exit with
+NO OUTPUT as a broken check. After this change such a check is no longer retried
+and no longer reaches routing data. That is consistent with lint's existing nudge
+and with the rule that checks must print WHY they fail, but it is a real
+behavioural change: `check: "false"` in tests/test_steering.py stopped retrying
+and broke a test. The spec named that test in advance, said the fix was the
+FIXTURE and not the rule, and the lane changed exactly one line. Naming the
+collateral in the spec is what kept a lane from "fixing" it by weakening the
+classifier.
