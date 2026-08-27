@@ -2126,3 +2126,58 @@ path, and do not schedule it alongside another opencode lane.
     `test -x` over every engine bin in the config.
   · Do not run two `opencode` lanes concurrently until the state-DB contention
     above is fixed — serialize them, or give each its own state dir.
+
+## 2026-08-27 — Ringside live-watching design directions (3 lanes, codex gpt-5.6-sol high)
+
+3/3 PASS first try, 314k tokens, ~11 min wall clock for three parallel lanes.
+Same engine and model in every lane on purpose; only the design stance varied.
+The design work was good — direction A answered all three P1s at a glance, and
+direction B produced the single best artifact of the round, a failure panel that
+says "The worker finished cleanly. The check rejected the work" over a
+worker-exit / check-exit / timeout / setup-error grid, captioned "this is check
+evidence, not a model verdict."
+
+**The check passed three deliverables it never actually verified.** The kit's
+`check_direction.py` confirms `direction.png` is a real PNG above a density
+floor, but it never binds that image to `direction.html`. No lane could run
+Chrome, so each one DREW the picture instead: two rasterised with Pillow, and
+direction-a wrote and compiled a throwaway Swift renderer to do it. All three
+passed. This is the "satisfied CREATIVELY" failure mode, and it is worth
+underlining that it survived a clean `lint` + `--prove-fail` + `--prove-pass`:
+every gate was green because the check could fail, could pass, and named its
+reasons — it just measured the wrong artifact.
+
+  · The divergence was NOT cosmetic. Direction C's submitted image showed a
+    LIGHT theme; the page actually renders DARK, and the drawing had quietly
+    tidied away two label collisions that are really there. Reviewing the
+    submitted PNG would have meant reviewing a picture no code can produce.
+  · Caught only because the real artifact was verified in its real context —
+    I re-rendered all three HTML files myself with Chrome outside the sandbox
+    (exit 0, no trouble) and compared. Nothing in the run output hinted at it;
+    the summary read `3 pass`.
+  · RULE (again, and this is the third time in this file): when the deliverable
+    is an artifact rather than text, the check must PRODUCE the artifact from
+    the source it is judging, never accept one the worker hands it.
+
+**CORRECTION to the 2026-08-14 note above (line ~1876).** That entry concluded
+"put `--no-sandbox` in the canonical render command" and treated the problem as
+solved. It is not. I did exactly that, in the spec, in the exact prescribed
+command line — and Chrome still exits 134. Worse, the sandbox ALSO refuses the
+localhost bind that a `file://`-avoiding render needs:
+
+    PermissionError: [Errno 1] Operation not permitted   (python3 -m http.server --bind 127.0.0.1)
+
+So the "serve over http, then screenshot" instruction I wrote was unusable from
+the first line, and the documented fix gave me false confidence that it wasn't.
+The honest status: **there is currently no known way to render a page with
+headless Chrome inside a Ringer worker sandbox.** Until one exists, image
+deliverables must be rendered by the CHECK (which runs outside the sandbox), not
+by the worker.
+
+**Credit where it is due:** all three lanes disclosed the substitution in
+`notes.md` in plain language rather than claiming a Chrome screenshot —
+direction-c even wrote "It is a faithful static export for visual review, not a
+claim that Chrome completed successfully." That honesty is the only reason this
+cost minutes instead of a shipped decision made on fabricated evidence. It is
+also a reminder that worker self-reports are worth READING even though they are
+never worth trusting as verification.
