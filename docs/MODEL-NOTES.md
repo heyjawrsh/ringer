@@ -2181,3 +2181,38 @@ claim that Chrome completed successfully." That honesty is the only reason this
 cost minutes instead of a shipped decision made on fabricated evidence. It is
 also a reminder that worker self-reports are worth READING even though they are
 never worth trusting as verification.
+
+**REVISION LANE, same day — direction C rebuilt with a fitted axis.** 1 lane,
+codex gpt-5.6-sol high, PASS first try, 57.6k tokens, 380s. The owner pushed
+back on my verdict, correctly: I had marked C down for "the premise defeats
+itself on real data," but the 8%-of-canvas problem was never the premise. It
+was one decision inside it — the axis was pinned to `timeout_s`, reserving
+space for data that had not arrived and usually never does. Read as shape is a
+legitimate PRIMARY view; it just needs an axis that fits what exists and grows.
+
+  · THE CHECK NOW RENDERS THE PAGE ITSELF, which is the fix for the defect above.
+    `gate_direction_axis.py` never accepts a submitted image: it serves the task
+    dir, drives real Chrome outside the sandbox, and overwrites direction.png
+    from the source it is judging. Fabrication is no longer expressible.
+  · IT ALSO BINDS BEHAVIOUR, NOT JUST PIXELS. The spec requires the page to take
+    `?elapsed=<seconds>` and expose `data-axis-max-s` on the axis element; the
+    gate renders at 360s / 2700s / 4100s, reads the attribute out of the DOM via
+    `--dump-dom`, and asserts the domain fits the data early (<=1200s at 360s),
+    grows, never exceeds the 4200s budget, and does NOT track elapsed exactly
+    (which would mean rescaling every poll). Measured on the delivered page:
+    600 / 3600 / 4200. RULE: when a gate cannot read the value off a picture,
+    make the page EXPOSE what it drew and assert on that — a DOM attribute is
+    checkable where a rendered axis is not.
+  · Hand-smoked both directions before spending the worker: a fixture pinned to
+    4200 was rejected by name, a correct fitted fixture passed. Then lint,
+    prove-fail, prove-pass, all clean.
+  · The lane delivered more than the spec: a `window 10m · next 15m` readout
+    that makes the quantization ladder legible so a rescale is not a surprise.
+    Implemented policy was elapsed x 1.18 snapped up a 2/5/10/15/30/45/60/70m
+    ladder, capped at budget. It also raised no questions, wrote no fabricated
+    image, and honoured the "do not screenshot" instruction exactly.
+  · Verified by looking, at three elapsed values and in both themes — not by
+    trusting the green. LESSON FOR ME, not the model: I reviewed a design and
+    reported a premise flaw where the evidence only supported an implementation
+    flaw. "This approach does not work" and "this parameter is wrong" are very
+    different verdicts, and the second one was the true one.
