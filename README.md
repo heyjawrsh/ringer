@@ -105,6 +105,7 @@ the JSON booleans `true` or `false`, not quoted strings.
 | `check` | Shell command run after the worker exits; exit 0 = PASS |
 | `expect_files` | Files that must exist and be non-empty before the check runs |
 | `known_bad` | Optional shell command that mutates the task's scratch dir into a known-bad state; used only by `--prove-fail`; absent means the task has no prove-fail coverage |
+| `known_bad_cases` | Optional list of labelled mutations for `--prove-fail`. Each object requires a non-empty `command`, may set a `label` (default `case-N`), and may set an `expect` marker that must appear in the check's rejection output. Every case runs independently in fresh scratch state. When both forms are present, this list takes precedence and `known_bad` is reported as ignored |
 | `known_good` | Optional shell command that fabricates a correct deliverable in the task's scratch dir; used only by `--prove-pass`; absent means the task has no prove-pass coverage |
 | `engine` | Which configured engine runs this task (default `codex`) |
 | `model` | Which model a harness engine runs for this task — fills the engine's `{model}` placeholder (e.g. `"openrouter/moonshotai/kimi-k2.7"`); empty uses the engine's `model_default` |
@@ -189,7 +190,8 @@ Lint now also reports:
 - a check that greps for a bare literal with no word boundary or anchor, because `grep todo` matches `mastodon` — use `grep -w` or anchor the pattern
 - a check or spec containing a command that steals window focus (`open`, `xdg-open`, `osascript ... activate`, `screencapture`, a simulator launch) — use a headless probe and write evidence to a file
 - in worktrees mode, an `expect_files` deliverable under a path ignored by the repo's .gitignore, because `git add -A` cannot stage ignored files, so the patch export silently omits it and the worktree is then deleted — have the check copy the artifact outside the worktree and verify the copy
-- an authored task that declares no `known_bad` or no `known_good`, because that task cannot be covered by `run --prove-fail` or `run --prove-pass` respectively — these are nudges to make missing proof coverage visible, not runtime refusals. Ringer's uninstantiated template skeletons defer the `known_good` nudge until copied and filled in, because a truthful passing fixture depends on the resolved placeholders.
+- an authored task that declares neither `known_bad` nor a non-empty `known_bad_cases`, or declares no `known_good`, because that task cannot be covered by `run --prove-fail` or `run --prove-pass` respectively — these are nudges to make missing proof coverage visible, not runtime refusals. Ringer's uninstantiated template skeletons defer the `known_good` nudge until copied and filled in, because a truthful passing fixture depends on the resolved placeholders.
+- a non-failing nudge when a scalar `known_bad` accompanies a check that looks like several chained assertions; use `known_bad_cases` to exercise those assertions independently. This advice is printed by lint but does not change lint's exit status.
 
 `run` and `demo` also print any lint findings as non-blocking warnings after the manifest loads. They teach at the moment of use; they do not stop a run.
 
@@ -224,15 +226,32 @@ Each check runs in a fresh scratch dir (a detached worktree when the manifest us
 
 `--baseline` catches checks that false-FAIL on a good tree. `--prove-fail` catches the opposite — checks that false-PASS on a bad one. A check proven both ways is worth trusting.
 
-For each task that declares `known_bad`, prove-fail makes a fresh scratch dir (a detached worktree when the manifest uses worktrees), runs the `known_bad` command there to fake a broken deliverable, then runs the task's real `check` against that bad state. The mode spawns no workers and writes no eval rows:
+For each task that declares `known_bad`, prove-fail makes a fresh scratch dir (a detached worktree when the manifest uses worktrees), runs the command there to fake a broken deliverable, then runs the task's real `check` against that bad state. The scalar form remains backward compatible. For checks with several assertions, `known_bad_cases` declares one or more independent experiments:
+
+```json
+"known_bad_cases": [
+  {
+    "label": "missing-alpha",
+    "command": "printf 'BETA\\n' > out.txt",
+    "expect": "ALPHA missing"
+  },
+  {
+    "label": "missing-beta",
+    "command": "printf 'ALPHA\\n' > out.txt",
+    "expect": "BETA missing"
+  }
+]
+```
+
+Each case gets its own fresh scratch directory or detached worktree and is cleaned up before the next result, so mutations cannot share leftovers. Labels appear in the result lines. If both fields are declared, `known_bad_cases` wins and prove-fail says that the scalar `known_bad` was ignored. The mode spawns no workers and writes no eval rows:
 
 ```bash
 ./ringer.py run swarm.json --prove-fail
 ```
 
-The check FAILING is the good outcome — reported as **proved**, with the check's failure output shown (that output is what a retry prompt would see). A check that PASSES on the known-bad state is **broken**: it cannot be trusted to verify the task. A check that passes while `expect_files` are missing is **inconclusive** — the `known_bad` command must fabricate the deliverables in bad form for the test to mean anything. A `known_bad` command that itself fails or times out is an **error**. A check timeout is also an **error**, never proof: the check did not complete or produce the rejection evidence a worker retry would need. Tasks without `known_bad` are **skipped**; coverage is opt-in per task.
+The check FAILING is the good outcome only for the mutation exercised. Without `expect`, any honest rejection is reported as **proved**, preserving scalar behavior. With `expect`, the rejection output must contain that exact marker; a nonzero result missing the marker is explicitly **NOT PROVED** and does not count, because a different assertion rejected the fixture. The failure output is shown in either case (it is what a retry prompt would see). A check that PASSES on the known-bad state is **broken**: it cannot be trusted to verify the task. A check that passes while `expect_files` are missing is **inconclusive** — the mutation command must fabricate the deliverables in bad form for the test to mean anything. A mutation command that itself fails or times out is an **error**. A check timeout is also an **error**, never proof: the check did not complete or produce the rejection evidence a worker retry would need. Tasks without either form are **skipped**; coverage is opt-in per task.
 
-The summary reads `prove-fail: P proved, B broken, I inconclusive, E error, S skipped, covered N of T task(s).` Partial coverage remains successful when every covered task is proved, but it is stated explicitly. Zero coverage exits nonzero and says the gate proved nothing. Otherwise, exit code is 0 only when broken, inconclusive, and error are all zero. Unlike an ordinary `--baseline` failure, a check that passes on a known-bad state is objectively broken. The two flags cannot be combined in one invocation.
+The summary reads `prove-fail: P proved, B broken, I inconclusive, E error, S skipped, covered N of T task(s).` and separately reports how many mutations were exercised. Counts are per mutation while coverage remains per task. Seeing one exercised mutation against a multi-assertion check is intentionally not a claim that every assertion ran: a shell chain stops at its first failure. Partial coverage remains successful when every covered mutation is proved, but it is stated explicitly. Zero coverage exits nonzero and says the gate proved nothing. Otherwise, exit code is 0 only when broken, inconclusive, and error are all zero. Unlike an ordinary `--baseline` failure, a check that passes on a known-bad state is objectively broken. The two flags cannot be combined in one invocation.
 
 ### Prove-pass: prove your checks can accept honest work
 
@@ -327,7 +346,7 @@ Ownership, contract, and protected-assertion violations are recorded in the run 
 
 ## `rerun` — repair the lanes that did not pass
 
-`rerun` reads a manifest and a finished run and writes a new manifest holding only the tasks that did not pass — failed, errored, timed out, or never spawned (held lanes). Without `--run` it picks the most recent run matching the manifest's `run_name`. Tasks are copied verbatim from the original manifest, not rebuilt from run state: run state records no `expect_files`, `task_type`, `known_bad`, `owns`, or `engine_args`, so reconstructing from it would silently drop them. Run-level fields are preserved — `run_name` included — so the repair round lands on the same job and the same artifact page instead of splitting the job in two.
+`rerun` reads a manifest and a finished run and writes a new manifest holding only the tasks that did not pass — failed, errored, timed out, or never spawned (held lanes). Without `--run` it picks the most recent run matching the manifest's `run_name`. Tasks are copied verbatim from the original manifest, not rebuilt from run state: run state records no `expect_files`, `task_type`, `known_bad`, `known_bad_cases`, `owns`, or `engine_args`, so reconstructing from it would silently drop them. Run-level fields are preserved — `run_name` included — so the repair round lands on the same job and the same artifact page instead of splitting the job in two.
 
 `--with-context` appends the previous attempt's check failure output to each failing task's spec, so the next worker sees why it failed. The repair manifest is written to `<manifest-stem>-repair.json` beside the source unless `-o` says otherwise, and the source manifest is never overwritten. When every task passed, `rerun` exits nonzero with a clear message instead of writing an empty manifest.
 

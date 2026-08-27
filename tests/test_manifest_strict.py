@@ -92,6 +92,52 @@ class StrictManifestTests(unittest.TestCase):
 
         self.assertEqual("alpha", manifest.tasks[0].key)
 
+    def test_known_bad_cases_requires_a_list(self) -> None:
+        task = dict(list(self.manifest_obj()["tasks"])[0])
+        task["known_bad_cases"] = {"command": "true"}
+
+        with self.assertRaisesRegex(
+            ValueError, r"task alpha: known_bad_cases must be a list"
+        ):
+            Manifest.from_obj(self.manifest_obj(tasks=[task]))
+
+    def test_known_bad_cases_names_invalid_entry_index(self) -> None:
+        task = dict(list(self.manifest_obj()["tasks"])[0])
+        task["known_bad_cases"] = [{"command": "true"}, "false"]
+
+        with self.assertRaisesRegex(
+            ValueError, r"task alpha: known_bad_cases\[1\] must be an object"
+        ):
+            Manifest.from_obj(self.manifest_obj(tasks=[task]))
+
+    def test_known_bad_cases_rejects_missing_or_empty_command_by_index(self) -> None:
+        for bad_case in ({}, {"command": "   "}, {"command": 7}):
+            with self.subTest(case=bad_case):
+                task = dict(list(self.manifest_obj()["tasks"])[0])
+                task["known_bad_cases"] = [
+                    {"command": "true"},
+                    bad_case,
+                ]
+                with self.assertRaisesRegex(
+                    ValueError,
+                    r"task alpha: known_bad_cases\[1\]\.command must be a non-empty string",
+                ):
+                    Manifest.from_obj(self.manifest_obj(tasks=[task]))
+
+    def test_known_bad_case_fields_are_strict_and_typed(self) -> None:
+        invalid = (
+            ({"command": "true", "expect": ["FAIL"]}, r"\[0\]\.expect"),
+            ({"command": "true", "expect": None}, r"\[0\]\.expect"),
+            ({"command": "true", "label": 1}, r"\[0\]\.label"),
+            ({"command": "true", "marker": "FAIL"}, r"\[0\]: unknown field 'marker'"),
+        )
+        for bad_case, message in invalid:
+            with self.subTest(case=bad_case):
+                task = dict(list(self.manifest_obj()["tasks"])[0])
+                task["known_bad_cases"] = [bad_case]
+                with self.assertRaisesRegex(ValueError, message):
+                    Manifest.from_obj(self.manifest_obj(tasks=[task]))
+
     def test_valid_manifest_still_parses(self) -> None:
         manifest = Manifest.from_obj(self.manifest_obj())
 

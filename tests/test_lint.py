@@ -14,7 +14,14 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from ringer import Manifest, TaskSpec, Verifier, lint_manifest, main  # noqa: E402
+from ringer import (  # noqa: E402
+    Manifest,
+    TaskSpec,
+    Verifier,
+    lint_manifest,
+    lint_nudges,
+    main,
+)
 
 
 LONG_SPEC = (
@@ -452,6 +459,34 @@ class LintManifestTests(unittest.TestCase):
 
         covered_manifest = self.manifest([self.task(known_bad="rm -f output.txt")])
         self.assertNotIn(finding, lint_manifest(covered_manifest))
+
+    def test_chained_assertion_known_bad_cases_nudge_does_not_fail_lint(self) -> None:
+        manifest = self.manifest([self.task()])
+        expected = (
+            "one: check looks like several assertions chained together; "
+            "consider known_bad_cases so each assertion gets an independent mutation, "
+            "with expect markers for the intended rejection."
+        )
+
+        self.assertIn(expected, lint_nudges(manifest))
+        self.assertEqual([], lint_manifest(manifest))
+
+        output = io.StringIO()
+        with mock.patch.object(Manifest, "from_path", return_value=manifest):
+            with contextlib.redirect_stdout(output):
+                exit_code = main(["--no-self-update", "lint", "ringer.json"])
+
+        self.assertEqual(0, exit_code, output.getvalue())
+        self.assertIn(f"lint: NUDGE: {expected}", output.getvalue())
+        self.assertIn("lint: clean", output.getvalue())
+
+        task = self.task(known_bad=None)
+        task["known_bad_cases"] = [{"command": "rm -f output.txt"}]
+        cases_manifest = self.manifest([task])
+        self.assertEqual([], lint_nudges(cases_manifest))
+        self.assertFalse(
+            any("no known_bad" in finding for finding in lint_manifest(cases_manifest))
+        )
 
     def test_missing_known_bad_nudge_reports_like_every_other_finding(self) -> None:
         # The nudge is an ordinary finding: `lint` exits 1 for ANY finding and

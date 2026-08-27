@@ -194,6 +194,161 @@ class ProveFailModeTests(unittest.TestCase):
                 f"prove-fail leaked worktrees:\n{worktree_list}",
             )
 
+    def test_several_labelled_cases_run_in_fresh_scratch_states(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_root:
+            proc, _, _, _ = self.run_ringer(
+                Path(temp_root),
+                [
+                    {
+                        "key": "three-assertions",
+                        "engine": "missing",
+                        "spec": "Create out.txt containing both required marker lines.",
+                        "known_bad_cases": [
+                            {
+                                "label": "missing-file",
+                                "command": "touch first-case-leftover",
+                                "expect": "out.txt missing",
+                            },
+                            {
+                                "label": "missing-alpha",
+                                "command": (
+                                    "test ! -e first-case-leftover && "
+                                    "printf 'BETA\\n' > out.txt"
+                                ),
+                                "expect": "ALPHA missing",
+                            },
+                            {
+                                "label": "missing-beta",
+                                "command": (
+                                    "test ! -e out.txt && printf 'ALPHA\\n' > out.txt"
+                                ),
+                                "expect": "BETA missing",
+                            },
+                        ],
+                        "check": (
+                            "test -f out.txt || { echo 'FAIL: out.txt missing'; exit 1; }; "
+                            "grep -q ALPHA out.txt || { echo 'FAIL: ALPHA missing'; exit 1; }; "
+                            "grep -q BETA out.txt || { echo 'FAIL: BETA missing'; exit 1; }"
+                        ),
+                    }
+                ],
+                "--prove-fail",
+                worktrees=True,
+            )
+            output = proc.stdout + proc.stderr
+
+            self.assertEqual(0, proc.returncode, output)
+            for label in ("missing-file", "missing-alpha", "missing-beta"):
+                self.assertRegex(
+                    output,
+                    re.compile(
+                        rf"^three-assertions \[{re.escape(label)}\]\s+"
+                        r"prove-fail: proved",
+                        re.MULTILINE,
+                    ),
+                    output,
+                )
+            self.assertIn("prove-fail: 3 proved, 0 broken", output)
+            self.assertIn("prove-fail: 3 mutations exercised", output)
+
+    def test_expected_rejection_marker_must_match(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_root:
+            proc, _, _, _ = self.run_ringer(
+                Path(temp_root),
+                [
+                    {
+                        "key": "wrong-reason",
+                        "engine": "missing",
+                        "spec": "Create out.txt containing ALPHA and BETA.",
+                        "known_bad_cases": [
+                            {
+                                "label": "claims-alpha",
+                                "command": "printf 'ALPHA\\n' > out.txt",
+                                "expect": "ALPHA missing",
+                            }
+                        ],
+                        "check": (
+                            "grep -q ALPHA out.txt || "
+                            "{ echo 'FAIL: ALPHA missing'; exit 1; }; "
+                            "grep -q BETA out.txt || "
+                            "{ echo 'FAIL: BETA missing'; exit 1; }"
+                        ),
+                    }
+                ],
+                "--prove-fail",
+            )
+            output = proc.stdout + proc.stderr
+
+            self.assertNotEqual(0, proc.returncode, output)
+            self.assertRegex(
+                output,
+                re.compile(
+                    r"^wrong-reason \[claims-alpha\]\s+prove-fail: NOT PROVED",
+                    re.MULTILINE,
+                ),
+                output,
+            )
+            self.assertIn("expected marker 'ALPHA missing'", output)
+            self.assertIn("FAIL: BETA missing", output)
+            self.assertIn("0 proved, 0 broken, 1 inconclusive", output)
+
+    def test_accepted_labelled_case_is_still_broken(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_root:
+            proc, _, _, _ = self.run_ringer(
+                Path(temp_root),
+                [
+                    {
+                        "key": "accepted-case",
+                        "engine": "missing",
+                        "spec": "The check must reject a declared broken state.",
+                        "known_bad_cases": [
+                            {"label": "false-pass", "command": "true"}
+                        ],
+                        "check": "true",
+                    }
+                ],
+                "--prove-fail",
+            )
+            output = proc.stdout + proc.stderr
+
+            self.assertNotEqual(0, proc.returncode, output)
+            self.assertRegex(
+                output,
+                re.compile(
+                    r"^accepted-case \[false-pass\]\s+prove-fail: BROKEN",
+                    re.MULTILINE,
+                ),
+                output,
+            )
+
+    def test_known_bad_cases_prefer_list_and_report_scalar_ignored(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_root:
+            proc, _, _, _ = self.run_ringer(
+                Path(temp_root),
+                [
+                    {
+                        "key": "both-forms",
+                        "engine": "missing",
+                        "spec": "Use the labelled mutation rather than the legacy scalar.",
+                        "known_bad": "echo scalar-ran; exit 9",
+                        "known_bad_cases": [
+                            {
+                                "command": "echo list-ran",
+                                "expect": "labelled rejection",
+                            }
+                        ],
+                        "check": "echo 'FAIL: labelled rejection'; exit 1",
+                    }
+                ],
+                "--prove-fail",
+            )
+            output = proc.stdout + proc.stderr
+
+            self.assertEqual(0, proc.returncode, output)
+            self.assertIn("known_bad ignored because known_bad_cases is declared", output)
+            self.assertIn("both-forms [case-1]", output)
+            self.assertNotIn("scalar-ran", output)
+
     def test_check_that_cannot_fail_is_broken(self) -> None:
         with tempfile.TemporaryDirectory() as temp_root:
             proc, model_log, _, _ = self.run_ringer(

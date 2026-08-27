@@ -1638,6 +1638,7 @@ TASK_SPEC_FIELDS = frozenset(
         "spec",
         "check",
         "known_bad",
+        "known_bad_cases",
         "known_good",
         "expect_files",
         "engine",
@@ -1653,6 +1654,8 @@ TASK_SPEC_FIELDS = frozenset(
         "owns",
     }
 )
+
+KNOWN_BAD_CASE_FIELDS = frozenset({"command", "label", "expect"})
 
 MANIFEST_FIELDS = frozenset(
     {
@@ -1678,11 +1681,20 @@ MANIFEST_FIELDS = frozenset(
 
 
 @dataclass(frozen=True)
+class KnownBadCase:
+    command: str
+    label: str
+    expect: str | None = None
+
+
+@dataclass(frozen=True)
 class TaskSpec:
     key: str
     spec: str
     check: str
     known_bad: str = ""
+    known_bad_cases: tuple[KnownBadCase, ...] = ()
+    known_bad_cases_declared: bool = False
     known_good: str = ""
     engine: str = DEFAULT_ENGINE_NAME
     expect_files: tuple[str, ...] = ()
@@ -1735,6 +1747,39 @@ class TaskSpec:
         known_bad = obj.get("known_bad", "")
         if not isinstance(known_bad, str):
             raise ValueError(f"task {key}: known_bad must be a string")
+        known_bad_cases_raw = obj.get("known_bad_cases", [])
+        if not isinstance(known_bad_cases_raw, list):
+            raise ValueError(f"task {key}: known_bad_cases must be a list")
+        known_bad_cases: list[KnownBadCase] = []
+        for index, case in enumerate(known_bad_cases_raw):
+            context = f"task {key}: known_bad_cases[{index}]"
+            if not isinstance(case, dict):
+                raise ValueError(f"{context} must be an object")
+            unknown_case_fields = sorted(
+                field
+                for field in case
+                if field not in KNOWN_BAD_CASE_FIELDS
+            )
+            if unknown_case_fields:
+                raise ValueError(
+                    f"{context}: unknown field {unknown_case_fields[0]!r}"
+                )
+            command = case.get("command")
+            if not isinstance(command, str) or not command.strip():
+                raise ValueError(f"{context}.command must be a non-empty string")
+            label = case.get("label", f"case-{index + 1}")
+            if not isinstance(label, str):
+                raise ValueError(f"{context}.label must be a string")
+            expect = case.get("expect")
+            if "expect" in case and not isinstance(expect, str):
+                raise ValueError(f"{context}.expect must be a string")
+            known_bad_cases.append(
+                KnownBadCase(
+                    command=command.strip(),
+                    label=label.strip() or f"case-{index + 1}",
+                    expect=expect,
+                )
+            )
         known_good = obj.get("known_good", "")
         if not isinstance(known_good, str):
             raise ValueError(f"task {key}: known_good must be a string")
@@ -1792,6 +1837,8 @@ class TaskSpec:
             spec=spec,
             check=check,
             known_bad=known_bad.strip(),
+            known_bad_cases=tuple(known_bad_cases),
+            known_bad_cases_declared="known_bad_cases" in obj,
             known_good=known_good.strip(),
             engine=engine,
             expect_files=tuple(str(item) for item in expect_files),
@@ -2200,10 +2247,15 @@ def lint_manifest(
                 f"{task.key}: no 'verified' description; a reader of the results page sees "
                 "'checked' but not what the check proves — add one plain-English sentence."
             )
-        if not task.known_bad:
+        if not task.known_bad and not task.known_bad_cases_declared:
             findings.append(
                 f"{task.key}: no known_bad; run --prove-fail cannot cover this task, so a "
                 "broken deliverable may slip through — add a command that fabricates one."
+            )
+        elif task.known_bad_cases_declared and not task.known_bad_cases:
+            findings.append(
+                f"{task.key}: known_bad_cases is empty; run --prove-fail cannot cover "
+                "this task, so a broken deliverable may slip through — add at least one case."
             )
         # A shipped template cannot truthfully fabricate correct output until
         # its placeholders are instantiated. Nudge the authored manifest, not
@@ -2247,6 +2299,48 @@ def lint_manifest(
         )
 
     return findings
+
+
+def check_looks_like_chained_assertions(check: str) -> bool:
+    """Conservatively identify checks likely to stop before later assertions run."""
+    stripped = strip_shell_comments(check).strip()
+    if "&&" not in stripped:
+        return False
+    # Three chained commands match the common gate_a && gate_b && gate_c shape,
+    # even when the gate commands are project-specific scripts.
+    if stripped.count("&&") >= 2:
+        return True
+    # Also catch the common two-probe shell gate without flagging setup forms
+    # such as `cd subdir && python3 gate.py`.
+    assertion_commands = 0
+    for part in command_parts(stripped):
+        try:
+            tokens = shlex.split(strip_common_redirections(part))
+        except ValueError:
+            continue
+        if not tokens:
+            continue
+        command = tokens[0]
+        if command in {"test", "[", "grep", "egrep", "fgrep", "diff", "cmp"}:
+            assertion_commands += 1
+    return assertion_commands >= 2
+
+
+def lint_nudges(manifest: Manifest) -> list[str]:
+    """Advisory lint output that must never affect lint's exit status."""
+    nudges: list[str] = []
+    for task in manifest.tasks:
+        if (
+            task.known_bad
+            and not task.known_bad_cases_declared
+            and check_looks_like_chained_assertions(task.check)
+        ):
+            nudges.append(
+                f"{task.key}: check looks like several assertions chained together; "
+                "consider known_bad_cases so each assertion gets an independent mutation, "
+                "with expect markers for the intended rejection."
+            )
+    return nudges
 
 
 SHELL_COMMAND_PREFIXES = {
@@ -2780,6 +2874,7 @@ class VerifyResult:
     check_timed_out: bool
     raw_output_excerpt: str
     missing_files: tuple[str, ...] = ()
+    raw_output: str = ""
 
 
 @dataclass(frozen=True)
@@ -9792,6 +9887,7 @@ class Verifier:
             check_timed_out=check_timed_out,
             raw_output_excerpt=output[:2000],
             missing_files=missing_files,
+            raw_output=output,
         )
 
     @staticmethod
@@ -12315,166 +12411,222 @@ async def run_prove_fail(manifest: Manifest, *, config: AppConfig) -> int:
     inconclusive = 0
     errors = 0
     skipped = 0
+    mutations_exercised = 0
     leaked_worktrees: list[str] = []
     try:
         for task in manifest.tasks:
-            if not task.known_bad:
-                skipped += 1
-                print(f"{task.key:<24} prove-fail: skipped (no known_bad)")
-                continue
-            taskdir = (prove_fail_root / task.key).resolve()
-            # Same containment rule as the real run path: a key must not
-            # escape its scratch root.
-            if (
-                not taskdir.is_relative_to(prove_fail_root.resolve())
-                or taskdir == prove_fail_root.resolve()
-            ):
-                errors += 1
-                print(
-                    f"{task.key:<24} prove-fail: ERROR "
-                    "(task key escapes the prove-fail scratch root)"
-                )
-                continue
-            if worktrees:
-                proc = await asyncio.create_subprocess_exec(
-                    "git",
-                    "-C",
-                    str(manifest.repo),
-                    "worktree",
-                    "add",
-                    "--detach",
-                    str(taskdir),
-                    "HEAD",
-                    stdin=asyncio.subprocess.DEVNULL,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.STDOUT,
-                )
-                stdout, _ = await proc.communicate()
-                if proc.returncode != 0:
-                    errors += 1
-                    print(f"{task.key:<24} prove-fail: ERROR (git worktree add failed)")
-                    message = stdout.decode("utf-8", errors="replace").strip()
-                    for line in message.splitlines()[:4]:
-                        print(f"    {line}")
-                    continue
+            if task.known_bad_cases_declared:
+                cases = task.known_bad_cases
+                scalar_case = False
+                if task.known_bad:
+                    print(
+                        f"{task.key:<24} prove-fail: known_bad ignored because "
+                        "known_bad_cases is declared"
+                    )
+            elif task.known_bad:
+                cases = (KnownBadCase(command=task.known_bad, label=""),)
+                scalar_case = True
             else:
-                taskdir.mkdir(parents=True, exist_ok=True)
-            try:
-                proc = await asyncio.create_subprocess_shell(
-                    task.known_bad,
-                    cwd=str(taskdir),
-                    stdin=asyncio.subprocess.DEVNULL,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.STDOUT,
-                    start_new_session=True,
-                )
-                known_bad_timed_out = False
-                try:
-                    stdout, _ = await asyncio.wait_for(
-                        proc.communicate(), timeout=task.timeout_s
-                    )
-                except asyncio.TimeoutError:
-                    known_bad_timed_out = True
-                    terminate_process_group(proc)
-                    try:
-                        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=5)
-                    except asyncio.TimeoutError:
-                        kill_process_group(proc)
-                        stdout, _ = await proc.communicate()
-                known_bad_output = (
-                    stdout.decode("utf-8", errors="replace") if stdout else ""
-                )
-                if known_bad_timed_out:
-                    known_bad_output += (
-                        f"\n[ringer.py] known_bad timed out after {task.timeout_s}s\n"
-                    )
-                if known_bad_timed_out or proc.returncode != 0:
-                    errors += 1
-                    detail = "timed out" if known_bad_timed_out else f"rc={proc.returncode}"
-                    print(
-                        f"{task.key:<24} prove-fail: ERROR "
-                        f"(bad state could not be established; {detail})"
-                    )
-                    for line in known_bad_output.strip().splitlines()[:6]:
-                        print(f"    {line}")
-                    continue
+                cases = ()
+                scalar_case = False
 
-                verify = await verifier.verify(task, taskdir)
-                if verify.ok:
-                    broken += 1
+            if not cases:
+                skipped += 1
+                if task.known_bad_cases_declared:
                     print(
-                        f"{task.key:<24} prove-fail: BROKEN "
-                        "(check passed on a known-bad state)"
+                        f"{task.key:<24} prove-fail: skipped "
+                        "(known_bad_cases is empty)"
                     )
-                elif verify.check_timed_out:
-                    errors += 1
-                    print(
-                        f"{task.key:<24} prove-fail: ERROR "
-                        f"(check timed out after {task.check_timeout_s}s)"
-                    )
-                    for line in verify.raw_output_excerpt.strip().splitlines()[:6]:
-                        print(f"    {line}")
-                    print(
-                        "    The check never completed; absence of completion is not "
-                        "evidence that it rejected the bad state."
-                    )
-                    print(
-                        "    Optimize the check or raise check_timeout_s, then rerun "
-                        "--prove-fail."
-                    )
-                elif check_crashed(
-                    verify.check_returncode, verify.raw_output_excerpt
+                else:
+                    print(f"{task.key:<24} prove-fail: skipped (no known_bad)")
+                continue
+
+            task_root = (prove_fail_root / task.key).resolve()
+            for case_index, case in enumerate(cases):
+                display_key = (
+                    task.key if scalar_case else f"{task.key} [{case.label}]"
+                )
+                taskdir = (
+                    task_root
+                    if scalar_case
+                    else task_root.parent / f"{task_root.name}--case-{case_index + 1}"
+                ).resolve()
+                # Validate the authored key, rather than the generated case suffix,
+                # with the same containment rule used by the scalar and live paths.
+                if (
+                    not task_root.is_relative_to(prove_fail_root.resolve())
+                    or task_root == prove_fail_root.resolve()
                 ):
                     errors += 1
                     print(
-                        f"{task.key:<24} prove-fail: CRASHED "
-                        f"(rc={verify.check_returncode})"
+                        f"{display_key:<24} prove-fail: ERROR "
+                        "(task key escapes the prove-fail scratch root)"
                     )
-                    print(
-                        "    The check itself failed to run, so this gate proves nothing."
-                    )
-                    for line in verify.raw_output_excerpt.strip().splitlines()[:6]:
-                        print(f"    {line}")
-                elif verify.check_returncode == 0:
-                    inconclusive += 1
-                    print(
-                        f"{task.key:<24} prove-fail: inconclusive "
-                        "(check never caught the bad state; known_bad must fabricate "
-                        "the deliverables in bad form)"
-                    )
-                else:
-                    proved += 1
-                    print(
-                        f"{task.key:<24} prove-fail: proved "
-                        f"(rc={verify.check_returncode})"
-                    )
-                    for line in verify.raw_output_excerpt.strip().splitlines()[:6]:
-                        print(f"    {line}")
-            finally:
+                    continue
                 if worktrees:
                     proc = await asyncio.create_subprocess_exec(
                         "git",
                         "-C",
                         str(manifest.repo),
                         "worktree",
-                        "remove",
-                        "--force",
+                        "add",
+                        "--detach",
                         str(taskdir),
+                        "HEAD",
                         stdin=asyncio.subprocess.DEVNULL,
                         stdout=asyncio.subprocess.PIPE,
                         stderr=asyncio.subprocess.STDOUT,
                     )
                     stdout, _ = await proc.communicate()
                     if proc.returncode != 0:
-                        # A clean summary must not hide leaked worktree state.
-                        leaked_worktrees.append(str(taskdir))
-                        message = stdout.decode("utf-8", errors="replace").strip()
+                        errors += 1
                         print(
-                            f"{task.key:<24} prove-fail: WARNING "
-                            f"(worktree remove failed, leaked {taskdir})"
+                            f"{display_key:<24} prove-fail: ERROR "
+                            "(git worktree add failed)"
                         )
-                        for line in message.splitlines()[:2]:
+                        message = stdout.decode("utf-8", errors="replace").strip()
+                        for line in message.splitlines()[:4]:
                             print(f"    {line}")
+                        continue
+                else:
+                    taskdir.mkdir(parents=True, exist_ok=True)
+                mutations_exercised += 1
+                try:
+                    proc = await asyncio.create_subprocess_shell(
+                        case.command,
+                        cwd=str(taskdir),
+                        stdin=asyncio.subprocess.DEVNULL,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.STDOUT,
+                        start_new_session=True,
+                    )
+                    known_bad_timed_out = False
+                    try:
+                        stdout, _ = await asyncio.wait_for(
+                            proc.communicate(), timeout=task.timeout_s
+                        )
+                    except asyncio.TimeoutError:
+                        known_bad_timed_out = True
+                        terminate_process_group(proc)
+                        try:
+                            stdout, _ = await asyncio.wait_for(
+                                proc.communicate(), timeout=5
+                            )
+                        except asyncio.TimeoutError:
+                            kill_process_group(proc)
+                            stdout, _ = await proc.communicate()
+                    known_bad_output = (
+                        stdout.decode("utf-8", errors="replace") if stdout else ""
+                    )
+                    if known_bad_timed_out:
+                        known_bad_output += (
+                            f"\n[ringer.py] known_bad timed out after {task.timeout_s}s\n"
+                        )
+                    if known_bad_timed_out or proc.returncode != 0:
+                        errors += 1
+                        detail = (
+                            "timed out"
+                            if known_bad_timed_out
+                            else f"rc={proc.returncode}"
+                        )
+                        print(
+                            f"{display_key:<24} prove-fail: ERROR "
+                            f"(bad state could not be established; {detail})"
+                        )
+                        for line in known_bad_output.strip().splitlines()[:6]:
+                            print(f"    {line}")
+                        continue
+
+                    verify = await verifier.verify(task, taskdir)
+                    if verify.ok:
+                        broken += 1
+                        print(
+                            f"{display_key:<24} prove-fail: BROKEN "
+                            "(check passed on a known-bad state)"
+                        )
+                    elif verify.check_timed_out:
+                        errors += 1
+                        print(
+                            f"{display_key:<24} prove-fail: ERROR "
+                            f"(check timed out after {task.check_timeout_s}s)"
+                        )
+                        for line in verify.raw_output_excerpt.strip().splitlines()[:6]:
+                            print(f"    {line}")
+                        print(
+                            "    The check never completed; absence of completion is not "
+                            "evidence that it rejected the bad state."
+                        )
+                        print(
+                            "    Optimize the check or raise check_timeout_s, then rerun "
+                            "--prove-fail."
+                        )
+                    elif check_crashed(
+                        verify.check_returncode, verify.raw_output_excerpt
+                    ):
+                        errors += 1
+                        print(
+                            f"{display_key:<24} prove-fail: CRASHED "
+                            f"(rc={verify.check_returncode})"
+                        )
+                        print(
+                            "    The check itself failed to run, so this gate proves nothing."
+                        )
+                        for line in verify.raw_output_excerpt.strip().splitlines()[:6]:
+                            print(f"    {line}")
+                    elif verify.check_returncode == 0:
+                        inconclusive += 1
+                        print(
+                            f"{display_key:<24} prove-fail: inconclusive "
+                            "(check never caught the bad state; known_bad must fabricate "
+                            "the deliverables in bad form)"
+                        )
+                    elif (
+                        case.expect is not None
+                        and case.expect not in (
+                            verify.raw_output or verify.raw_output_excerpt
+                        )
+                    ):
+                        inconclusive += 1
+                        print(
+                            f"{display_key:<24} prove-fail: NOT PROVED "
+                            f"(rejection output did not contain expected marker "
+                            f"{case.expect!r})"
+                        )
+                        for line in verify.raw_output_excerpt.strip().splitlines()[:6]:
+                            print(f"    {line}")
+                    else:
+                        proved += 1
+                        print(
+                            f"{display_key:<24} prove-fail: proved "
+                            f"(rc={verify.check_returncode})"
+                        )
+                        for line in verify.raw_output_excerpt.strip().splitlines()[:6]:
+                            print(f"    {line}")
+                finally:
+                    if worktrees:
+                        proc = await asyncio.create_subprocess_exec(
+                            "git",
+                            "-C",
+                            str(manifest.repo),
+                            "worktree",
+                            "remove",
+                            "--force",
+                            str(taskdir),
+                            stdin=asyncio.subprocess.DEVNULL,
+                            stdout=asyncio.subprocess.PIPE,
+                            stderr=asyncio.subprocess.STDOUT,
+                        )
+                        stdout, _ = await proc.communicate()
+                        if proc.returncode != 0:
+                            # A clean summary must not hide leaked worktree state.
+                            leaked_worktrees.append(str(taskdir))
+                            message = stdout.decode("utf-8", errors="replace").strip()
+                            print(
+                                f"{display_key:<24} prove-fail: WARNING "
+                                f"(worktree remove failed, leaked {taskdir})"
+                            )
+                            for line in message.splitlines()[:2]:
+                                print(f"    {line}")
     finally:
         shutil.rmtree(prove_fail_root, ignore_errors=True)
     covered = total - skipped
@@ -12482,6 +12634,13 @@ async def run_prove_fail(manifest: Manifest, *, config: AppConfig) -> int:
         f"\nprove-fail: {proved} proved, {broken} broken, "
         f"{inconclusive} inconclusive, {errors} error, {skipped} skipped, "
         f"covered {covered} of {total} task(s)."
+    )
+    mutation_word = "mutation" if mutations_exercised == 1 else "mutations"
+    covered_task_word = "task" if covered == 1 else "tasks"
+    print(
+        f"prove-fail: {mutations_exercised} {mutation_word} exercised across "
+        f"{covered} covered {covered_task_word}; proof is per mutation, not per "
+        "check assertion."
     )
     if covered == 0:
         print(
@@ -12966,6 +13125,11 @@ def dry_run(
 def print_lint_findings(findings: list[str]) -> None:
     for finding in findings:
         print(f"lint: {finding}")
+
+
+def print_lint_nudges(nudges: list[str]) -> None:
+    for nudge in nudges:
+        print(f"lint: NUDGE: {nudge}")
 
 
 def print_summary(run_id: str, runtimes: list[TaskRuntime]) -> None:
@@ -14292,6 +14456,7 @@ def main(argv: list[str] | None = None) -> int:
                 manifest,
                 allow_noncanonical_route=args.allow_noncanonical_route,
             )
+            print_lint_nudges(lint_nudges(manifest))
             if findings:
                 print_lint_findings(findings)
                 return 1
@@ -14355,6 +14520,7 @@ def main(argv: list[str] | None = None) -> int:
                 getattr(args, "allow_noncanonical_route", False)
             ),
         )
+        print_lint_nudges(lint_nudges(manifest))
         print_lint_findings(lint_findings)
         if any(finding.startswith("ERROR:") for finding in lint_findings):
             return 1
