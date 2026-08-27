@@ -189,8 +189,7 @@ Lint now also reports:
 - a check that greps for a bare literal with no word boundary or anchor, because `grep todo` matches `mastodon` — use `grep -w` or anchor the pattern
 - a check or spec containing a command that steals window focus (`open`, `xdg-open`, `osascript ... activate`, `screencapture`, a simulator launch) — use a headless probe and write evidence to a file
 - in worktrees mode, an `expect_files` deliverable under a path ignored by the repo's .gitignore, because `git add -A` cannot stage ignored files, so the patch export silently omits it and the worktree is then deleted — have the check copy the artifact outside the worktree and verify the copy
-- a task that declares no `known_bad`, because such a task cannot be covered by `run --prove-fail` — the gate that proves a check can actually fail against a deliberately broken deliverable
-  — it is a nudge, not a refusal, and there is deliberately no matching nudge for `known_good`, because fabricating a correct deliverable is impossible for many task shapes
+- an authored task that declares no `known_bad` or no `known_good`, because that task cannot be covered by `run --prove-fail` or `run --prove-pass` respectively — these are nudges to make missing proof coverage visible, not runtime refusals. Ringer's uninstantiated template skeletons defer the `known_good` nudge until copied and filled in, because a truthful passing fixture depends on the resolved placeholders.
 
 `run` and `demo` also print any lint findings as non-blocking warnings after the manifest loads. They teach at the moment of use; they do not stop a run.
 
@@ -219,7 +218,7 @@ Lint reads the manifest; `--baseline` executes it — every task's `check` runs 
 ./ringer.py run swarm.json --baseline
 ```
 
-Each check runs in a fresh scratch dir (a detached worktree when the manifest uses worktrees) through the same verifier as a real run. Reading the results: an assertion that demands the NEW behavior workers will build is *expected* to FAIL baseline; an assertion about UNCHANGED behavior that fails baseline is a bug in the check itself, and at run time it would burn a worker's attempts against something no model can satisfy. Fix the check before spawning.
+Each check runs in a fresh scratch dir (a detached worktree when the manifest uses worktrees) through the same verifier as a real run. Reading the results: an assertion that demands the NEW behavior workers will build is *expected* to FAIL baseline; an assertion about UNCHANGED behavior that fails baseline is a bug in the check itself, and at run time it would burn a worker's attempts against something no model can satisfy. Fix the check before spawning. An ordinary **FAIL** still exits 0 because only the author can make that distinction. A check that **CRASHED** or otherwise could not run is an **error** and exits nonzero: it rendered no verdict, proves nothing, and would burn every worker attempt.
 
 ### Prove-fail: prove your checks can catch a lie
 
@@ -231,9 +230,9 @@ For each task that declares `known_bad`, prove-fail makes a fresh scratch dir (a
 ./ringer.py run swarm.json --prove-fail
 ```
 
-The check FAILING is the good outcome — reported as **proved**, with the check's failure output shown (that output is what a retry prompt would see). A check that PASSES on the known-bad state is **broken**: it cannot be trusted to verify the task. A check that passes while `expect_files` are missing is **inconclusive** — the `known_bad` command must fabricate the deliverables in bad form for the test to mean anything. A `known_bad` command that itself fails or times out is an **error**. Tasks without `known_bad` are **skipped**; coverage is opt-in per task.
+The check FAILING is the good outcome — reported as **proved**, with the check's failure output shown (that output is what a retry prompt would see). A check that PASSES on the known-bad state is **broken**: it cannot be trusted to verify the task. A check that passes while `expect_files` are missing is **inconclusive** — the `known_bad` command must fabricate the deliverables in bad form for the test to mean anything. A `known_bad` command that itself fails or times out is an **error**. A check timeout is also an **error**, never proof: the check did not complete or produce the rejection evidence a worker retry would need. Tasks without `known_bad` are **skipped**; coverage is opt-in per task.
 
-The summary reads `prove-fail: P proved, B broken, I inconclusive, E error, S skipped of T task(s).` Exit code is 0 only when broken, inconclusive, and error are all zero — unlike `--baseline` (always 0, judgment left to you), a check that passes on a known-bad state is objectively broken. The two flags cannot be combined in one invocation.
+The summary reads `prove-fail: P proved, B broken, I inconclusive, E error, S skipped, covered N of T task(s).` Partial coverage remains successful when every covered task is proved, but it is stated explicitly. Zero coverage exits nonzero and says the gate proved nothing. Otherwise, exit code is 0 only when broken, inconclusive, and error are all zero. Unlike an ordinary `--baseline` failure, a check that passes on a known-bad state is objectively broken. The two flags cannot be combined in one invocation.
 
 ### Prove-pass: prove your checks can accept honest work
 
@@ -247,7 +246,7 @@ For each task that declares `known_good`, prove-pass makes a fresh scratch dir (
 
 The check PASSING is the good outcome — reported as **proved**. A check that FAILS on correct work is **broken**: it can never pass, so it would burn every attempt a worker has, and the run reads as a model failure when it is a specification failure. A `known_good` that does not create a declared `expect_files` entry is **broken** too, with the missing file named. A `known_good` command that itself fails or times out is an **error**. Tasks without `known_good` are **skipped**; coverage is opt-in per task.
 
-The summary reads `prove-pass: P proved, B broken, E error, S skipped of T task(s).` Exit code is 0 only when broken and error are both zero. It cannot be combined with `--prove-fail` or `--baseline`.
+The summary reads `prove-pass: P proved, B broken, E error, S skipped, covered N of T task(s).` Partial coverage remains successful when every covered task is proved, but it is stated explicitly. Zero coverage exits nonzero and says the gate proved nothing. Otherwise, exit code is 0 only when broken and error are both zero. It cannot be combined with `--prove-fail` or `--baseline`.
 
 All three gates tell a **crashed** check apart from a failing one. A check that cannot run — a missing command, a syntax error, an unhandled exception — used to exit nonzero and look exactly like a check that had caught a problem, so `--prove-fail` would call it proved.
 It is now reported as **crashed**, the mode exits nonzero, and the message says the check itself failed to run — the gate proves nothing about it.

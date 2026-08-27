@@ -171,7 +171,8 @@ class ProvePassModeTests(unittest.TestCase):
                 output,
             )
             self.assertIn(
-                "prove-pass: 1 proved, 0 broken, 0 error, 0 skipped of 1 task(s).",
+                "prove-pass: 1 proved, 0 broken, 0 error, 0 skipped, "
+                "covered 1 of 1 task(s).",
                 output,
             )
             self.assertFalse(model_log.exists(), "prove-pass wrote model-log rows")
@@ -277,7 +278,7 @@ class ProvePassModeTests(unittest.TestCase):
             )
             output = proc.stdout + proc.stderr
 
-            self.assertEqual(0, proc.returncode, output)
+            self.assertNotEqual(0, proc.returncode, output)
             self.assertRegex(
                 output,
                 re.compile(
@@ -286,7 +287,34 @@ class ProvePassModeTests(unittest.TestCase):
                 ),
                 output,
             )
-            self.assertIn("0 error, 1 skipped of 1 task(s).", output)
+            self.assertIn("0 error, 1 skipped, covered 0 of 1 task(s).", output)
+            self.assertIn("this gate proved nothing", output)
+
+    def test_partial_coverage_is_reported_and_still_succeeds(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_root:
+            proc, _, _, _ = self.run_ringer(
+                Path(temp_root),
+                [
+                    {
+                        "key": "covered",
+                        "engine": "missing",
+                        "spec": "The known-good state must be accepted.",
+                        "known_good": "true",
+                        "check": "true",
+                    },
+                    {
+                        "key": "uncovered",
+                        "engine": "missing",
+                        "spec": "This task has no prove-pass coverage yet.",
+                        "check": "true",
+                    },
+                ],
+                "--prove-pass",
+            )
+            output = proc.stdout + proc.stderr
+
+            self.assertEqual(0, proc.returncode, output)
+            self.assertIn("1 skipped, covered 1 of 2 task(s).", output)
 
     def test_missing_deliverable_is_broken(self) -> None:
         with tempfile.TemporaryDirectory() as temp_root:

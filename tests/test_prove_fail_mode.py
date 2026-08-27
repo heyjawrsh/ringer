@@ -172,7 +172,7 @@ class ProveFailModeTests(unittest.TestCase):
             self.assertIn("FAIL: expected clean content", output)
             self.assertIn(
                 "prove-fail: 1 proved, 0 broken, 0 inconclusive, 0 error, "
-                "0 skipped of 1 task(s).",
+                "0 skipped, covered 1 of 1 task(s).",
                 output,
             )
             self.assertFalse(model_log.exists(), "prove-fail wrote model-log rows")
@@ -237,7 +237,7 @@ class ProveFailModeTests(unittest.TestCase):
             )
             output = proc.stdout + proc.stderr
 
-            self.assertEqual(0, proc.returncode, output)
+            self.assertNotEqual(0, proc.returncode, output)
             self.assertRegex(
                 output,
                 re.compile(
@@ -246,7 +246,67 @@ class ProveFailModeTests(unittest.TestCase):
                 ),
                 output,
             )
-            self.assertIn("0 error, 1 skipped of 1 task(s).", output)
+            self.assertIn("0 error, 1 skipped, covered 0 of 1 task(s).", output)
+            self.assertIn("this gate proved nothing", output)
+
+    def test_partial_coverage_is_reported_and_still_succeeds(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_root:
+            proc, _, _, _ = self.run_ringer(
+                Path(temp_root),
+                [
+                    {
+                        "key": "covered",
+                        "engine": "missing",
+                        "spec": "The known-bad state must be rejected.",
+                        "known_bad": "true",
+                        "check": "echo 'FAIL: rejected'; exit 1",
+                    },
+                    {
+                        "key": "uncovered",
+                        "engine": "missing",
+                        "spec": "This task has no prove-fail coverage yet.",
+                        "check": "true",
+                    },
+                ],
+                "--prove-fail",
+            )
+            output = proc.stdout + proc.stderr
+
+            self.assertEqual(0, proc.returncode, output)
+            self.assertIn("1 skipped, covered 1 of 2 task(s).", output)
+
+    def test_timed_out_check_is_an_error_not_proof(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_root:
+            proc, _, _, _ = self.run_ringer(
+                Path(temp_root),
+                [
+                    {
+                        "key": "slow-check",
+                        "engine": "missing",
+                        "spec": "The check must complete before it can reject the bad state.",
+                        "known_bad": "true",
+                        "check": "sleep 2",
+                        "check_timeout_s": 1,
+                    }
+                ],
+                "--prove-fail",
+            )
+            output = proc.stdout + proc.stderr
+
+            self.assertNotEqual(0, proc.returncode, output)
+            self.assertRegex(
+                output,
+                re.compile(
+                    r"^slow-check\s+prove-fail: ERROR \(check timed out after 1s\)",
+                    re.MULTILINE,
+                ),
+                output,
+            )
+            self.assertNotIn("prove-fail: proved", output)
+            self.assertIn("check never completed", output)
+            self.assertIn("absence of completion is not evidence", output)
+            self.assertIn("raise check_timeout_s", output)
+            self.assertIn("0 proved, 0 broken, 0 inconclusive, 1 error", output)
 
     def test_failing_known_bad_is_an_error(self) -> None:
         with tempfile.TemporaryDirectory() as temp_root:

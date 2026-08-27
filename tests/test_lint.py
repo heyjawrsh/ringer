@@ -57,6 +57,7 @@ class LintManifestTests(unittest.TestCase):
         check: str = GOOD_CHECK,
         expect_files: list[str] | None = None,
         known_bad: str | None = "printf 'broken\\n' > output.txt",
+        known_good: str | None = "printf 'ready\\n' > output.txt",
     ) -> dict[str, object]:
         task: dict[str, object] = {
             "key": key,
@@ -67,6 +68,8 @@ class LintManifestTests(unittest.TestCase):
         }
         if known_bad is not None:
             task["known_bad"] = known_bad
+        if known_good is not None:
+            task["known_good"] = known_good
         return task
 
     def assertHasFinding(self, findings: list[str], expected: str) -> None:
@@ -462,6 +465,23 @@ class LintManifestTests(unittest.TestCase):
 
         self.assertEqual(1, exit_code)
         self.assertIn("lint: one: no known_bad", output.getvalue())
+        self.assertNotIn("lint: clean", output.getvalue())
+
+    def test_missing_known_good_nudge_matches_known_bad_severity(self) -> None:
+        finding = (
+            "one: no known_good; run --prove-pass cannot cover this task, so a "
+            "correct deliverable may be rejected — add a command that fabricates one."
+        )
+        manifest = self.manifest([self.task(known_good=None)])
+        self.assertHasFinding(lint_manifest(manifest), finding)
+
+        output = io.StringIO()
+        with mock.patch.object(Manifest, "from_path", return_value=manifest):
+            with contextlib.redirect_stdout(output):
+                exit_code = main(["--no-self-update", "lint", "ringer.json"])
+
+        self.assertEqual(1, exit_code)
+        self.assertIn("lint: one: no known_good", output.getvalue())
         self.assertNotIn("lint: clean", output.getvalue())
 
     def test_compliant_manifest_is_clean(self) -> None:

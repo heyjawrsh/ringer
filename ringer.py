@@ -2120,6 +2120,11 @@ def lint_manifest(
     allow_noncanonical_route: bool = False,
 ) -> list[str]:
     findings: list[str] = []
+    shipped_templates_root = Path(__file__).resolve().parent / "templates"
+    source_path = manifest.source_path.resolve() if manifest.source_path else None
+    is_shipped_template = bool(
+        source_path and source_path.is_relative_to(shipped_templates_root)
+    )
     if manifest.run_name == MODEL_SCOREBOARD_RUN_NAME:
         findings.append("manifest: run_name model-scoreboard is reserved for the scoreboard page.")
 
@@ -2199,6 +2204,14 @@ def lint_manifest(
             findings.append(
                 f"{task.key}: no known_bad; run --prove-fail cannot cover this task, so a "
                 "broken deliverable may slip through — add a command that fabricates one."
+            )
+        # A shipped template cannot truthfully fabricate correct output until
+        # its placeholders are instantiated. Nudge the authored manifest, not
+        # the skeleton (and do not paper over the gap with a fake command).
+        if not task.known_good and not is_shipped_template:
+            findings.append(
+                f"{task.key}: no known_good; run --prove-pass cannot cover this task, so a "
+                "correct deliverable may be rejected — add a command that fabricates one."
             )
         if include_model_log_nudges and not task.task_type:
             findings.append(
@@ -12151,8 +12164,9 @@ async def run_baseline(manifest: Manifest, *, config: AppConfig) -> int:
     here is a bug in the check itself — and at run time it will burn a
     worker's attempts against something no model can satisfy. Running the
     checks once, before any worker spawns, makes that question answerable in
-    one command. The harness only reports; deciding which failures are
-    expected is the orchestrator's judgment.
+    one command. The harness only reports ordinary failures; deciding which
+    failures are expected is the orchestrator's judgment. A check that cannot
+    run is an error, not an assertion failure, and makes the gate fail.
 
     Checks run for real — including any exports or side effects they perform
     (e.g. a fix-swarm check writing its patch file). Each task gets a fresh
@@ -12261,7 +12275,12 @@ async def run_baseline(manifest: Manifest, *, config: AppConfig) -> int:
         "behavior means the check itself is broken and will burn worker attempts\n"
         "against something no model can satisfy — fix the check before spawning."
     )
-    return 0
+    if errors:
+        print(
+            f"baseline: {errors} check(s) could not run. A crashed check proves "
+            "nothing and will burn every worker attempt."
+        )
+    return 0 if errors == 0 else 1
 
 
 async def run_prove_fail(manifest: Manifest, *, config: AppConfig) -> int:
@@ -12380,14 +12399,21 @@ async def run_prove_fail(manifest: Manifest, *, config: AppConfig) -> int:
                         "(check passed on a known-bad state)"
                     )
                 elif verify.check_timed_out:
-                    proved += 1
+                    errors += 1
                     print(
-                        f"{task.key:<24} prove-fail: proved "
-                        f"(rc={verify.check_returncode}, timed out)"
+                        f"{task.key:<24} prove-fail: ERROR "
+                        f"(check timed out after {task.check_timeout_s}s)"
                     )
                     for line in verify.raw_output_excerpt.strip().splitlines()[:6]:
                         print(f"    {line}")
-                    print("    WARNING: a timeout makes useless retry output.")
+                    print(
+                        "    The check never completed; absence of completion is not "
+                        "evidence that it rejected the bad state."
+                    )
+                    print(
+                        "    Optimize the check or raise check_timeout_s, then rerun "
+                        "--prove-fail."
+                    )
                 elif check_crashed(
                     verify.check_returncode, verify.raw_output_excerpt
                 ):
@@ -12443,11 +12469,17 @@ async def run_prove_fail(manifest: Manifest, *, config: AppConfig) -> int:
                             print(f"    {line}")
     finally:
         shutil.rmtree(prove_fail_root, ignore_errors=True)
+    covered = total - skipped
     print(
         f"\nprove-fail: {proved} proved, {broken} broken, "
-        f"{inconclusive} inconclusive, {errors} error, {skipped} skipped "
-        f"of {total} task(s)."
+        f"{inconclusive} inconclusive, {errors} error, {skipped} skipped, "
+        f"covered {covered} of {total} task(s)."
     )
+    if covered == 0:
+        print(
+            "prove-fail: this gate proved nothing; every task was skipped because "
+            "no known_bad was declared."
+        )
     if leaked_worktrees:
         print(
             f"WARNING: {len(leaked_worktrees)} prove-fail worktree(s) could not be removed; "
@@ -12457,7 +12489,7 @@ async def run_prove_fail(manifest: Manifest, *, config: AppConfig) -> int:
     # Unlike baseline, there is no judgment to defer: a pass on a known-bad
     # state is objectively broken. Setup errors and inconclusive coverage are
     # also not successful proof.
-    return 0 if broken == inconclusive == errors == 0 else 1
+    return 0 if covered > 0 and broken == inconclusive == errors == 0 else 1
 
 
 async def run_prove_pass(manifest: Manifest, *, config: AppConfig) -> int:
@@ -12637,10 +12669,16 @@ async def run_prove_pass(manifest: Manifest, *, config: AppConfig) -> int:
                             print(f"    {line}")
     finally:
         shutil.rmtree(prove_pass_root, ignore_errors=True)
+    covered = total - skipped
     print(
         f"\nprove-pass: {proved} proved, {broken} broken, {errors} error, "
-        f"{skipped} skipped of {total} task(s)."
+        f"{skipped} skipped, covered {covered} of {total} task(s)."
     )
+    if covered == 0:
+        print(
+            "prove-pass: this gate proved nothing; every task was skipped because "
+            "no known_good was declared."
+        )
     if leaked_worktrees:
         print(
             f"WARNING: {len(leaked_worktrees)} prove-pass worktree(s) could not be removed; "
@@ -12649,7 +12687,7 @@ async def run_prove_pass(manifest: Manifest, *, config: AppConfig) -> int:
         )
     # There is no judgment to defer: a check that rejects correct work is
     # objectively broken. Setup errors are also not successful proof.
-    return 0 if broken == errors == 0 else 1
+    return 0 if covered > 0 and broken == errors == 0 else 1
 
 
 def append_text(path: Path, text: str) -> None:

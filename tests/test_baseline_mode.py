@@ -14,7 +14,8 @@ Pinned here:
     and the engine preflight must not block baseline
   * no model-log rows are written
   * no scratch worktrees or taskdirs leak into the manifest workdir or repo
-  * exit code 0 — baseline reports; the orchestrator judges
+  * exit code 0 for ordinary failures — baseline reports; the author judges
+  * exit code nonzero for errors where a check could not run
 """
 from __future__ import annotations
 
@@ -49,7 +50,17 @@ def init_git_repo(path: Path) -> None:
     for args in (
         ["git", "-C", str(path), "init", "--quiet"],
         ["git", "-C", str(path), "add", "README.md"],
-        ["git", "-C", str(path), "commit", "--quiet", "-m", "init"],
+        [
+            "git",
+            "-C",
+            str(path),
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "--quiet",
+            "-m",
+            "init",
+        ],
     ):
         subprocess.run(args, check=True, env=env, capture_output=True)
 
@@ -163,7 +174,7 @@ class BaselineModeTests(unittest.TestCase):
 
             combined_output = proc.stdout + proc.stderr
 
-            # Baseline reports; it does not judge. Exit 0 even with failures.
+            # Baseline reports ordinary assertion failures for the author to judge.
             self.assertEqual(0, proc.returncode, combined_output)
 
             self.assertRegex(
@@ -236,9 +247,10 @@ class BaselineContainmentTests(unittest.TestCase):
             with contextlib.redirect_stdout(buffer):
                 rc = asyncio.run(ringer.run_baseline(manifest, config=None))
             output = buffer.getvalue()
-            self.assertEqual(0, rc, output)
+            self.assertNotEqual(0, rc, output)
             self.assertIn("task key escapes the baseline scratch root", output)
             self.assertIn("0 pass, 0 fail, 1 error of 1 check(s)", output)
+            self.assertIn("1 check(s) could not run", output)
 
 
 if __name__ == "__main__":

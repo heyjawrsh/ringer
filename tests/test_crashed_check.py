@@ -210,7 +210,7 @@ class CrashedCheckModeTests(unittest.TestCase):
         self.assertIn("The check itself failed to run, so this gate proves nothing.", output)
         self.assertIn(
             "prove-fail: 2 proved, 0 broken, 0 inconclusive, 2 error, "
-            "0 skipped of 4 task(s).",
+            "0 skipped, covered 4 of 4 task(s).",
             output,
         )
 
@@ -241,11 +241,12 @@ class CrashedCheckModeTests(unittest.TestCase):
         )
         self.assertNotIn("prove-pass: BROKEN", output)
         self.assertIn(
-            "prove-pass: 0 proved, 0 broken, 1 error, 0 skipped of 1 task(s).",
+            "prove-pass: 0 proved, 0 broken, 1 error, 0 skipped, "
+            "covered 1 of 1 task(s).",
             output,
         )
 
-    def test_baseline_reports_crashed_check_but_still_defers_judgment(self) -> None:
+    def test_baseline_reports_crashed_check_and_exits_nonzero(self) -> None:
         with tempfile.TemporaryDirectory() as temp_root:
             proc = self.run_mode(
                 Path(temp_root),
@@ -261,7 +262,7 @@ class CrashedCheckModeTests(unittest.TestCase):
             )
         output = proc.stdout + proc.stderr
 
-        self.assertEqual(0, proc.returncode, output)
+        self.assertNotEqual(0, proc.returncode, output)
         self.assertRegex(
             output,
             re.compile(
@@ -270,6 +271,9 @@ class CrashedCheckModeTests(unittest.TestCase):
             ),
         )
         self.assertIn("baseline: 0 pass, 0 fail, 1 error of 1 check(s).", output)
+        self.assertIn("1 check(s) could not run", output)
+        self.assertIn("A crashed check proves nothing", output)
+        self.assertIn("will burn every worker attempt", output)
 
 
 if __name__ == "__main__":
