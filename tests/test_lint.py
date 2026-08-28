@@ -488,6 +488,55 @@ class LintManifestTests(unittest.TestCase):
             any("no known_bad" in finding for finding in lint_manifest(cases_manifest))
         )
 
+    def test_export_plumbing_does_not_trigger_chained_assertion_nudge(self) -> None:
+        plumbing_segments = [
+            "git diff > out.patch",
+            "git add out.patch",
+            "git archive HEAD -o source.tar",
+            "cp source.txt deliverable.txt",
+            "mv staged.txt deliverable.txt",
+            "tee deliverable.txt",
+            "mkdir artifacts",
+            "touch artifacts/ready",
+            "install source.txt deliverable.txt",
+            "ln -s source.txt deliverable.txt",
+            "rsync source.txt deliverable.txt",
+            "python3 export.py > deliverable.txt",
+            "python3 export.py>deliverable.txt",
+        ]
+        for plumbing in plumbing_segments:
+            with self.subTest(plumbing=plumbing):
+                check = (
+                    f"python3 gate.py . && {plumbing} && test -s deliverable.txt"
+                )
+                manifest = self.manifest([self.task(check=check)])
+                self.assertEqual([], lint_nudges(manifest))
+
+    def test_three_chained_gate_scripts_still_trigger_nudge(self) -> None:
+        for check in (
+            "gate_a.py && gate_b.py && gate_c.py",
+            "echo 'not > a redirect' && gate_b.py && gate_c.py",
+        ):
+            with self.subTest(check=check):
+                manifest = self.manifest([self.task(check=check)])
+                self.assertTrue(
+                    any(
+                        "several assertions chained together" in nudge
+                        for nudge in lint_nudges(manifest)
+                    )
+                )
+
+    def test_two_probe_branch_still_counts_diff(self) -> None:
+        manifest = self.manifest(
+            [self.task(check="test -s expected.txt && diff expected.txt actual.txt")]
+        )
+        self.assertTrue(
+            any(
+                "several assertions chained together" in nudge
+                for nudge in lint_nudges(manifest)
+            )
+        )
+
     def test_missing_known_bad_nudge_reports_like_every_other_finding(self) -> None:
         # The nudge is an ordinary finding: `lint` exits 1 for ANY finding and
         # only prints "clean" when there are none. `run` still treats findings

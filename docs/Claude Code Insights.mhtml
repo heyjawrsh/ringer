@@ -1,0 +1,1934 @@
+From: <Saved by Blink>
+Snapshot-Content-Location: file:///Users/jawrsh/.claude/usage-data/report-2026-08-11-150422.html#section-horizon
+Subject: Claude Code Insights
+Date: Thu, 27 Aug 2026 23:35:08 -0500
+MIME-Version: 1.0
+Content-Type: multipart/related;
+	type="text/html";
+	boundary="----MultipartBoundary--iOCCGu5fY08KkHKNj1bPf1B2zDn8gjnYqdvmjK1XHu----"
+
+
+------MultipartBoundary--iOCCGu5fY08KkHKNj1bPf1B2zDn8gjnYqdvmjK1XHu----
+Content-Type: text/html
+Content-ID: <frame-DAEA6EEC4096EB41C52A5D9BEC5B5AC2@mhtml.blink>
+Content-Transfer-Encoding: quoted-printable
+Content-Location: file:///Users/jawrsh/.claude/usage-data/report-2026-08-11-150422.html#section-horizon
+
+<!DOCTYPE html><html><head><meta http-equiv=3D"Content-Type" content=3D"tex=
+t/html; charset=3DUTF-8"><link rel=3D"stylesheet" type=3D"text/css" href=3D=
+"cid:css-e83b19ba-b402-4698-bab1-ce33dc1031bf@mhtml.blink" />
+ =20
+  <title>Claude Code Insights</title>
+  <link href=3D"https://fonts.googleapis.com/css2?family=3DInter:wght@400;5=
+00;600;700&amp;display=3Dswap" rel=3D"stylesheet">
+ =20
+</head>
+<body>
+  <div class=3D"container">
+    <h1>Claude Code Insights</h1>
+    <p class=3D"subtitle">1,199 messages across 60 sessions (84 total) | 20=
+26-04-18 to 2026-08-10</p>
+
+   =20
+    <div class=3D"at-a-glance">
+      <div class=3D"glance-title">At a Glance</div>
+      <div class=3D"glance-sections">
+        <div class=3D"glance-section"><strong>What's working:</strong> You =
+run Claude like an engineering org, not a chatbot =E2=80=94 front-loading B=
+MAD-style briefs, PRDs and architecture before any code, then fanning work =
+out across five to eight parallel lanes and reconverging with verified synt=
+hesis. Just as important, you don't accept 'it compiles' as done: you deman=
+d live browser previews, screenshot verification, and green suites before a=
+nything lands. That combination took a Notion workflow to a full monorepo a=
+nd drove several native macOS apps to shipping state, and you still push ba=
+ck at review gates rather than rubber-stamping scope. <a href=3D"file:///Us=
+ers/jawrsh/.claude/usage-data/report-2026-08-11-150422.html#section-wins" c=
+lass=3D"see-more">Impressive Things You Did =E2=86=92</a></div>
+        <div class=3D"glance-section"><strong>What's hindering you:</strong=
+> On Claude's side, the recurring pattern is work that passes green gates b=
+ut breaks the moment you touch it by hand =E2=80=94 silent sync failures, a=
+ crash on a common action, a decode bug quietly dropping data. There's also=
+ a tax from the scaffolding itself: check scripts with false positives, reg=
+ex bugs, and parallel lanes colliding on shared type definitions. On your s=
+ide, the friction is scope handoff =E2=80=94 'let's proceed' on a seven-pha=
+se rewrite means aesthetic and architectural decisions get made without you=
+, and you only see the result once it's expensive to reject. A few /doctor =
+and diagnostic runs also died to interruptions because slow probes blocked =
+your terminal. <a href=3D"file:///Users/jawrsh/.claude/usage-data/report-20=
+26-08-11-150422.html#section-friction" class=3D"see-more">Where Things Go W=
+rong =E2=86=92</a></div>
+        <div class=3D"glance-section"><strong>Quick wins to try:</strong> A=
+dd a Round 0 'foundation' step to every swarm that lands shared types and m=
+odule boundaries before any lane spawns =E2=80=94 that alone kills your dup=
+licate-type merge breakages. Turn your verification patterns into Custom Sk=
+ills so a check script has to prove it can fail against a known-bad state b=
+efore its PASS is trusted, and use Hooks to auto-run a runtime smoke pass (=
+boot the app, exercise the top flow) at the end of each round. For redesign=
+ work, ask for two or three cheap visual options on one screen before commi=
+tting to a direction. <a href=3D"file:///Users/jawrsh/.claude/usage-data/re=
+port-2026-08-11-150422.html#section-features" class=3D"see-more">Features t=
+o Try =E2=86=92</a></div>
+        <div class=3D"glance-section"><strong>Ambitious workflows:</strong>=
+ Make adversarial hardening a default gate, not a one-off: a red-team agent=
+ whose only job is to break what was just built =E2=80=94 fuzzing real data=
+ shapes, forcing error paths, clicking destructive actions =E2=80=94 paired=
+ with a fix agent that iterates until the red team comes up empty. You alre=
+ady proved this works when it surfaced thirty bugs in your mail client; ins=
+titutionalizing it means you stop being the QA department. Beyond that, aim=
+ for contract-first orchestration where shared types and file-ownership bou=
+ndaries are frozen in a machine-readable manifest before workers spawn, whi=
+ch is what lets you scale past a dozen lanes and eventually run approved ep=
+ics unattended overnight =E2=80=94 build, verify, red-team, self-repair =E2=
+=80=94 with a morning briefing of screenshots, test deltas, and only the qu=
+estions that genuinely need you. <a href=3D"file:///Users/jawrsh/.claude/us=
+age-data/report-2026-08-11-150422.html#section-horizon" class=3D"see-more">=
+On the Horizon =E2=86=92</a></div>
+      </div>
+    </div>
+   =20
+
+    <nav class=3D"nav-toc">
+      <a href=3D"file:///Users/jawrsh/.claude/usage-data/report-2026-08-11-=
+150422.html#section-work">What You Work On</a>
+      <a href=3D"file:///Users/jawrsh/.claude/usage-data/report-2026-08-11-=
+150422.html#section-usage">How You Use CC</a>
+      <a href=3D"file:///Users/jawrsh/.claude/usage-data/report-2026-08-11-=
+150422.html#section-wins">Impressive Things</a>
+      <a href=3D"file:///Users/jawrsh/.claude/usage-data/report-2026-08-11-=
+150422.html#section-friction">Where Things Go Wrong</a>
+      <a href=3D"file:///Users/jawrsh/.claude/usage-data/report-2026-08-11-=
+150422.html#section-features">Features to Try</a>
+      <a href=3D"file:///Users/jawrsh/.claude/usage-data/report-2026-08-11-=
+150422.html#section-patterns">New Usage Patterns</a>
+      <a href=3D"file:///Users/jawrsh/.claude/usage-data/report-2026-08-11-=
+150422.html#section-horizon">On the Horizon</a>
+      <a href=3D"file:///Users/jawrsh/.claude/usage-data/report-2026-08-11-=
+150422.html#section-feedback">Team Feedback</a>
+    </nav>
+
+    <div class=3D"stats-row">
+      <div class=3D"stat"><div class=3D"stat-value">1,199</div><div class=
+=3D"stat-label">Messages</div></div>
+      <div class=3D"stat"><div class=3D"stat-value">+53,745/-3,181</div><di=
+v class=3D"stat-label">Lines</div></div>
+      <div class=3D"stat"><div class=3D"stat-value">772</div><div class=3D"=
+stat-label">Files</div></div>
+      <div class=3D"stat"><div class=3D"stat-value">29</div><div class=3D"s=
+tat-label">Days</div></div>
+      <div class=3D"stat"><div class=3D"stat-value">41.3</div><div class=3D=
+"stat-label">Msgs/Day</div></div>
+    </div>
+
+   =20
+    <h2 id=3D"section-work">What You Work On</h2>
+    <div class=3D"project-areas">
+     =20
+        <div class=3D"project-area">
+          <div class=3D"area-header">
+            <span class=3D"area-name">Native macOS App Development (Fume, F=
+use, Capture Tools)</span>
+            <span class=3D"area-count">~11 sessions</span>
+          </div>
+          <div class=3D"area-desc">Built and hardened several native Swift/=
+macOS applications including Fume (an AI-agent quota and status monitor wit=
+h a Dynamic Island-style notch UI), Fuse (a Kaleidoscope-style diff tool), =
+and a site screenshot/video capture utility. Claude handled architecture sc=
+oping, fixture capture, code-signing identity setup, and parallel worker fa=
+n-out across multiple epics, reaching 500=E2=80=93970+ passing test suites.=
+ Friction centered on duplicate type definitions from parallel lanes, notch=
+ rendering/padding bugs, and self-corrected scripting errors.</div>
+        </div>
+     =20
+        <div class=3D"project-area">
+          <div class=3D"area-header">
+            <span class=3D"area-name">Orchestrated Multi-Agent Builds (Ring=
+er/BMAD Workflows)</span>
+            <span class=3D"area-count">~12 sessions</span>
+          </div>
+          <div class=3D"area-desc">Used the Ringer orchestrator and BMAD pl=
+anning method to drive worker swarms that built full products from scratch =
+=E2=80=94 a Notion-workflow SaaS monorepo, a Raindrop.io bookmark clone in =
+Tauri/React, a multi-protocol mail client, and a Photoshop dithering plugin=
+ ported to web. Claude ran multi-round research and build lanes, verified r=
+esults by actually booting apps and taking browser screenshots, and produce=
+d clean unattributed commit histories. Recurring friction came from buggy v=
+erification check scripts producing false positives and stale worktree/path=
+ failures requiring repair rounds.</div>
+        </div>
+     =20
+        <div class=3D"project-area">
+          <div class=3D"area-header">
+            <span class=3D"area-name">Web &amp; Client Site Delivery</span>
+            <span class=3D"area-count">~8 sessions</span>
+          </div>
+          <div class=3D"area-desc">Implemented client feedback waves from F=
+igJam and design reviews across marketing sites, a Figma-derived WordPress =
+header block, and a portfolio site redesign. Claude built annotation-driven=
+ components, verified changes in live browser and local WP environments, de=
+ployed to production, and drafted standup notes and materials checklists. O=
+ne large seven-phase autonomous redesign missed the mark aesthetically and =
+the user paused to reassess.</div>
+        </div>
+     =20
+        <div class=3D"project-area">
+          <div class=3D"area-header">
+            <span class=3D"area-name">Product Planning, Research &amp; Comp=
+etitive Analysis</span>
+            <span class=3D"area-count">~6 sessions</span>
+          </div>
+          <div class=3D"area-desc">Converted research reports into full BMA=
+D planning stacks (briefs, PRDs, architecture, epics and stories) for apps =
+like MTHFL and a kickbacks.ai competitor. Claude ran five-lane research swa=
+rms, produced design direction renders, and moved through review gates with=
+ the user steering scope decisions. Also evaluated ~20 candidate AI tools w=
+ith an honest A/B verdict and flagged one as fraudulent.</div>
+        </div>
+     =20
+        <div class=3D"project-area">
+          <div class=3D"area-header">
+            <span class=3D"area-name">Developer Environment, Config &amp; V=
+ersion Control</span>
+            <span class=3D"area-count">~9 sessions</span>
+          </div>
+          <div class=3D"area-desc">Audited and repaired Claude Code configu=
+ration via /doctor sweeps, built a layered global/facet/project CLAUDE.md e=
+cosystem, installed plugin marketplaces, and configured animated status lin=
+es. Claude also handled git hygiene work =E2=80=94 commits, rebases with co=
+nflict resolution, multi-layer push guards against upstream, and explaining=
+ branch divergence =E2=80=94 plus toolchain fixes like diagnosing a pnpm 10=
+ vs 11 config crash. Several /doctor sessions ended early when the user int=
+errupted diagnostics.</div>
+        </div>
+     =20
+    </div>
+   =20
+
+    <div class=3D"charts-row">
+      <div class=3D"chart-card">
+        <div class=3D"chart-title">What You Wanted</div>
+        <div class=3D"bar-row">
+        <div class=3D"bar-label">Feature Implementation</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:100=
+%;background:#2563eb"></div></div>
+        <div class=3D"bar-value">31</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Environment Setup</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:16.=
+129032258064516%;background:#2563eb"></div></div>
+        <div class=3D"bar-value">5</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Version Control</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:16.=
+129032258064516%;background:#2563eb"></div></div>
+        <div class=3D"bar-value">5</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Debugging</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:12.=
+903225806451612%;background:#2563eb"></div></div>
+        <div class=3D"bar-value">4</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Code Review Analysis</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:12.=
+903225806451612%;background:#2563eb"></div></div>
+        <div class=3D"bar-value">4</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Bug Fixing</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:12.=
+903225806451612%;background:#2563eb"></div></div>
+        <div class=3D"bar-value">4</div>
+      </div>
+      </div>
+      <div class=3D"chart-card">
+        <div class=3D"chart-title">Top Tools Used</div>
+        <div class=3D"bar-row">
+        <div class=3D"bar-label">Bash</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:100=
+%;background:#0891b2"></div></div>
+        <div class=3D"bar-value">4873</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Edit</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:29.=
+017032628770778%;background:#0891b2"></div></div>
+        <div class=3D"bar-value">1414</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Read</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:20.=
+131335932690334%;background:#0891b2"></div></div>
+        <div class=3D"bar-value">981</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Write</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:12.=
+825774676790477%;background:#0891b2"></div></div>
+        <div class=3D"bar-value">625</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Mcp  Claude Preview  Preview Eval</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:4.8=
+84054996921814%;background:#0891b2"></div></div>
+        <div class=3D"bar-value">238</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">TaskUpdate</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:3.3=
+24440796224092%;background:#0891b2"></div></div>
+        <div class=3D"bar-value">162</div>
+      </div>
+      </div>
+    </div>
+
+    <div class=3D"charts-row">
+      <div class=3D"chart-card">
+        <div class=3D"chart-title">Languages</div>
+        <div class=3D"bar-row">
+        <div class=3D"bar-label">Markdown</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:100=
+%;background:#10b981"></div></div>
+        <div class=3D"bar-value">596</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">TypeScript</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:82.=
+71812080536914%;background:#10b981"></div></div>
+        <div class=3D"bar-value">493</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">JSON</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:40.=
+43624161073826%;background:#10b981"></div></div>
+        <div class=3D"bar-value">241</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Python</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:34.=
+73154362416108%;background:#10b981"></div></div>
+        <div class=3D"bar-value">207</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">CSS</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:32.=
+38255033557047%;background:#10b981"></div></div>
+        <div class=3D"bar-value">193</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">JavaScript</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:25.=
+503355704697988%;background:#10b981"></div></div>
+        <div class=3D"bar-value">152</div>
+      </div>
+      </div>
+      <div class=3D"chart-card">
+        <div class=3D"chart-title">Session Types</div>
+        <div class=3D"bar-row">
+        <div class=3D"bar-label">Multi Task</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:100=
+%;background:#8b5cf6"></div></div>
+        <div class=3D"bar-value">30</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Single Task</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:16.=
+666666666666664%;background:#8b5cf6"></div></div>
+        <div class=3D"bar-value">5</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Iterative Refinement</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:10%=
+;background:#8b5cf6"></div></div>
+        <div class=3D"bar-value">3</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Quick Question</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:10%=
+;background:#8b5cf6"></div></div>
+        <div class=3D"bar-value">3</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Exploration</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:6.6=
+66666666666667%;background:#8b5cf6"></div></div>
+        <div class=3D"bar-value">2</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Undefined</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:3.3=
+333333333333335%;background:#8b5cf6"></div></div>
+        <div class=3D"bar-value">1</div>
+      </div>
+      </div>
+    </div>
+
+   =20
+    <h2 id=3D"section-usage">How You Use Claude Code</h2>
+    <div class=3D"narrative">
+      <p>You operate as an orchestrator, not a typist. Across 60 sessions a=
+nd 333 commits you rarely hand Claude a single file to edit =E2=80=94 you h=
+and it an epic. Sessions like 'build a Raindrop.io clone from an empty dire=
+ctory', 'port this Photoshop dithering plugin to a web app', or 'build a na=
+tive macOS site-capture tool via parallel workers' show your default move i=
+s to <strong>delegate whole product surfaces and let multi-agent swarms run=
+ for hours</strong>. Your tool profile confirms it: 4,873 Bash calls dwarf =
+everything else, and the presence of TaskUpdate, Agent, and Ringer/BMAD orc=
+hestration skills means you've built scaffolding so Claude can run unsuperv=
+ised rather than checking in constantly. Terse go-signals like "let's proce=
+ed" on outstanding Fume work are enough for you =E2=80=94 you expect Claude=
+ to know the backlog and close it.</p>
+<p>But you are not a hands-off delegator. You are a <strong>gate-keeper who=
+ trusts the process and verifies the artifact</strong>. You repeatedly inse=
+rt review gates (the MTHFL brief/PRD cycle, where you pushed back on upload=
+-first/no-accounts v1 scoping as an adoption dealbreaker), you do gate walk=
+s on shipped builds, and you find the bugs Claude's test suite missed by ha=
+nd =E2=80=94 the silent sync failure and the 'Triage everything' render cra=
+sh in the bookmark manager, the 500 iPhone tabs silently dropped by a decod=
+e bug. Your 'buggy_code' friction count of 23 isn't Claude being sloppy so =
+much as <strong>you actually exercising the product rather than trusting gr=
+een checkmarks</strong>. When output misses, you say so bluntly and immedia=
+tely: the R22 notch render 'missed the visual target', the collapsed state =
+'looked strange', and after a seven-phase portfolio redesign you flatly sai=
+d you weren't 'crazy about any of this' and stopped to reassess alone. You =
+give reference material =E2=80=94 Kaleidoscope screenshots, Dynamic Island =
+examples, client FigJam feedback, Figma annotations =E2=80=94 and you expec=
+t fidelity to it.</p>
+<p>Your interruptions are surgical rather than nervous. Twice you killed /d=
+octor mid-diagnostic, and you complained hard when Claude's probe runs stol=
+e window focus during a live screen-shared Zoom call =E2=80=94 forcing a re=
+design to read Chrome's visibilityState instead. That's the pattern: <stron=
+g>you interrupt when Claude's process intrudes on your environment, not whe=
+n its work is slow</strong>. You're also unusually invested in the meta-lay=
+er, spending whole sessions vetting ~20 candidate AI tools (flagging one as=
+ fraud), auditioning Kimi 3 against K2.7-code on cost/quality, and building=
+ layered CLAUDE.md configs across global/facet/project tiers. The satisfact=
+ion data reflects it =E2=80=94 116 satisfied-or-better signals against 7 di=
+ssatisfied =E2=80=94 and your closers tend to be short and decisive: "Looks=
+ great! Let's ship it!"</p>
+      <div class=3D"key-insight"><strong>Key pattern:</strong> You hand off=
+ entire epics to autonomous agent swarms, then act as a hard-nosed QA gate =
+=E2=80=94 hand-testing the result, citing reference material, and bluntly r=
+ejecting anything that misses.</div>
+    </div>
+   =20
+
+    <!-- Response Time Distribution -->
+    <div class=3D"chart-card" style=3D"margin: 24px 0;">
+      <div class=3D"chart-title">User Response Time Distribution</div>
+      <div class=3D"bar-row">
+        <div class=3D"bar-label">2-10s</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:7.8=
+94736842105263%;background:#6366f1"></div></div>
+        <div class=3D"bar-value">18</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">10-30s</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:17.=
+982456140350877%;background:#6366f1"></div></div>
+        <div class=3D"bar-value">41</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">30s-1m</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:30.=
+701754385964914%;background:#6366f1"></div></div>
+        <div class=3D"bar-value">70</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">1-2m</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:40.=
+78947368421053%;background:#6366f1"></div></div>
+        <div class=3D"bar-value">93</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">2-5m</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:56.=
+57894736842105%;background:#6366f1"></div></div>
+        <div class=3D"bar-value">129</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">5-15m</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:100=
+%;background:#6366f1"></div></div>
+        <div class=3D"bar-value">228</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">&gt;15m</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:74.=
+56140350877193%;background:#6366f1"></div></div>
+        <div class=3D"bar-value">170</div>
+      </div>
+      <div style=3D"font-size: 12px; color: #64748b; margin-top: 8px;">
+        Median: 360.1s =E2=80=A2 Average: 621.5s
+      </div>
+    </div>
+
+    <!-- Multi-clauding Section (matching Python reference) -->
+    <div class=3D"chart-card" style=3D"margin: 24px 0;">
+      <div class=3D"chart-title">Multi-Clauding (Parallel Sessions)</div>
+     =20
+        <div style=3D"display: flex; gap: 24px; margin: 12px 0;">
+          <div style=3D"text-align: center;">
+            <div style=3D"font-size: 24px; font-weight: 700; color: #7c3aed=
+;">36</div>
+            <div style=3D"font-size: 11px; color: #64748b; text-transform: =
+uppercase;">Overlap Events</div>
+          </div>
+          <div style=3D"text-align: center;">
+            <div style=3D"font-size: 24px; font-weight: 700; color: #7c3aed=
+;">36</div>
+            <div style=3D"font-size: 11px; color: #64748b; text-transform: =
+uppercase;">Sessions Involved</div>
+          </div>
+          <div style=3D"text-align: center;">
+            <div style=3D"font-size: 24px; font-weight: 700; color: #7c3aed=
+;">32%</div>
+            <div style=3D"font-size: 11px; color: #64748b; text-transform: =
+uppercase;">Of Messages</div>
+          </div>
+        </div>
+        <p style=3D"font-size: 13px; color: #475569; margin-top: 12px;">
+          You run multiple Claude Code sessions simultaneously. Multi-claud=
+ing is detected when sessions
+          overlap in time, suggesting parallel workflows.
+        </p>
+     =20
+    </div>
+
+    <!-- Time of Day & Tool Errors -->
+    <div class=3D"charts-row">
+      <div class=3D"chart-card">
+        <div class=3D"chart-title" style=3D"display: flex; align-items: cen=
+ter; gap: 12px;">
+          User Messages by Time of Day
+          <select id=3D"timezone-select" style=3D"font-size: 12px; padding:=
+ 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0;">
+            <option value=3D"0">PT (UTC-8)</option>
+            <option value=3D"3">ET (UTC-5)</option>
+            <option value=3D"8">London (UTC)</option>
+            <option value=3D"9">CET (UTC+1)</option>
+            <option value=3D"17">Tokyo (UTC+9)</option>
+            <option value=3D"custom">Custom offset...</option>
+          </select>
+          <input type=3D"number" id=3D"custom-offset" placeholder=3D"UTC of=
+fset" style=3D"display: none; width: 80px; font-size: 12px; padding: 4px; b=
+order-radius: 4px; border: 1px solid #e2e8f0;">
+        </div>
+        <div id=3D"hour-histogram">
+      <div class=3D"bar-row">
+        <div class=3D"bar-label">Morning (6-12)</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:16.=
+45299145299145%;background:#8b5cf6"></div></div>
+        <div class=3D"bar-value">77</div>
+      </div>
+
+      <div class=3D"bar-row">
+        <div class=3D"bar-label">Afternoon (12-18)</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:100=
+%;background:#8b5cf6"></div></div>
+        <div class=3D"bar-value">468</div>
+      </div>
+
+      <div class=3D"bar-row">
+        <div class=3D"bar-label">Evening (18-24)</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:82.=
+90598290598291%;background:#8b5cf6"></div></div>
+        <div class=3D"bar-value">388</div>
+      </div>
+
+      <div class=3D"bar-row">
+        <div class=3D"bar-label">Night (0-6)</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:56.=
+837606837606835%;background:#8b5cf6"></div></div>
+        <div class=3D"bar-value">266</div>
+      </div></div>
+      </div>
+      <div class=3D"chart-card">
+        <div class=3D"chart-title">Tool Errors Encountered</div>
+        <div class=3D"bar-row">
+        <div class=3D"bar-label">Command Failed</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:100=
+%;background:#dc2626"></div></div>
+        <div class=3D"bar-value">193</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Other</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:64.=
+76683937823834%;background:#dc2626"></div></div>
+        <div class=3D"bar-value">125</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">User Rejected</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:6.2=
+17616580310881%;background:#dc2626"></div></div>
+        <div class=3D"bar-value">12</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Edit Failed</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:5.6=
+99481865284974%;background:#dc2626"></div></div>
+        <div class=3D"bar-value">11</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">File Not Found</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:5.6=
+99481865284974%;background:#dc2626"></div></div>
+        <div class=3D"bar-value">11</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">File Changed</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:4.6=
+6321243523316%;background:#dc2626"></div></div>
+        <div class=3D"bar-value">9</div>
+      </div>
+      </div>
+    </div>
+
+   =20
+    <h2 id=3D"section-wins">Impressive Things You Did</h2>
+    <p class=3D"section-intro">Across 60 sessions spanning four months, you=
+'ve run Claude Code as a full engineering org =E2=80=94 orchestrating paral=
+lel worker swarms, driving BMAD planning pipelines, and shipping native mac=
+OS apps, web tools, and client sites with real verification gates.</p>
+    <div class=3D"big-wins">
+     =20
+        <div class=3D"big-win">
+          <div class=3D"big-win-title">Orchestrated multi-lane worker swarm=
+s</div>
+          <div class=3D"big-win-desc">You routinely fan work out across 5-8=
+ parallel lanes =E2=80=94 research swarms for competitive teardowns, build =
+swarms for entire epics =E2=80=94 then reconverge with verified synthesis. =
+Your Ringer orchestration setup took a Notion workflow to an 18k-line monor=
+epo with 148 passing tests, and a Photoshop dithering plugin to a feature-c=
+omplete v0.8.0 web app. You've learned the failure mode too: extracting sha=
+red vocabulary before fan-out to avoid duplicate type definitions.</div>
+        </div>
+     =20
+        <div class=3D"big-win">
+          <div class=3D"big-win-title">Gate-walked verification, not vibes<=
+/div>
+          <div class=3D"big-win-desc">You don't accept "it compiles" as don=
+e. You demand live browser previews, screenshot verification, fixture captu=
+re, and green test suites =E2=80=94 556, 930, 973 tests passing before thin=
+gs land. Your use of preview_eval and preview_screenshot alongside 4,873 Ba=
+sh calls shows you're closing the loop on every claim Claude makes, which i=
+s why so many sessions end with you saying "Looks great! Let's ship it!"</d=
+iv>
+        </div>
+     =20
+        <div class=3D"big-win">
+          <div class=3D"big-win-title">Planning discipline before code</div=
+>
+          <div class=3D"big-win-desc">You consistently front-load structure=
+ =E2=80=94 running BMAD brief/PRD/architecture/stories cycles before implem=
+entation, even for brownfield rescues like the Safari tab sync UX overhaul.=
+ You also push back at review gates rather than rubber-stamping, like rejec=
+ting the upload-first/no-accounts v1 scoping as an adoption dealbreaker. Th=
+at combination of process plus editorial judgment is why your feature_imple=
+mentation sessions land at a 40-of-44 achieved rate.</div>
+        </div>
+     =20
+    </div>
+   =20
+
+    <div class=3D"charts-row">
+      <div class=3D"chart-card">
+        <div class=3D"chart-title">What Helped Most (Claude's Capabilities)=
+</div>
+        <div class=3D"bar-row">
+        <div class=3D"bar-label">Multi-file Changes</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:100=
+%;background:#16a34a"></div></div>
+        <div class=3D"bar-value">16</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Proactive Help</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:62.=
+5%;background:#16a34a"></div></div>
+        <div class=3D"bar-value">10</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Correct Code Edits</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:37.=
+5%;background:#16a34a"></div></div>
+        <div class=3D"bar-value">6</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Good Debugging</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:31.=
+25%;background:#16a34a"></div></div>
+        <div class=3D"bar-value">5</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Good Explanations</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:25%=
+;background:#16a34a"></div></div>
+        <div class=3D"bar-value">4</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Fast/Accurate Search</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:6.2=
+5%;background:#16a34a"></div></div>
+        <div class=3D"bar-value">1</div>
+      </div>
+      </div>
+      <div class=3D"chart-card">
+        <div class=3D"chart-title">Outcomes</div>
+        <div class=3D"bar-row">
+        <div class=3D"bar-label">Not Achieved</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:8.6=
+95652173913043%;background:#8b5cf6"></div></div>
+        <div class=3D"bar-value">2</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Partially Achieved</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:4.3=
+478260869565215%;background:#8b5cf6"></div></div>
+        <div class=3D"bar-value">1</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Mostly Achieved</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:100=
+%;background:#8b5cf6"></div></div>
+        <div class=3D"bar-value">23</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Fully Achieved</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:73.=
+91304347826086%;background:#8b5cf6"></div></div>
+        <div class=3D"bar-value">17</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Unclear</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:4.3=
+478260869565215%;background:#8b5cf6"></div></div>
+        <div class=3D"bar-value">1</div>
+      </div>
+      </div>
+    </div>
+
+   =20
+    <h2 id=3D"section-friction">Where Things Go Wrong</h2>
+    <p class=3D"section-intro">Across 44 analyzed sessions you drove ambiti=
+ous multi-agent builds to mostly successful outcomes, but repeatedly lost t=
+ime to latent bugs in shipped code, self-inflicted verification/tooling err=
+ors, and long autonomous runs that drifted from what you actually wanted.</=
+p>
+    <div class=3D"friction-categories">
+     =20
+        <div class=3D"friction-category">
+          <div class=3D"friction-title">Latent bugs surviving into 'verifie=
+d' deliverables</div>
+          <div class=3D"friction-desc">Your single largest friction source =
+(23 sessions flagged buggy code) is work that passes green test gates but b=
+reaks the moment you touch it by hand. Asking for an explicit manual-path w=
+alkthrough =E2=80=94 real data, real clicks =E2=80=94 before declaring a ro=
+und done would catch these before you do.</div>
+          <ul class=3D"friction-examples"><li>In the bookmark manager 1.1.0=
+ release, sync failed silently with no surfaced error and 'Triage everythin=
+g' crashed the inbox view =E2=80=94 both found by you, not the test suite, =
+delaying the release tag</li><li>The first Safari tab sync fix only improve=
+d UX visibility while a decode bug still silently dropped all 500 iPhone ta=
+bs, forcing a second full round</li></ul>
+        </div>
+     =20
+        <div class=3D"friction-category">
+          <div class=3D"friction-title">Self-inflicted tooling and verifica=
+tion-script failures</div>
+          <div class=3D"friction-desc">A recurring tax comes from the scaff=
+olding around the work rather than the work itself =E2=80=94 check scripts =
+with false positives, regex bugs, and shell alias collisions that stall run=
+s. Having verification scripts smoke-tested against a known-good and known-=
+bad case before a swarm launches would stop these from cascading into repai=
+r rounds.</div>
+          <ul class=3D"friction-examples"><li>A regex bug in the Ringer blu=
+eprint check script failed all Round 1 lanes, requiring a fix plus an entir=
+e repair round before synthesis could proceed</li><li>An interactive `mv` a=
+lias blocked file overwrites in two separate sessions, and a gate check fal=
+sely FAILed on a non-breaking space and a wrong .git/config assumption</li>=
+</ul>
+        </div>
+     =20
+        <div class=3D"friction-category">
+          <div class=3D"friction-title">Long autonomous runs drifting from =
+your intent</div>
+          <div class=3D"friction-desc">You often hand off large scopes ('le=
+t's proceed', seven-phase rewrites, 7=E2=80=938 lane swarms) and only inspe=
+ct the result at the end, which means aesthetic and architectural decisions=
+ get made without you. Inserting a checkpoint after the first lane or first=
+ visual render =E2=80=94 before fan-out =E2=80=94 would let you redirect ch=
+eaply instead of rejecting a finished build.</div>
+          <ul class=3D"friction-examples"><li>The portfolio site redesign r=
+an a seven-phase multi-agent rewrite with many autonomous aesthetic calls, =
+and you concluded you weren't 'crazy about any of this' and stopped to reas=
+sess alone</li><li>Parallel worker fan-out on the capture tool produced dup=
+licate type definitions (CaptureSetID, CaptureMode, etc.) that broke the co=
+mbined build because shared vocabulary wasn't extracted first; the R22 notc=
+h render also missed the reference you'd shared, costing a full R23 fidelit=
+y pass</li></ul>
+        </div>
+     =20
+    </div>
+   =20
+
+    <div class=3D"charts-row">
+      <div class=3D"chart-card">
+        <div class=3D"chart-title">Primary Friction Types</div>
+        <div class=3D"bar-row">
+        <div class=3D"bar-label">Buggy Code</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:100=
+%;background:#dc2626"></div></div>
+        <div class=3D"bar-value">23</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Wrong Approach</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:30.=
+434782608695656%;background:#dc2626"></div></div>
+        <div class=3D"bar-value">7</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Interruptions</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:26.=
+08695652173913%;background:#dc2626"></div></div>
+        <div class=3D"bar-value">6</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Tool Failure</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:17.=
+391304347826086%;background:#dc2626"></div></div>
+        <div class=3D"bar-value">4</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Tooling Error</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:17.=
+391304347826086%;background:#dc2626"></div></div>
+        <div class=3D"bar-value">4</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">User Rejected Action</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:13.=
+043478260869565%;background:#dc2626"></div></div>
+        <div class=3D"bar-value">3</div>
+      </div>
+      </div>
+      <div class=3D"chart-card">
+        <div class=3D"chart-title">Inferred Satisfaction (model-estimated)<=
+/div>
+        <div class=3D"bar-row">
+        <div class=3D"bar-label">Dissatisfied</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:7.0=
+7070707070707%;background:#eab308"></div></div>
+        <div class=3D"bar-value">7</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Likely Satisfied</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:100=
+%;background:#eab308"></div></div>
+        <div class=3D"bar-value">99</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Satisfied</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:17.=
+17171717171717%;background:#eab308"></div></div>
+        <div class=3D"bar-value">17</div>
+      </div>
+<div class=3D"bar-row">
+        <div class=3D"bar-label">Happy</div>
+        <div class=3D"bar-track"><div class=3D"bar-fill" style=3D"width:4.0=
+40404040404041%;background:#eab308"></div></div>
+        <div class=3D"bar-value">4</div>
+      </div>
+      </div>
+    </div>
+
+   =20
+   =20
+    <h2 id=3D"section-features">Existing CC Features to Try</h2>
+    <div class=3D"claude-md-section">
+      <h3>Suggested CLAUDE.md Additions</h3>
+      <p style=3D"font-size: 12px; color: #64748b; margin-bottom: 12px;">Ju=
+st copy this into Claude Code to add it to your CLAUDE.md.</p>
+      <div class=3D"claude-md-actions">
+        <button class=3D"copy-all-btn">Copy All Checked</button>
+      </div>
+     =20
+        <div class=3D"claude-md-item">
+          <input type=3D"checkbox" id=3D"cmd-0" class=3D"cmd-checkbox" chec=
+ked=3D"" data-text=3D"Add as a new top-level '## Verification Discipline' s=
+ection near the top of your global ~/.claude/CLAUDE.md, above language/stac=
+k-specific sections.\n\n## Verification Discipline
+- Never report a feature as done based on code inspection alone. Run it: ex=
+ecute the app, load the page, or exercise the code path, and capture eviden=
+ce (screenshot, log output, or test run) before claiming success.
+- Treat verification/check scripts as production code. Before trusting a ch=
+eck result, prove it can FAIL: run it against a known-bad state. Avoid subs=
+tring matching (`grep todo` matches `mastodon`), over-strict URL/symbol ass=
+ertions, and assumptions about file state (e.g. `.git/config` presence). No=
+rmalize non-breaking spaces and whitespace before comparing.
+- When a gate passes on the first try, be suspicious and confirm the assert=
+ion is actually reachable.">
+          <label for=3D"cmd-0">
+            <code class=3D"cmd-code">## Verification Discipline
+- Never report a feature as done based on code inspection alone. Run it: ex=
+ecute the app, load the page, or exercise the code path, and capture eviden=
+ce (screenshot, log output, or test run) before claiming success.
+- Treat verification/check scripts as production code. Before trusting a ch=
+eck result, prove it can FAIL: run it against a known-bad state. Avoid subs=
+tring matching (`grep todo` matches `mastodon`), over-strict URL/symbol ass=
+ertions, and assumptions about file state (e.g. `.git/config` presence). No=
+rmalize non-breaking spaces and whitespace before comparing.
+- When a gate passes on the first try, be suspicious and confirm the assert=
+ion is actually reachable.</code>
+            <button class=3D"copy-btn">Copy</button>
+          </label>
+          <div class=3D"cmd-why">Buggy code was the top friction (23 occurr=
+ences) and multiple sessions lost rounds to false-positive/false-negative c=
+heck scripts, silent sync failures, and crashes the user had to find by han=
+d.</div>
+        </div>
+     =20
+        <div class=3D"claude-md-item">
+          <input type=3D"checkbox" id=3D"cmd-1" class=3D"cmd-checkbox" chec=
+ked=3D"" data-text=3D"Add under a '## Orchestration' or '## Ringer/BMAD Wor=
+kflow' section in the CLAUDE.md of the repos where you run worker swarms (f=
+lont_fuse, Fume, capture tool).\n\n## Parallel Worker Swarms
+Before fanning out lanes, extract and commit the shared vocabulary first: s=
+hared types, interfaces, enums, file paths, and module boundaries go in a s=
+ingle 'foundation' round that all lanes import. Never let two lanes define =
+the same type. After fan-out, run a combined build + full test suite before=
+ declaring the round green, and check for duplicate definitions and stray w=
+orkspace/lockfile artifacts.">
+          <label for=3D"cmd-1">
+            <code class=3D"cmd-code">## Parallel Worker Swarms
+Before fanning out lanes, extract and commit the shared vocabulary first: s=
+hared types, interfaces, enums, file paths, and module boundaries go in a s=
+ingle 'foundation' round that all lanes import. Never let two lanes define =
+the same type. After fan-out, run a combined build + full test suite before=
+ declaring the round green, and check for duplicate definitions and stray w=
+orkspace/lockfile artifacts.</code>
+            <button class=3D"copy-btn">Copy</button>
+          </label>
+          <div class=3D"cmd-why">The parallel fan-out pattern is used const=
+antly (Agent x103, Ringer/BMAD swarms) and repeatedly broke builds via dupl=
+icate type definitions (CaptureSetID, CaptureMode, etc.) and stray pnpm-wor=
+kspace.yaml files.</div>
+        </div>
+     =20
+        <div class=3D"claude-md-item">
+          <input type=3D"checkbox" id=3D"cmd-2" class=3D"cmd-checkbox" chec=
+ked=3D"" data-text=3D"Add under a '## Shell Environment' section in your gl=
+obal ~/.claude/CLAUDE.md so it applies to every project.\n\n## Shell Enviro=
+nment
+- This machine has interactive aliases for `mv`, `cp`, and `rm`. Always use=
+ `command mv -f`, `command cp -f`, `command rm -f` in Bash calls so prompts=
+ never block a run.
+- Never run commands that steal window focus (opening apps, `open`, screen-=
+capture prompts, simulator launches) without asking first =E2=80=94 the use=
+r is frequently on a live screen share. Prefer headless probes (e.g. read C=
+hrome's `visibilityState`) over forcing real screen conditions.
+- pnpm is version-sensitive: check `pnpm -v` before touching config fields;=
+ there is only one intended pnpm install on this machine.">
+          <label for=3D"cmd-2">
+            <code class=3D"cmd-code">## Shell Environment
+- This machine has interactive aliases for `mv`, `cp`, and `rm`. Always use=
+ `command mv -f`, `command cp -f`, `command rm -f` in Bash calls so prompts=
+ never block a run.
+- Never run commands that steal window focus (opening apps, `open`, screen-=
+capture prompts, simulator launches) without asking first =E2=80=94 the use=
+r is frequently on a live screen share. Prefer headless probes (e.g. read C=
+hrome's `visibilityState`) over forcing real screen conditions.
+- pnpm is version-sensitive: check `pnpm -v` before touching config fields;=
+ there is only one intended pnpm install on this machine.</code>
+            <button class=3D"copy-btn">Copy</button>
+          </label>
+          <div class=3D"cmd-why">The interactive `mv` alias blocked file ov=
+erwrites in at least two separate sessions, and focus-stealing probe runs c=
+aused an explicit user complaint mid-Zoom call.</div>
+        </div>
+     =20
+        <div class=3D"claude-md-item">
+          <input type=3D"checkbox" id=3D"cmd-3" class=3D"cmd-checkbox" chec=
+ked=3D"" data-text=3D"Add under a '## Design' or '## UI Work' section in CL=
+AUDE.md files for front-end/design-heavy repos (portfolio site, Fume, flont=
+).\n\n## Design &amp; Aesthetic Changes
+For any visual/UI work, do not make sweeping autonomous aesthetic decisions=
+. Produce 2-3 small, cheap options (a single component or one screen) and g=
+et explicit approval on direction before scaling it across the codebase. Wh=
+en the user supplies a visual reference (screenshot, Figma, Dynamic Island =
+example), do a fidelity pass against it and show a side-by-side before movi=
+ng on.">
+          <label for=3D"cmd-3">
+            <code class=3D"cmd-code">## Design &amp; Aesthetic Changes
+For any visual/UI work, do not make sweeping autonomous aesthetic decisions=
+. Produce 2-3 small, cheap options (a single component or one screen) and g=
+et explicit approval on direction before scaling it across the codebase. Wh=
+en the user supplies a visual reference (screenshot, Figma, Dynamic Island =
+example), do a fidelity pass against it and show a side-by-side before movi=
+ng on.</code>
+            <button class=3D"copy-btn">Copy</button>
+          </label>
+          <div class=3D"cmd-why">The portfolio redesign ran a seven-phase a=
+utonomous rewrite the user 'wasn't crazy about', and the notch UI needed a =
+full R23 rework because the first render missed the shared visual target.</=
+div>
+        </div>
+     =20
+        <div class=3D"claude-md-item">
+          <input type=3D"checkbox" id=3D"cmd-4" class=3D"cmd-checkbox" chec=
+ked=3D"" data-text=3D"Add under a '## Git' section in your global ~/.claude=
+/CLAUDE.md.\n\n## Git &amp; Release
+- Never push to `origin`/upstream unless explicitly asked in the current me=
+ssage. Default to commit + local branch only.
+- Commits should be logical, scoped, and unattributed (no Claude/AI co-auth=
+or trailers).
+- Before tagging a release, run the full test suite AND manually exercise t=
+he top 3 user-facing flows; only tag after that passes.">
+          <label for=3D"cmd-4">
+            <code class=3D"cmd-code">## Git &amp; Release
+- Never push to `origin`/upstream unless explicitly asked in the current me=
+ssage. Default to commit + local branch only.
+- Commits should be logical, scoped, and unattributed (no Claude/AI co-auth=
+or trailers).
+- Before tagging a release, run the full test suite AND manually exercise t=
+he top 3 user-facing flows; only tag after that passes.</code>
+            <button class=3D"copy-btn">Copy</button>
+          </label>
+          <div class=3D"cmd-why">Push guards, unattributed commits, and 'co=
+mmit in logical groups' were requested across several separate sessions, an=
+d a 1.1.0 release tag stalled on unverified runtime bugs.</div>
+        </div>
+     =20
+    </div>
+   =20
+   =20
+    <p style=3D"font-size: 13px; color: #64748b; margin-bottom: 12px;">Just=
+ copy this into Claude Code and it'll set it up for you.</p>
+    <div class=3D"features-section">
+     =20
+        <div class=3D"feature-card">
+          <div class=3D"feature-title">Hooks</div>
+          <div class=3D"feature-oneliner">Shell commands that auto-run at s=
+pecific lifecycle events like after edits or before commits.</div>
+          <div class=3D"feature-why"><strong>Why for you:</strong> With 4,8=
+73 Bash calls, 1,414 Edits and 333 commits, and buggy code as your #1 frict=
+ion (23 hits), a PostToolUse hook that builds/type-checks after every edit =
+would catch duplicate types and CSS regressions in seconds instead of at sw=
+arm-merge time.</div>
+         =20
+          <div class=3D"feature-examples">
+            <div class=3D"feature-example">
+              <div class=3D"example-code-row">
+                <code class=3D"example-code">// .claude/settings.json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command", "command": "if [ -f package.json ]; then pnp=
+m -s typecheck 2&gt;&amp;1 | tail -20; fi" }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "grep -qE 'git push' &lt;&lt;&lt;=
+ \"$CLAUDE_TOOL_INPUT\" &amp;&amp; echo 'BLOCKED: pushing requires explicit=
+ approval' &amp;&amp; exit 2 || exit 0" }
+        ]
+      }
+    ]
+  }
+}</code>
+                <button class=3D"copy-btn">Copy</button>
+              </div>
+            </div>
+          </div>
+         =20
+        </div>
+     =20
+        <div class=3D"feature-card">
+          <div class=3D"feature-title">Custom Skills</div>
+          <div class=3D"feature-oneliner">Reusable prompts stored as markdo=
+wn that run with a single slash command.</div>
+          <div class=3D"feature-why"><strong>Why for you:</strong> You alre=
+ady live in skills (bmad-loop-setup, ringer, /doctor, /pulse) but keep re-e=
+xplaining the same gates. Codify your repeated rituals =E2=80=94 swarm fan-=
+out prep, check-script self-test, and pre-release verification =E2=80=94 so=
+ they run identically every time.</div>
+         =20
+          <div class=3D"feature-examples">
+            <div class=3D"feature-example">
+              <div class=3D"example-code-row">
+                <code class=3D"example-code"># .claude/skills/verify-gate/S=
+KILL.md
+---
+name: verify-gate
+description: Prove a check script can fail, then run it for real
+---
+1. For each check in scripts/check*.sh, identify the assertion.
+2. Mutate the repo into a known-BAD state in a scratch worktree and confirm=
+ the check FAILS. Report any check that passes on bad input as BROKEN.
+3. Restore, run the full suite, and run the app for real (boot it / load th=
+e page) capturing a screenshot or log.
+4. Report: checks proven-failable, checks broken, runtime evidence captured=
+.
+
+# then:  /verify-gate</code>
+                <button class=3D"copy-btn">Copy</button>
+              </div>
+            </div>
+          </div>
+         =20
+        </div>
+     =20
+        <div class=3D"feature-card">
+          <div class=3D"feature-title">Task Agents</div>
+          <div class=3D"feature-oneliner">Claude spawns focused subagents f=
+or parallel exploration and independent review.</div>
+          <div class=3D"feature-why"><strong>Why for you:</strong> Your swa=
+rms build in parallel but nothing independently adversarially reviews the o=
+utput =E2=80=94 the user kept finding runtime bugs by hand (silent sync fai=
+lure, 'Triage everything' crash). Add a dedicated red-team agent lane after=
+ every build round.</div>
+         =20
+          <div class=3D"feature-examples">
+            <div class=3D"feature-example">
+              <div class=3D"example-code-row">
+                <code class=3D"example-code">Use a separate agent as an adv=
+ersarial reviewer for this round: it must not read the implementation plan,=
+ only the running app and the user-facing surface. Have it try to break eve=
+ry new feature (empty states, 500-item datasets, offline, rapid clicks) and=
+ report crashes and silent failures. Do not mark the round green until that=
+ agent reports clean.</code>
+                <button class=3D"copy-btn">Copy</button>
+              </div>
+            </div>
+          </div>
+         =20
+        </div>
+     =20
+    </div>
+   =20
+   =20
+    <h2 id=3D"section-patterns">New Ways to Use Claude Code</h2>
+    <p style=3D"font-size: 13px; color: #64748b; margin-bottom: 12px;">Just=
+ copy this into Claude Code and it'll walk you through it.</p>
+    <div class=3D"patterns-section">
+     =20
+        <div class=3D"pattern-card">
+          <div class=3D"pattern-title">Extract shared vocabulary before fan=
+ning out</div>
+          <div class=3D"pattern-summary">Add a Round 0 'foundation' step to=
+ every worker swarm that lands shared types and module boundaries before an=
+y parallel lane starts.</div>
+          <div class=3D"pattern-detail">Your capture-tool swarm broke the c=
+ombined build because four lanes each defined CaptureSetID, CaptureMode, an=
+d the settings structs. Your Ringer and BMAD rounds also lost lanes to stal=
+e worktrees and path typos. A cheap serial round that writes types/, define=
+s exact file ownership per lane, and commits it costs one round but saves a=
+ repair round. Make the lane briefs reference the foundation commit SHA exp=
+licitly.</div>
+         =20
+          <div class=3D"copyable-prompt-section">
+            <div class=3D"prompt-label">Paste into Claude Code:</div>
+            <div class=3D"copyable-prompt-row">
+              <code class=3D"copyable-prompt">Before you fan out lanes for =
+this round: run a serial Round 0 that (1) extracts every type, enum, and in=
+terface two or more lanes will touch into a single shared module, (2) commi=
+ts it, (3) writes a per-lane file-ownership manifest where no two lanes own=
+ the same path, and (4) verifies each lane's worktree is fresh off that com=
+mit. Show me the manifest before starting the lanes.</code>
+              <button class=3D"copy-btn">Copy</button>
+            </div>
+          </div>
+         =20
+        </div>
+     =20
+        <div class=3D"pattern-card">
+          <div class=3D"pattern-title">Make check scripts prove they can fa=
+il</div>
+          <div class=3D"pattern-summary">Every verification script must be =
+tested against a known-bad state before its PASS is trusted.</div>
+          <div class=3D"pattern-detail">You lost rounds to a regex bug in t=
+he Ringer blueprint check, a substring match on 'mastodon'/'todo', an over-=
+strict URL assertion, a wrong assumption about .git/config, and an invisibl=
+e non-breaking space. Every one of those was a check script lying about rea=
+lity. Building a mutation test into the check itself turns green gates into=
+ real signal, which matters most when swarms report back unattended.</div>
+         =20
+          <div class=3D"copyable-prompt-section">
+            <div class=3D"prompt-label">Paste into Claude Code:</div>
+            <div class=3D"copyable-prompt-row">
+              <code class=3D"copyable-prompt">Audit every check/verificatio=
+n script in this repo. For each assertion: construct a minimal known-bad in=
+put, run the check, and confirm it FAILS. Flag any check that passes on bad=
+ input. Also scan for the failure modes that have bitten us before: naive s=
+ubstring greps, over-strict URL/symbol assertions, assumptions about file e=
+xistence, and unnormalized whitespace/non-breaking spaces.</code>
+              <button class=3D"copy-btn">Copy</button>
+            </div>
+          </div>
+         =20
+        </div>
+     =20
+        <div class=3D"pattern-card">
+          <div class=3D"pattern-title">Runtime smoke pass before every 'don=
+e'</div>
+          <div class=3D"pattern-summary">End each build round by actually b=
+ooting the app and exercising the top user flows, not just by reporting gre=
+en tests.</div>
+          <div class=3D"pattern-detail">You had 973 and 930 green tests whi=
+le sync silently dropped all 500 iPhone tabs and 'Triage everything' crashe=
+d the inbox =E2=80=94 both found by hand. Your best sessions (the SaaS mono=
+repo, the Elia stat card, the WP header) all ended with Claude literally la=
+unching the app or browser-verifying. Make that the closing ritual of every=
+ round rather than something you have to ask for.</div>
+         =20
+          <div class=3D"copyable-prompt-section">
+            <div class=3D"prompt-label">Paste into Claude Code:</div>
+            <div class=3D"copyable-prompt-row">
+              <code class=3D"copyable-prompt">Before you report this round =
+complete: boot the app for real, exercise the three highest-traffic user fl=
+ows plus every feature changed this round, and try the nasty cases (empty s=
+tate, largest realistic dataset, offline, double-click). Capture screenshot=
+s or logs as evidence. If any path fails silently =E2=80=94 no error surfac=
+ed to the user =E2=80=94 treat that as a blocking bug, not a nit.</code>
+              <button class=3D"copy-btn">Copy</button>
+            </div>
+          </div>
+         =20
+        </div>
+     =20
+        <div class=3D"pattern-card">
+          <div class=3D"pattern-title">Show design options before committin=
+g to a direction</div>
+          <div class=3D"pattern-summary">Front-load 2-3 cheap visual option=
+s on one screen instead of running a multi-phase autonomous redesign.</div>
+          <div class=3D"pattern-detail">The portfolio redesign burned a ful=
+l seven-phase multi-agent rewrite before you said you weren't crazy about a=
+ny of it, and the notch UI needed an entire R23 fidelity pass after the R22=
+ render missed the reference you'd shared. Both were expensive corrections =
+for a cheap upstream question. When you hand over a visual reference, ask f=
+or a side-by-side fidelity comparison as the first deliverable, not the las=
+t.</div>
+         =20
+          <div class=3D"copyable-prompt-section">
+            <div class=3D"prompt-label">Paste into Claude Code:</div>
+            <div class=3D"copyable-prompt-row">
+              <code class=3D"copyable-prompt">Before scaling this design ac=
+ross the codebase: build 2-3 distinct directions on a single representative=
+ screen only, render each to a screenshot, and put them side by side with t=
+he reference I gave you. Call out where each one diverges from the referenc=
+e. Wait for me to pick one before touching anything else.</code>
+              <button class=3D"copy-btn">Copy</button>
+            </div>
+          </div>
+         =20
+        </div>
+     =20
+        <div class=3D"pattern-card">
+          <div class=3D"pattern-title">Stop losing /doctor sessions to inte=
+rruptions</div>
+          <div class=3D"pattern-summary">Run long diagnostics in headless m=
+ode so slow probes don't block your terminal or tempt an interrupt.</div>
+          <div class=3D"pattern-detail">Two /doctor sessions ended in 'not_=
+achieved' because you interrupted mid-diagnostic before findings landed, an=
+d interruptions show up 6 times in your friction data. Diagnostics are read=
+-only and batchable =E2=80=94 run them non-interactively and read the repor=
+t when it's finished rather than watching each Bash call scroll by.</div>
+         =20
+          <div class=3D"copyable-prompt-section">
+            <div class=3D"prompt-label">Paste into Claude Code:</div>
+            <div class=3D"copyable-prompt-row">
+              <code class=3D"copyable-prompt">claude -p "Run a full Claude =
+Code health check: audit ~/.claude.json, settings.json, installed plugins, =
+MCP server connectivity, and skill freshness. Output a single markdown repo=
+rt of findings grouped by severity with the exact fix command for each. Do =
+not apply any changes." --allowedTools "Read,Bash,Glob,Grep" &gt; ~/cc-doct=
+or-report.md</code>
+              <button class=3D"copy-btn">Copy</button>
+            </div>
+          </div>
+         =20
+        </div>
+     =20
+    </div>
+   =20
+   =20
+
+   =20
+    <h2 id=3D"section-horizon">On the Horizon</h2>
+    <p class=3D"section-intro">Your work has already moved past single-thre=
+aded pair programming into orchestrated swarms, verified build gates, and m=
+ulti-round product pipelines =E2=80=94 the next leap is making those loops =
+self-healing, self-verifying, and running while you sleep.</p>
+    <div class=3D"horizon-section">
+     =20
+        <div class=3D"horizon-card">
+          <div class=3D"horizon-title">Contract-First Parallel Swarm Orches=
+tration</div>
+          <div class=3D"horizon-possible">Your parallel fan-outs are your h=
+ighest-leverage pattern, but they repeatedly collide on shared vocabulary =
+=E2=80=94 duplicate CaptureSetID/CaptureMode types broke a combined build, =
+and stale worktrees killed two lanes. A contract-first orchestrator would f=
+reeze shared types, interfaces, and file ownership boundaries into a machin=
+e-readable manifest *before* any worker spawns, then enforce it at merge ti=
+me so N lanes can land clean on the first try. Combined with per-lane git w=
+orktrees and a pre-flight worktree health check, you could scale from 7-8 l=
+anes to 15+ without a single integration repair round.</div>
+          <div class=3D"horizon-tip"><strong>Getting started:</strong> Use =
+the Agent tool with an explicit shared-contracts file plus a git worktree p=
+er lane, and have a merge-gate subagent diff every lane against the contrac=
+t before combining. Wire the contract check into your existing check.sh so =
+violations fail loudly rather than at build time.</div>
+          <div class=3D"pattern-prompt"><div class=3D"prompt-label">Paste i=
+nto Claude Code:</div><code>Before fanning out any parallel workers on this=
+ epic, do a contract extraction pass: read the epic/stories, then write `co=
+ntracts/shared.ts` (or the language equivalent) containing EVERY type, inte=
+rface, enum, and constant that more than one lane will touch, plus a `contr=
+acts/OWNERSHIP.md` mapping each file path to exactly one lane. No lane may =
+create or redefine anything in shared contracts.
+
+Then:
+1. Create a dedicated git worktree per lane off a clean base commit; verify=
+ each worktree is fresh (no stale branches, correct HEAD) and print the ver=
+ification table before proceeding.
+2. Launch the lanes in parallel, each with the contracts file pinned in its=
+ prompt and an explicit instruction: 'if you need a new shared type, STOP a=
+nd report it rather than defining it.'
+3. After all lanes report, run a merge-gate pass BEFORE merging: grep every=
+ lane's diff for redefinitions of contract symbols and for edits to files i=
+t doesn't own. Print a violations table.
+4. Only merge lanes that pass. For violators, spawn a repair lane with the =
+specific violation, then re-gate.
+5. Run the full build + test suite on the combined result and report the pa=
+ss count.
+
+Show me the contracts file and the ownership map for approval before you sp=
+awn anything.</code><button class=3D"copy-btn">Copy</button></div>
+        </div>
+     =20
+        <div class=3D"horizon-card">
+          <div class=3D"horizon-title">Adversarial Self-Hardening Loop Befo=
+re Handoff</div>
+          <div class=3D"horizon-possible">Buggy code was your single larges=
+t friction source (23 incidents), and the pattern is consistent: features s=
+hip green, then you find the silent sync failure, the 'Triage everything' c=
+rash, the decode bug dropping 500 iPhone tabs by hand. An adversarial harde=
+ning loop would spawn a dedicated red-team agent whose only job is to break=
+ what was just built =E2=80=94 fuzzing real data shapes, forcing error path=
+s, clicking every destructive UI action =E2=80=94 and then a fix agent that=
+ closes each finding, iterating until the red team comes up empty. Your mai=
+l-client session already proved this works (30 adversarially-found bugs fix=
+ed); making it a default gate rather than a one-off would mean you stop bei=
+ng the QA department.</div>
+          <div class=3D"horizon-tip"><strong>Getting started:</strong> Add =
+a red-team Agent pass to your Ringer/BMAD round definition that runs after =
+tests go green but before commit, using preview_eval and preview_screenshot=
+ to actually exercise the running app rather than just reading code.</div>
+          <div class=3D"pattern-prompt"><div class=3D"prompt-label">Paste i=
+nto Claude Code:</div><code>Tests are green =E2=80=94 do NOT commit yet. Ru=
+n an adversarial hardening round:
+
+Phase 1 (red team, parallel agents): Spawn 4 agents that try to BREAK this =
+feature, each with a different lens:
+- Agent A: real-data adversary =E2=80=94 feed it the actual production/live=
+ data shapes (query the real DB or API, don't invent fixtures). Look specif=
+ically for silent failures: decode errors swallowed, empty results treated =
+as success, partial writes.
+- Agent B: UI destructive-path adversary =E2=80=94 boot the app and actuall=
+y click every bulk/destructive/'select all' action, empty states, and max-c=
+ardinality states. Screenshot each.
+- Agent C: error-path adversary =E2=80=94 force every network failure, perm=
+ission denial, and malformed-input branch. Verify the user SEES an error, n=
+ot a silent no-op.
+- Agent D: test-quality adversary =E2=80=94 audit the test suite itself for=
+ false positives: substring matches, over-broad asserts, checks that pass w=
+hen the feature is absent. Our check scripts have shipped false greens befo=
+re.
+
+Phase 2: Consolidate all findings into a ranked defect table (severity, rep=
+ro steps, evidence).
+
+Phase 3: Fix every P0/P1, then re-run the FULL red team from scratch. Repea=
+t until a clean sweep returns zero P0/P1.
+
+Only then commit, and include the defect table in the commit body.</code><b=
+utton class=3D"copy-btn">Copy</button></div>
+        </div>
+     =20
+        <div class=3D"horizon-card">
+          <div class=3D"horizon-title">Overnight Autonomous Epic Runs With =
+Morning Reports</div>
+          <div class=3D"horizon-possible">You're logging 1,793 hours across=
+ 60 sessions with 333 commits and heavy multi-round orchestration =E2=80=94=
+ but you're supervising the loop in real time, and Claude's probe runs lite=
+rally stole focus during a live Zoom call. A properly sandboxed overnight r=
+un could take an approved epic and grind through round after round unattend=
+ed: build, verify, red-team, self-repair, commit, and stop only at genuine =
+decision gates, leaving you a morning briefing with screenshots, test delta=
+s, and a short list of questions that actually need a human. The constraint=
+ isn't capability =E2=80=94 it's guardrails, headless verification, and a c=
+lear stop-condition contract.</div>
+          <div class=3D"horizon-tip"><strong>Getting started:</strong> Comb=
+ine background Bash execution with headless/offscreen browser verification =
+instead of focus-stealing windows, hard push guards (you already installed =
+multi-layer ones), and a TaskUpdate-driven decision log that queues human-g=
+ated questions rather than blocking on them.</div>
+          <div class=3D"pattern-prompt"><div class=3D"prompt-label">Paste i=
+nto Claude Code:</div><code>Set up an overnight autonomous run for this epi=
+c. Design it so it can run for 6-8 hours with zero human input, then report=
+.
+
+Guardrails (implement these FIRST and prove them):
+- All verification must be headless/offscreen =E2=80=94 never steal window =
+focus or open foreground apps. Use headless browser eval + screenshot to fi=
+le. Prove it by running one check and confirming focus didn't change.
+- Hard push guard: commit locally, NEVER push to any remote. Install and ve=
+rify the guard.
+- Work only inside a dedicated worktree/branch. Never touch main.
+- Budget cap: stop after N rounds or if the same check fails 3 times consec=
+utively.
+
+Loop contract (repeat until epic complete or budget hit):
+1. Pick the next story from the epic backlog.
+2. Implement it. 3. Run full gates (build + tests + red-team spot check).
+4. If gates fail, self-repair =E2=80=94 up to 3 attempts. If still failing,=
+ mark the story BLOCKED with a diagnosis and move to the next one. Never st=
+all.
+5. Commit with a clear message. Log the round to a running DECISIONS.md.
+6. If you hit a genuine product/design judgment call, do NOT guess =E2=80=
+=94 write it to QUESTIONS.md with your recommended default and the tradeoff=
+, pick the reversible option, and keep going.
+
+Morning report: write RUN_REPORT.md with stories completed, stories blocked=
+ (with diagnoses), test count delta, commit list, screenshots of every UI c=
+hange, and the QUESTIONS.md queue ranked by how much rework a wrong default=
+ would cost.
+
+Confirm the guardrails are live and show me the epic backlog order before y=
+ou start.</code><button class=3D"copy-btn">Copy</button></div>
+        </div>
+     =20
+    </div>
+   =20
+
+   =20
+    <div class=3D"fun-ending">
+      <div class=3D"fun-headline">"Claude kept stealing the user's window f=
+ocus mid-Zoom screenshare =E2=80=94 while they were live in front of other =
+people =E2=80=94 until they finally complained and forced a redesign of the=
+ probe to read Chrome's visibilityState instead of yanking the screen aroun=
+d"</div>
+      <div class=3D"fun-detail">During the Chrome occlusion-throttling rese=
+arch round on the site-capture tool. The diagnostic probes were forcing rea=
+l screen conditions to test video capture, which meant repeatedly hijacking=
+ the display during a live shared call. The fix was elegant =E2=80=94 just =
+ask the browser what it thinks its visibility state is =E2=80=94 but it too=
+k a very public embarrassment to get there.</div>
+    </div>
+   =20
+
+   =20
+  </div>
+ =20
+
+</body></html>
+------MultipartBoundary--iOCCGu5fY08KkHKNj1bPf1B2zDn8gjnYqdvmjK1XHu----
+Content-Type: text/css
+Content-Transfer-Encoding: quoted-printable
+Content-Location: https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap
+
+@charset "utf-8";
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 400; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa2JL7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++460-52F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 400; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa0ZL7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++301, U+400-45F, U+490-491, U+4B0-4B1, U+2116; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 400; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa2ZL7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++1F00-1FFF; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 400; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa1pL7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++370-377, U+37A-37F, U+384-38A, U+38C, U+38E-3A1, U+3A3-3FF; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 400; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa2pL7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++102-103, U+110-111, U+128-129, U+168-169, U+1A0-1A1, U+1AF-1B0, U+300-301,=
+ U+303-304, U+308-309, U+323, U+329, U+1EA0-1EF9, U+20AB; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 400; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa25L7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329, =
+U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+=
+2113, U+2C60-2C7F, U+A720-A7FF; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 400; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2") format("woff2"); unicode-range: U+0=
+-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329,=
+ U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFF=
+D; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 500; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa2JL7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++460-52F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 500; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa0ZL7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++301, U+400-45F, U+490-491, U+4B0-4B1, U+2116; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 500; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa2ZL7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++1F00-1FFF; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 500; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa1pL7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++370-377, U+37A-37F, U+384-38A, U+38C, U+38E-3A1, U+3A3-3FF; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 500; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa2pL7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++102-103, U+110-111, U+128-129, U+168-169, U+1A0-1A1, U+1AF-1B0, U+300-301,=
+ U+303-304, U+308-309, U+323, U+329, U+1EA0-1EF9, U+20AB; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 500; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa25L7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329, =
+U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+=
+2113, U+2C60-2C7F, U+A720-A7FF; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 500; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2") format("woff2"); unicode-range: U+0=
+-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329,=
+ U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFF=
+D; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 600; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa2JL7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++460-52F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 600; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa0ZL7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++301, U+400-45F, U+490-491, U+4B0-4B1, U+2116; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 600; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa2ZL7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++1F00-1FFF; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 600; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa1pL7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++370-377, U+37A-37F, U+384-38A, U+38C, U+38E-3A1, U+3A3-3FF; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 600; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa2pL7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++102-103, U+110-111, U+128-129, U+168-169, U+1A0-1A1, U+1AF-1B0, U+300-301,=
+ U+303-304, U+308-309, U+323, U+329, U+1EA0-1EF9, U+20AB; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 600; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa25L7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329, =
+U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+=
+2113, U+2C60-2C7F, U+A720-A7FF; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 600; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2") format("woff2"); unicode-range: U+0=
+-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329,=
+ U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFF=
+D; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 700; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa2JL7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++460-52F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 700; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa0ZL7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++301, U+400-45F, U+490-491, U+4B0-4B1, U+2116; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 700; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa2ZL7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++1F00-1FFF; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 700; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa1pL7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++370-377, U+37A-37F, U+384-38A, U+38C, U+38E-3A1, U+3A3-3FF; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 700; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa2pL7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++102-103, U+110-111, U+128-129, U+168-169, U+1A0-1A1, U+1AF-1B0, U+300-301,=
+ U+303-304, U+308-309, U+323, U+329, U+1EA0-1EF9, U+20AB; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 700; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa25L7W0Q5n-wU.woff2") format("woff2"); unicode-range: U=
++100-2BA, U+2BD-2C5, U+2C7-2CC, U+2CE-2D7, U+2DD-2FF, U+304, U+308, U+329, =
+U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+=
+2113, U+2C60-2C7F, U+A720-A7FF; }
+
+@font-face { font-family: Inter; font-style: normal; font-weight: 700; font=
+-display: swap; src: url("https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3i=
+LTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2") format("woff2"); unicode-range: U+0=
+-FF, U+131, U+152-153, U+2BB-2BC, U+2C6, U+2DA, U+2DC, U+304, U+308, U+329,=
+ U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFF=
+D; }
+------MultipartBoundary--iOCCGu5fY08KkHKNj1bPf1B2zDn8gjnYqdvmjK1XHu----
+Content-Type: text/css
+Content-Transfer-Encoding: quoted-printable
+Content-Location: cid:css-e83b19ba-b402-4698-bab1-ce33dc1031bf@mhtml.blink
+
+@charset "utf-8";
+
+* { box-sizing: border-box; margin: 0px; padding: 0px; }
+
+body { font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif; b=
+ackground: rgb(248, 250, 252); color: rgb(51, 65, 85); line-height: 1.65; p=
+adding: 48px 24px; }
+
+.container { max-width: 800px; margin: 0px auto; }
+
+h1 { font-size: 32px; font-weight: 700; color: rgb(15, 23, 42); margin-bott=
+om: 8px; }
+
+h2 { font-size: 20px; font-weight: 600; color: rgb(15, 23, 42); margin-top:=
+ 48px; margin-bottom: 16px; }
+
+.subtitle { color: rgb(100, 116, 139); font-size: 15px; margin-bottom: 32px=
+; }
+
+.nav-toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0px 32px;=
+ padding: 16px; background: white; border-radius: 8px; border: 1px solid rg=
+b(226, 232, 240); }
+
+.nav-toc a { font-size: 12px; color: rgb(100, 116, 139); text-decoration: n=
+one; padding: 6px 12px; border-radius: 6px; background: rgb(241, 245, 249);=
+ transition: 0.15s; }
+
+.nav-toc a:hover { background: rgb(226, 232, 240); color: rgb(51, 65, 85); =
+}
+
+.stats-row { display: flex; gap: 24px; margin-bottom: 40px; padding: 20px 0=
+px; border-top: 1px solid rgb(226, 232, 240); border-bottom: 1px solid rgb(=
+226, 232, 240); flex-wrap: wrap; }
+
+.stat { text-align: center; }
+
+.stat-value { font-size: 24px; font-weight: 700; color: rgb(15, 23, 42); }
+
+.stat-label { font-size: 11px; color: rgb(100, 116, 139); text-transform: u=
+ppercase; }
+
+.at-a-glance { background: linear-gradient(135deg, rgb(254, 243, 199) 0%, r=
+gb(253, 230, 138) 100%); border: 1px solid rgb(245, 158, 11); border-radius=
+: 12px; padding: 20px 24px; margin-bottom: 32px; }
+
+.glance-title { font-size: 16px; font-weight: 700; color: rgb(146, 64, 14);=
+ margin-bottom: 16px; }
+
+.glance-sections { display: flex; flex-direction: column; gap: 12px; }
+
+.glance-section { font-size: 14px; color: rgb(120, 53, 15); line-height: 1.=
+6; }
+
+.glance-section strong { color: rgb(146, 64, 14); }
+
+.see-more { color: rgb(180, 83, 9); text-decoration: none; font-size: 13px;=
+ white-space: nowrap; }
+
+.see-more:hover { text-decoration: underline; }
+
+.project-areas { display: flex; flex-direction: column; gap: 12px; margin-b=
+ottom: 32px; }
+
+.project-area { background: white; border: 1px solid rgb(226, 232, 240); bo=
+rder-radius: 8px; padding: 16px; }
+
+.area-header { display: flex; justify-content: space-between; align-items: =
+center; margin-bottom: 8px; }
+
+.area-name { font-weight: 600; font-size: 15px; color: rgb(15, 23, 42); }
+
+.area-count { font-size: 12px; color: rgb(100, 116, 139); background: rgb(2=
+41, 245, 249); padding: 2px 8px; border-radius: 4px; }
+
+.area-desc { font-size: 14px; color: rgb(71, 85, 105); line-height: 1.5; }
+
+.narrative { background: white; border: 1px solid rgb(226, 232, 240); borde=
+r-radius: 8px; padding: 20px; margin-bottom: 24px; }
+
+.narrative p { margin-bottom: 12px; font-size: 14px; color: rgb(71, 85, 105=
+); line-height: 1.7; }
+
+.key-insight { background: rgb(240, 253, 244); border: 1px solid rgb(187, 2=
+47, 208); border-radius: 8px; padding: 12px 16px; margin-top: 12px; font-si=
+ze: 14px; color: rgb(22, 101, 52); }
+
+.section-intro { font-size: 14px; color: rgb(100, 116, 139); margin-bottom:=
+ 16px; }
+
+.big-wins { display: flex; flex-direction: column; gap: 12px; margin-bottom=
+: 24px; }
+
+.big-win { background: rgb(240, 253, 244); border: 1px solid rgb(187, 247, =
+208); border-radius: 8px; padding: 16px; }
+
+.big-win-title { font-weight: 600; font-size: 15px; color: rgb(22, 101, 52)=
+; margin-bottom: 8px; }
+
+.big-win-desc { font-size: 14px; color: rgb(21, 128, 61); line-height: 1.5;=
+ }
+
+.friction-categories { display: flex; flex-direction: column; gap: 16px; ma=
+rgin-bottom: 24px; }
+
+.friction-category { background: rgb(254, 242, 242); border: 1px solid rgb(=
+252, 165, 165); border-radius: 8px; padding: 16px; }
+
+.friction-title { font-weight: 600; font-size: 15px; color: rgb(153, 27, 27=
+); margin-bottom: 6px; }
+
+.friction-desc { font-size: 13px; color: rgb(127, 29, 29); margin-bottom: 1=
+0px; }
+
+.friction-examples { margin: 0px 0px 0px 20px; font-size: 13px; color: rgb(=
+51, 65, 85); }
+
+.friction-examples li { margin-bottom: 4px; }
+
+.claude-md-section { background: rgb(239, 246, 255); border: 1px solid rgb(=
+191, 219, 254); border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+
+.claude-md-section h3 { font-size: 14px; font-weight: 600; color: rgb(30, 6=
+4, 175); margin: 0px 0px 12px; }
+
+.claude-md-actions { margin-bottom: 12px; padding-bottom: 12px; border-bott=
+om: 1px solid rgb(219, 234, 254); }
+
+.copy-all-btn { background: rgb(37, 99, 235); color: white; border-width: m=
+edium; border-style: none; border-color: currentcolor; border-image: none; =
+border-radius: 4px; padding: 6px 12px; font-size: 12px; cursor: pointer; fo=
+nt-weight: 500; transition: 0.2s; }
+
+.copy-all-btn:hover { background: rgb(29, 78, 216); }
+
+.copy-all-btn.copied { background: rgb(22, 163, 74); }
+
+.claude-md-item { display: flex; flex-wrap: wrap; align-items: flex-start; =
+gap: 8px; padding: 10px 0px; border-bottom: 1px solid rgb(219, 234, 254); }
+
+.claude-md-item:last-child { border-bottom-width: medium; border-bottom-sty=
+le: none; border-bottom-color: currentcolor; }
+
+.cmd-checkbox { margin-top: 2px; }
+
+.cmd-code { background: white; padding: 8px 12px; border-radius: 4px; font-=
+size: 12px; color: rgb(30, 64, 175); border: 1px solid rgb(191, 219, 254); =
+font-family: monospace; display: block; white-space: pre-wrap; word-break: =
+break-word; flex: 1 1 0%; }
+
+.cmd-why { font-size: 12px; color: rgb(100, 116, 139); width: 100%; padding=
+-left: 24px; margin-top: 4px; }
+
+.features-section, .patterns-section { display: flex; flex-direction: colum=
+n; gap: 12px; margin: 16px 0px; }
+
+.feature-card { background: rgb(240, 253, 244); border: 1px solid rgb(134, =
+239, 172); border-radius: 8px; padding: 16px; }
+
+.pattern-card { background: rgb(240, 249, 255); border: 1px solid rgb(125, =
+211, 252); border-radius: 8px; padding: 16px; }
+
+.feature-title, .pattern-title { font-weight: 600; font-size: 15px; color: =
+rgb(15, 23, 42); margin-bottom: 6px; }
+
+.feature-oneliner { font-size: 14px; color: rgb(71, 85, 105); margin-bottom=
+: 8px; }
+
+.pattern-summary { font-size: 14px; color: rgb(71, 85, 105); margin-bottom:=
+ 8px; }
+
+.feature-why, .pattern-detail { font-size: 13px; color: rgb(51, 65, 85); li=
+ne-height: 1.5; }
+
+.feature-examples { margin-top: 12px; }
+
+.feature-example { padding: 8px 0px; border-top: 1px solid rgb(209, 250, 22=
+9); }
+
+.feature-example:first-child { border-top-width: medium; border-top-style: =
+none; border-top-color: currentcolor; }
+
+.example-desc { font-size: 13px; color: rgb(51, 65, 85); margin-bottom: 6px=
+; }
+
+.example-code-row { display: flex; align-items: flex-start; gap: 8px; }
+
+.example-code { flex: 1 1 0%; background: rgb(241, 245, 249); padding: 8px =
+12px; border-radius: 4px; font-family: monospace; font-size: 12px; color: r=
+gb(51, 65, 85); overflow-x: auto; white-space: pre-wrap; }
+
+.copyable-prompt-section { margin-top: 12px; padding-top: 12px; border-top:=
+ 1px solid rgb(226, 232, 240); }
+
+.copyable-prompt-row { display: flex; align-items: flex-start; gap: 8px; }
+
+.copyable-prompt { flex: 1 1 0%; background: rgb(248, 250, 252); padding: 1=
+0px 12px; border-radius: 4px; font-family: monospace; font-size: 12px; colo=
+r: rgb(51, 65, 85); border: 1px solid rgb(226, 232, 240); white-space: pre-=
+wrap; line-height: 1.5; }
+
+.feature-code { background: rgb(248, 250, 252); padding: 12px; border-radiu=
+s: 6px; margin-top: 12px; border: 1px solid rgb(226, 232, 240); display: fl=
+ex; align-items: flex-start; gap: 8px; }
+
+.feature-code code { flex: 1 1 0%; font-family: monospace; font-size: 12px;=
+ color: rgb(51, 65, 85); white-space: pre-wrap; }
+
+.pattern-prompt { background: rgb(248, 250, 252); padding: 12px; border-rad=
+ius: 6px; margin-top: 12px; border: 1px solid rgb(226, 232, 240); }
+
+.pattern-prompt code { font-family: monospace; font-size: 12px; color: rgb(=
+51, 65, 85); display: block; white-space: pre-wrap; margin-bottom: 8px; }
+
+.prompt-label { font-size: 11px; font-weight: 600; text-transform: uppercas=
+e; color: rgb(100, 116, 139); margin-bottom: 6px; }
+
+.copy-btn { background: rgb(226, 232, 240); border-width: medium; border-st=
+yle: none; border-color: currentcolor; border-image: none; border-radius: 4=
+px; padding: 4px 8px; font-size: 11px; cursor: pointer; color: rgb(71, 85, =
+105); flex-shrink: 0; }
+
+.copy-btn:hover { background: rgb(203, 213, 225); }
+
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; mar=
+gin: 24px 0px; }
+
+.chart-card { background: white; border: 1px solid rgb(226, 232, 240); bord=
+er-radius: 8px; padding: 16px; }
+
+.chart-title { font-size: 12px; font-weight: 600; color: rgb(100, 116, 139)=
+; text-transform: uppercase; margin-bottom: 12px; }
+
+.bar-row { display: flex; align-items: center; margin-bottom: 6px; }
+
+.bar-label { width: 100px; font-size: 11px; color: rgb(71, 85, 105); flex-s=
+hrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.bar-track { flex: 1 1 0%; height: 6px; background: rgb(241, 245, 249); bor=
+der-radius: 3px; margin: 0px 8px; }
+
+.bar-fill { height: 100%; border-radius: 3px; }
+
+.bar-value { width: 28px; font-size: 11px; font-weight: 500; color: rgb(100=
+, 116, 139); text-align: right; }
+
+.empty { color: rgb(148, 163, 184); font-size: 13px; }
+
+.horizon-section { display: flex; flex-direction: column; gap: 16px; }
+
+.horizon-card { background: linear-gradient(135deg, rgb(250, 245, 255) 0%, =
+rgb(245, 243, 255) 100%); border: 1px solid rgb(196, 181, 253); border-radi=
+us: 8px; padding: 16px; }
+
+.horizon-title { font-weight: 600; font-size: 15px; color: rgb(91, 33, 182)=
+; margin-bottom: 8px; }
+
+.horizon-possible { font-size: 14px; color: rgb(51, 65, 85); margin-bottom:=
+ 10px; line-height: 1.5; }
+
+.horizon-tip { font-size: 13px; color: rgb(107, 33, 168); background: rgba(=
+255, 255, 255, 0.6); padding: 8px 12px; border-radius: 4px; }
+
+.feedback-header { margin-top: 48px; color: rgb(100, 116, 139); font-size: =
+16px; }
+
+.feedback-intro { font-size: 13px; color: rgb(148, 163, 184); margin-bottom=
+: 16px; }
+
+.feedback-section { margin-top: 16px; }
+
+.feedback-section h3 { font-size: 14px; font-weight: 600; color: rgb(71, 85=
+, 105); margin-bottom: 12px; }
+
+.feedback-card { background: white; border: 1px solid rgb(226, 232, 240); b=
+order-radius: 8px; padding: 16px; margin-bottom: 12px; }
+
+.feedback-card.team-card { background: rgb(239, 246, 255); border-color: rg=
+b(191, 219, 254); }
+
+.feedback-card.model-card { background: rgb(250, 245, 255); border-color: r=
+gb(233, 213, 255); }
+
+.feedback-title { font-weight: 600; font-size: 14px; color: rgb(15, 23, 42)=
+; margin-bottom: 6px; }
+
+.feedback-detail { font-size: 13px; color: rgb(71, 85, 105); line-height: 1=
+.5; }
+
+.feedback-evidence { font-size: 12px; color: rgb(100, 116, 139); margin-top=
+: 8px; }
+
+.fun-ending { background: linear-gradient(135deg, rgb(254, 243, 199) 0%, rg=
+b(253, 230, 138) 100%); border: 1px solid rgb(251, 191, 36); border-radius:=
+ 12px; padding: 24px; margin-top: 40px; text-align: center; }
+
+.fun-headline { font-size: 18px; font-weight: 600; color: rgb(120, 53, 15);=
+ margin-bottom: 8px; }
+
+.fun-detail { font-size: 14px; color: rgb(146, 64, 14); }
+
+.collapsible-section { margin-top: 16px; }
+
+.collapsible-header { display: flex; align-items: center; gap: 8px; cursor:=
+ pointer; padding: 12px 0px; border-bottom: 1px solid rgb(226, 232, 240); }
+
+.collapsible-header h3 { margin: 0px; font-size: 14px; font-weight: 600; co=
+lor: rgb(71, 85, 105); }
+
+.collapsible-arrow { font-size: 12px; color: rgb(148, 163, 184); transition=
+: transform 0.2s; }
+
+.collapsible-content { display: none; padding-top: 16px; }
+
+.collapsible-content.open { display: block; }
+
+.collapsible-header.open .collapsible-arrow { transform: rotate(90deg); }
+
+@media (max-width: 640px) {
+  .charts-row { grid-template-columns: 1fr; }
+  .stats-row { justify-content: center; }
+}
+------MultipartBoundary--iOCCGu5fY08KkHKNj1bPf1B2zDn8gjnYqdvmjK1XHu------

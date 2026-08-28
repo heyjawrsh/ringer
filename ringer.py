@@ -2311,8 +2311,10 @@ def check_looks_like_chained_assertions(check: str) -> bool:
     if "&&" not in stripped:
         return False
     # Three chained commands match the common gate_a && gate_b && gate_c shape,
-    # even when the gate commands are project-specific scripts.
-    if stripped.count("&&") >= 2:
+    # even when the gate commands are project-specific scripts. Deliverable
+    # export plumbing does not add another independently mutable assertion.
+    chained_parts = [part.strip() for part in stripped.split("&&") if part.strip()]
+    if sum(not is_export_plumbing(part) for part in chained_parts) >= 3:
         return True
     # Also catch the common two-probe shell gate without flagging setup forms
     # such as `cd subdir && python3 gate.py`.
@@ -2328,6 +2330,45 @@ def check_looks_like_chained_assertions(check: str) -> bool:
         if command in {"test", "[", "grep", "egrep", "fgrep", "diff", "cmp"}:
             assertion_commands += 1
     return assertion_commands >= 2
+
+
+EXPORT_PLUMBING_COMMANDS = {
+    "cp",
+    "install",
+    "ln",
+    "mkdir",
+    "mv",
+    "rsync",
+    "tee",
+    "touch",
+}
+
+
+def is_export_plumbing(segment: str) -> bool:
+    """Return whether a chained segment only persists or moves a deliverable."""
+    try:
+        lexer = shlex.shlex(segment, posix=True, punctuation_chars="<>|&;")
+        lexer.whitespace_split = True
+        lexer.commenters = ""
+        shell_segment_tokens = list(lexer)
+        # File-descriptor duplication (for example 2>&1) is diagnostic
+        # routing, not persistence to a deliverable. Ordinary output
+        # redirects are emitted as distinct `>` or `>>` tokens.
+        if any(token in {">", ">>"} for token in shell_segment_tokens):
+            return True
+        tokens = shlex.split(strip_common_redirections(segment.strip(" \t{}()")))
+    except ValueError:
+        return False
+    if not tokens:
+        return False
+    command = Path(tokens[0]).name
+    if command in EXPORT_PLUMBING_COMMANDS:
+        return True
+    return len(tokens) >= 2 and command == "git" and tokens[1] in {
+        "add",
+        "archive",
+        "diff",
+    }
 
 
 def lint_nudges(manifest: Manifest) -> list[str]:
