@@ -2513,3 +2513,69 @@ not an accessibility nicety; it is the machine-readable summary of the widget.
 REJECTED" rather than "check fault" for an rc=1 rejection with a diagnostic —
 the distinction introduced earlier today on the lane wall. Naming a rule once,
 precisely, in a spec is what makes a later lane reproduce it without being told.
+
+## 2026-08-27 (late night) — preflight, and the day's most important lesson
+
+One lane, codex gpt-5.6-sol high. Reported FAIL after 2 attempts, 174k tokens,
+619s. **The lane's work was correct. My gate was wrong, and it rejected correct
+work twice.** Salvaged the implementation unchanged from the kept worktree; it
+passes the corrected gate and every hand check.
+
+**THE FALSE-FAIL, EXACTLY.** My receipt-invalidation assertion searched the
+`run` output for `verified|matches|up to date|current` and failed the lane if it
+matched without an accompanying negation. The implementation's stale message
+reads:
+
+    Preflight receipt: this manifest was preflighted at a different version at
+    <ts>; the CURRENT content is not attested.
+
+The bare word `current`, inside a perfectly correct negation, tripped the
+positive matcher. Two attempts, ~174k tokens, on work that was right the first
+time.
+
+**AND PROVE-PASS DID NOT CATCH IT — THIS IS THE PART THAT MATTERS.** I ran
+`--prove-pass` and it proved. It proved because MY FABRICATOR happened to phrase
+the same state as "has no preflight receipt", which my regex tolerated. Two
+correct implementations, different prose, gate accepts one and rejects the other.
+
+    A known_good proves the gate can pass FOR THE FABRICATION'S WORDING.
+    It does not prove the gate can pass for every correct implementation.
+
+That is a real limit of the four-gate discipline this repo relies on, and it is
+sharpest exactly where a gate asserts on PROSE. The fix is not a better
+fabricator; it is to stop matching keyword soup against text an author is free
+to word any way. The assertion now requires an explicit NON-ATTESTATION to be
+present rather than trying to detect a positive claim and negate it:
+
+    assert some negation is present   -- robust
+    assert no positive appears        -- fragile, and false-fails on "not X"
+
+RULE: when a gate must read prose, assert the presence of the specific thing that
+must be said, never the absence of a word that might appear inside its opposite.
+
+**THE FOURTH TIME TODAY A GATE OF MINE MATCHED AN ADJACENT TRUE STATEMENT.**
+Earlier: a fixture's activity text containing "window"; a lane named
+"broken-setup"; the task-coverage line "covered 1 of 1" satisfying a
+mutations-count assertion; and now "current" inside "the current content is not
+attested". Same failure, four disguises. The through-line is that all four
+assertions were written to detect a SUBSTRING rather than a CLAIM.
+
+**ALSO: I HAD WRITTEN AN IMPOSSIBLE ASSERTION AND CAUGHT IT IN TIME.** The
+"sound manifest must pass" fixture did not lint clean — an unanchored grep
+literal, a short spec and a missing `verified` sentence each fail the linter, and
+lint is preflight's first stage. Running the fabrication before spending a worker
+caught it. That is prove-pass working exactly as intended, on the same day it
+failed to catch the defect above.
+
+**THE DELIVERABLE IS GOOD.** Verified by hand: a manifest with a coverage gap
+exits 1 and names the stage; a sound one exits 0, writes a sha256-keyed receipt
+and prints the exact next command; `run` reports current / different-version /
+never, as a notice and never a block. Both the receipt and `run` state the limit
+out loud — it attests to the manifest content, not to the external scripts its
+checks invoke — which was specified deliberately and is worth keeping: an honest
+narrow guarantee beats an implied broad one.
+
+**KNOWN GAP:** no repo tests cover `preflight`; it is bound only by an
+out-of-repo gate, so CI does not see it. That debt is mine — the lane spent both
+attempts fighting my broken assertion instead of finishing the tests it was asked
+for.
