@@ -2579,3 +2579,46 @@ narrow guarantee beats an implied broad one.
 out-of-repo gate, so CI does not see it. That debt is mine — the lane spent both
 attempts fighting my broken assertion instead of finishing the tests it was asked
 for.
+
+## 2026-08-28 — the false green, and a rule that finally became a guard
+
+One lane, codex gpt-5.6-sol high, PASS first try, 129k tokens, 442s, integration
+passing, no questions. Ten gates green, 449 tests. Closes ringer-failure F3.
+
+**THE DEFECT.** Every run in /api/runs carries `integration` — status pass, fail
+or skipped, plus a return code and a log path — and `ringside.html` referenced it
+ZERO times. A run where every lane passed but whose run-level `integration_check`
+REJECTED the merged result rendered as completely clean. That is a false green on
+the one signal that says the per-lane verdicts are not the whole truth, and
+`integration_check` has caught exactly that case in this project before: two
+lanes that were only green together.
+
+Verified after: a run showing 2/2 lanes and 2·0 pass/fail now carries
+`INTEGRATION · REJECTED · RC 1` with a red rail, beside `INTEGRATION · VERIFIED`
+and `INTEGRATION · NOT CHECKED` on its siblings. The lane went further than the
+spec and propagated it into the census — "2 NEED ATTENTION — 1 FAIL · 1
+INTEGRATION REJECTED" — so an all-green run is now flagged. Specifying the three
+states as needing DIFFERENT RESPONSES, rather than as three labels, is what
+produced that.
+
+**THE FIFTH FALSE PASS, AND THE END OF IT.** My gate passed against the
+unmodified page. Its detection pattern included `merge`, and I had named the
+fixture run `merge-broken` — so it matched the fixture's own name. The same
+mistake as `broken-setup` this morning, as the fixture activity text containing
+"window", as "covered 1 of 1" satisfying a mutations-count assertion, and as
+"current" inside "the current content is not attested".
+
+Five occurrences in one day of ONE bug: **an assertion that detects a substring
+rather than a claim, satisfied by the fixture's own wording.** Writing the lesson
+down three separate times did not stop it. So this gate now carries a SELF-CHECK
+that refuses to run if any fixture identifier matches the gate's own detection
+pattern, and names all five occurrences in a comment. A rule I keep re-learning
+is now something that fails loudly instead of something I must remember.
+
+RULE, in its operational form: a gate must assert on what the PAGE derived, and
+its fixture must be incapable of satisfying its own assertions. Check that
+mechanically — fixture names and fixture prose both — rather than by intending to.
+
+**PREFLIGHT PAID FOR ITSELF WITHIN THE HOUR.** This manifest was gated with one
+command instead of four; it printed the coverage matrix, the verdict, the receipt
+hash and the exact next command. Shipped an hour earlier in the same session.
