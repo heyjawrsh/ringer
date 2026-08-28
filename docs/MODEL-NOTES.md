@@ -2676,3 +2676,50 @@ pre-existing dashboard bug three times. They are not. The API supplies an
 present in it, so a run whose orchestrator died does not count as running — which
 is right. My fixtures simply never included `active`. Check before repeating a
 claim, especially one you have already repeated.
+
+## 2026-08-28 — rerun scoping, and a finding that was framed too broadly
+
+One lane, codex gpt-5.6-sol high, PASS first try, 92k tokens, 345s, integration
+passing, no questions. Twelve gates green, 459 tests. Closes ringer-failure F8.
+
+**THE DEFECT WAS LIVE IN THIS PROJECT'S OWN STATE.** `load_rerun_state()`
+filtered on `run_name` alone and took the most recent. Six manifests in this
+repo's recent history share the run_name "ringer-gate-integrity", so an implicit
+rerun of one selected an unrelated run and reported its task "(absent)" — absent
+because that task does not exist in the run it chose — then wrote a repair
+manifest for work that had already passed. Verified after the fix on the same
+real data: each manifest now selects ITS OWN run, names it, and correctly reports
+that every task passed so no repair manifest is needed.
+
+**THE FINDING'S PROPOSED FIX WOULD HAVE BROKEN THE COMMAND.** It said "refuse
+ambiguity with a short candidate list instead of silently choosing by recency".
+I implemented exactly that in the fabricator and it broke
+`test_selects_every_non_passing_task_and_preserves_all_fields`, which
+DELIBERATELY creates two runs sharing a run_name and asserts rerun picks the
+LATEST. Re-running the same manifest repeatedly is the command's normal use.
+
+The bug is narrower than the finding's framing: selecting a run from a DIFFERENT
+MANIFEST, not mere same-name ambiguity. Once stated that way a better fix
+appears — a run containing NONE of the manifest's task keys was almost certainly
+produced by a different manifest, which needs no schema change, and runs of the
+same manifest always overlap so latest-wins is untouched.
+
+RULE: an audit finding names a defect; its "Fix:" line is a hypothesis. Check the
+proposed fix against the tests before writing it into a spec, because a test that
+contradicts it is telling you the finding is framed too broadly.
+
+**FOUR OF MY OWN ERRORS, ALL FOUND BY RUNNING RATHER THAN REASONING:**
+  · two gate assertions tested for strings that never appear in the output
+    whether or not the bug is present — they could not have failed. Found by
+    noticing only 1 of 3 assertions fired against a tree known to have all three
+    defects. A gate that fires FEWER assertions than expected on a known-bad tree
+    is itself the finding.
+  · fixture run states recorded `project` as the repo, but a manifest with no
+    `repo` resolves project to the WORKDIR, so the filter excluded everything.
+  · the fabricator compared `manifest.project` (a Path) to a str, silently
+    filtering out every candidate. Printed values looked identical; `==` was
+    False. When a comparison of two things that print the same returns False,
+    check the types before the values.
+  · the export step. Fixed in this manifest: `git add -A -N && git diff` so a
+    lane that CREATES a file can deliver it. `git diff` alone cost the previous
+    lane both attempts for a correct 271-line test file.
