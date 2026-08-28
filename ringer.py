@@ -3011,6 +3011,7 @@ class StateWriter:
         path: Path | None = None,
         project: Path | str | None = None,
         ringer_version: str | None = None,
+        manifest_sha256: str | None = None,
     ) -> None:
         self.run_id = run_id
         self.run_name = run_name
@@ -3023,6 +3024,7 @@ class StateWriter:
         self.state_dir = state_dir
         self.project = str(Path(project).expanduser().resolve()) if project is not None else None
         self.ringer_version = ringer_version or running_ringer_version()
+        self.manifest_sha256 = manifest_sha256
         self.path = path or (state_dir / "runs" / f"{run_id}.json")
         self.pid = os.getpid()
         self.port: int | None = None
@@ -3169,6 +3171,7 @@ class StateWriter:
                 "run_name": self.run_name,
                 "identity": self.identity,
                 "project": self.project,
+                "manifest_sha256": self.manifest_sha256,
                 "ringer_version": self.ringer_version,
                 "state": "finished" if self.finished else "live",
                 "pid": self.pid,
@@ -10180,6 +10183,11 @@ class RingerRunner:
             max_parallel=manifest.max_parallel,
             artifact=config.artifact,
             project=manifest.project,
+            manifest_sha256=(
+                manifest_content_sha256(manifest.source_path)
+                if manifest.source_path is not None
+                else None
+            ),
         )
         self.dashboard = (
             Dashboard(
@@ -13255,6 +13263,10 @@ def load_rerun_state(
     state_dir: Path,
     run_name: str,
     run_id: str | None,
+    *,
+    project: Path | str,
+    task_keys: set[str],
+    manifest_sha256: str,
 ) -> tuple[dict[str, Any], str]:
     if run_id is not None:
         state_path = run_state_path_for_id(state_dir, run_id)
@@ -13271,6 +13283,7 @@ def load_rerun_state(
             raise ValueError(f"run state for {run_id!r} must be a JSON object")
         return state, str(state.get("run_id") or run_id)
 
+    resolved_project = str(Path(project).expanduser().resolve())
     candidates: list[tuple[float, float, Path, dict[str, Any]]] = []
     runs_dir = state_dir / "runs"
     try:
@@ -13284,6 +13297,15 @@ def load_rerun_state(
             continue
         if not isinstance(state, dict) or state.get("run_name") != run_name:
             continue
+        state_project = state.get("project")
+        if not isinstance(state_project, str) or not state_project.strip():
+            continue
+        try:
+            resolved_state_project = str(Path(state_project).expanduser().resolve())
+        except (OSError, RuntimeError):
+            continue
+        if resolved_state_project != resolved_project:
+            continue
         try:
             mtime = state_path.stat().st_mtime
         except OSError:
@@ -13292,7 +13314,35 @@ def load_rerun_state(
             (run_state_recency(state_path, state), mtime, state_path, state)
         )
     if not candidates:
-        raise ValueError(f"no run state found for run_name {run_name!r}")
+        raise ValueError(
+            f"no run state found for run_name {run_name!r} and project "
+            f"{resolved_project!r}"
+        )
+
+    fingerprint_matches = [
+        candidate
+        for candidate in candidates
+        if candidate[3].get("manifest_sha256") == manifest_sha256
+    ]
+    if fingerprint_matches:
+        candidates = fingerprint_matches
+    else:
+        overlapping = []
+        for candidate in candidates:
+            state_tasks = candidate[3].get("tasks")
+            state_task_keys = (
+                {
+                    task.get("key")
+                    for task in state_tasks
+                    if isinstance(task, dict) and isinstance(task.get("key"), str)
+                }
+                if isinstance(state_tasks, list)
+                else set()
+            )
+            if task_keys & state_task_keys:
+                overlapping.append(candidate)
+        if overlapping:
+            candidates = overlapping
     _recency, _mtime, state_path, state = max(
         candidates,
         key=lambda candidate: (candidate[0], candidate[1]),
@@ -13329,6 +13379,9 @@ def rerun_manifest(
         config.state_dir,
         manifest.run_name,
         run_id,
+        project=manifest.project,
+        task_keys={task.key for task in manifest.tasks},
+        manifest_sha256=manifest_content_sha256(manifest_path),
     )
     state_tasks = state.get("tasks")
     recorded_tasks: dict[str, dict[str, Any]] = {}
@@ -13374,6 +13427,7 @@ def rerun_manifest(
         selected_tasks.append(task_copy)
         selected_statuses.append((task.key, status))
 
+    print(f"Selected run: {selected_run_id}")
     if not selected_tasks:
         print(
             f"Every task passed in run {selected_run_id}; "
@@ -13382,6 +13436,7 @@ def rerun_manifest(
         return 1
 
     raw_manifest["tasks"] = selected_tasks
+    raw_manifest["x-rerun-source-run-id"] = selected_run_id
     target_path.write_text(
         json.dumps(raw_manifest, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",

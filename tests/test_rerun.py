@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -84,12 +85,17 @@ class RerunCommandTests(unittest.TestCase):
         *,
         run_name: str = "repair-round",
         started_at: str | None = "2026-08-13T12:00:00+00:00",
+        project: Path | None = None,
+        manifest_sha256: str | None = None,
     ) -> Path:
         state: dict[str, object] = {
             "run_id": run_id,
             "run_name": run_name,
+            "project": str((project or self.root / "repo").resolve()),
             "tasks": tasks,
         }
+        if manifest_sha256 is not None:
+            state["manifest_sha256"] = manifest_sha256
         if started_at is not None:
             state["started_at"] = started_at
         path = self.runs_dir / f"{run_id}.json"
@@ -167,12 +173,14 @@ class RerunCommandTests(unittest.TestCase):
         repair = json.loads(output_path.read_text(encoding="utf-8"))
         expected = dict(manifest)
         expected["tasks"] = [failing, queued, absent]
+        expected["x-rerun-source-run-id"] = "latest-run"
         self.assertEqual(expected, repair)
         self.assertEqual(
             ["failing", "held-lane", "never-spawned"],
             [task["key"] for task in repair["tasks"]],
         )
         self.assertIn(f"Wrote repair manifest: {output_path}", result.stdout)
+        self.assertIn("Selected run: latest-run", result.stdout)
         self.assertIn("failing (fail)", result.stdout)
         self.assertIn("held-lane (queued)", result.stdout)
         self.assertIn("never-spawned (absent)", result.stdout)
@@ -304,6 +312,68 @@ class RerunCommandTests(unittest.TestCase):
         self.assertNotEqual(0, result.returncode)
         self.assertIn("run_name 'repair-round'", result.stderr)
         self.assertFalse((self.root / "round-repair.json").exists())
+
+    def test_implicit_rerun_never_selects_another_project(self) -> None:
+        manifest_path, _manifest = self.write_manifest([self.task("target")])
+        self.write_state(
+            "same-project",
+            [{"key": "target", "status": "fail"}],
+            started_at="2026-08-13T12:00:00+00:00",
+        )
+        self.write_state(
+            "newer-other-project",
+            [{"key": "target", "status": "pass"}],
+            started_at="2026-08-14T12:00:00+00:00",
+            project=self.root / "other-repo",
+        )
+
+        result = self.run_rerun(manifest_path)
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn("Selected run: same-project", result.stdout)
+        self.assertIn("target (fail)", result.stdout)
+
+    def test_implicit_rerun_prefers_a_run_with_manifest_task_overlap(self) -> None:
+        manifest_path, _manifest = self.write_manifest([self.task("target")])
+        self.write_state(
+            "matching-tasks",
+            [{"key": "target", "status": "fail"}],
+            started_at="2026-08-13T12:00:00+00:00",
+        )
+        self.write_state(
+            "newer-different-manifest",
+            [{"key": "unrelated", "status": "pass"}],
+            started_at="2026-08-14T12:00:00+00:00",
+        )
+
+        result = self.run_rerun(manifest_path)
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn("Selected run: matching-tasks", result.stdout)
+        self.assertIn("target (fail)", result.stdout)
+        self.assertNotIn("target (absent)", result.stdout)
+
+    def test_implicit_rerun_prefers_matching_manifest_fingerprint(self) -> None:
+        manifest_path, _manifest = self.write_manifest([self.task("target")])
+        manifest_sha256 = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+        self.write_state(
+            "matching-manifest",
+            [{"key": "target", "status": "fail"}],
+            started_at="2026-08-13T12:00:00+00:00",
+            manifest_sha256=manifest_sha256,
+        )
+        self.write_state(
+            "newer-other-manifest",
+            [{"key": "target", "status": "pass"}],
+            started_at="2026-08-14T12:00:00+00:00",
+            manifest_sha256="0" * 64,
+        )
+
+        result = self.run_rerun(manifest_path)
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn("Selected run: matching-manifest", result.stdout)
+        self.assertIn("target (fail)", result.stdout)
 
 
 if __name__ == "__main__":

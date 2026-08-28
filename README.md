@@ -360,14 +360,14 @@ Ownership, contract, and protected-assertion violations are recorded in the run 
 
 ## `rerun` — repair the lanes that did not pass
 
-`rerun` reads a manifest and a finished run and writes a new manifest holding only the tasks that did not pass — failed, errored, timed out, or never spawned (held lanes). Without `--run` it picks the most recent run matching the manifest's `run_name`. Tasks are copied verbatim from the original manifest, not rebuilt from run state: run state records no `expect_files`, `task_type`, `known_bad`, `known_bad_cases`, `owns`, or `engine_args`, so reconstructing from it would silently drop them. Run-level fields are preserved — `run_name` included — so the repair round lands on the same job and the same artifact page instead of splitting the job in two.
+`rerun` reads a manifest and a finished run and writes a new manifest holding only the tasks that did not pass — failed, errored, timed out, or never spawned (held lanes). Without `--run` it considers runs matching both the manifest's `run_name` and resolved project path, prefers an exact manifest SHA-256 match when available, then prefers runs sharing at least one task key, and finally picks the most recent candidate. This keeps repeated runs of the same manifest on the latest run while preventing a newer, unrelated same-named run from silently taking precedence. Historical state without a manifest fingerprint remains usable. Tasks are copied verbatim from the original manifest, not rebuilt from run state: run state records no `expect_files`, `task_type`, `known_bad`, `known_bad_cases`, `owns`, or `engine_args`, so reconstructing from it would silently drop them. Run-level fields are preserved — `run_name` included — so the repair round lands on the same job and the same artifact page instead of splitting the job in two.
 
-`--with-context` appends the previous attempt's check failure output to each failing task's spec, so the next worker sees why it failed. The repair manifest is written to `<manifest-stem>-repair.json` beside the source unless `-o` says otherwise, and the source manifest is never overwritten. When every task passed, `rerun` exits nonzero with a clear message instead of writing an empty manifest.
+`--with-context` appends the previous attempt's check failure output to each failing task's spec, so the next worker sees why it failed. The command prints the selected run ID, and a written repair manifest records it as `x-rerun-source-run-id`. The repair manifest is written to `<manifest-stem>-repair.json` beside the source unless `-o` says otherwise, and the source manifest is never overwritten. When every task passed, `rerun` exits nonzero with a clear message instead of writing an empty manifest.
 
 It spawns no workers, writes no run state, and writes no eval rows — it writes that one file, which you then read before running.
 
 ```bash
-./ringer.py rerun swarm.json --with-context          # most recent run matching run_name, failure notes appended
+./ringer.py rerun swarm.json --with-context          # best matching run, failure notes appended
 ./ringer.py rerun swarm.json --run 2026-08-13-swarm -o round2.json
 ```
 
