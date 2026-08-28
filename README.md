@@ -212,6 +212,20 @@ from check_helpers import assert_section
 assert_section('python3 --version', '3.12')
 ```
 
+### Preflight: gate the whole manifest
+
+Run the complete no-worker gate with one command before spending worker attempts:
+
+```bash
+./ringer.py preflight swarm.json
+```
+
+`preflight` names and runs `lint`, `baseline`, `prove-fail`, and `prove-pass`, in that order. It prints one per-task coverage matrix before the stages. The matrix marks prove-fail coverage (`known_bad` or a non-empty `known_bad_cases`), prove-pass coverage (`known_good`), explicit `GAP` cells, and whether each task is fully gated. A failing stage stops the sequence, exits nonzero, names that stage, and prints a concrete repair. A successful verdict prints the exact `./ringer.py run ...` command to use next. The individual `lint` and `run --baseline`/`--prove-fail`/`--prove-pass` commands remain available and their flags remain mutually exclusive.
+
+After all four stages pass, Ringer writes a content-hash receipt below the configured `state_dir`. A byte-for-byte manifest edit invalidates that receipt. `run` reports one of three states—preflighted at the current content, preflighted at a different version, or never preflighted—but this is a notice, not a gate, so existing workflows without receipts continue to run.
+
+The receipt has a deliberately narrow guarantee: it attests only to the manifest content. It does **not** attest to external scripts invoked by checks. If a manifest still says `python3 gates/my_gate.py .` while that script changes, the receipt remains current because the manifest bytes did not change. Both `preflight` and `run` state this limit when they report the receipt.
+
 ### Baseline: prove your checks before spending tokens
 
 Lint reads the manifest; `--baseline` executes it — every task's `check` runs against the unmodified tree, spawning no workers and writing no eval rows:

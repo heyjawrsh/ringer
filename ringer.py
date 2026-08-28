@@ -70,6 +70,8 @@ CATALOG_FETCH_TIMEOUT_S = 5
 DEFAULT_UPDATE_CHECK_INTERVAL_S = 3600
 SELF_UPDATE_FETCH_TIMEOUT_S = 10
 SELF_UPDATE_STATE_FILE = "self-update.json"
+PREFLIGHT_STATE_DIR = "preflight"
+PREFLIGHT_RECEIPT_SCHEMA = 1
 DEFAULT_TOKEN_REGEX = r"tokens\s+used\s*:?\s*([0-9][0-9,]*)"
 DEFAULT_CODEX_MODEL_REPORT_REGEX = r"(?m)^model:[ \t]*([^ \t\r\n]+)[ \t]*\r?$"
 ACTIVITY_TAIL_BYTES = 2048
@@ -12899,6 +12901,258 @@ async def run_prove_pass(manifest: Manifest, *, config: AppConfig) -> int:
     return 0 if covered > 0 and broken == errors == 0 else 1
 
 
+def manifest_content_sha256(path: Path) -> str:
+    """Hash the manifest bytes, not its parsed representation.
+
+    Even a semantically equivalent edit invalidates the receipt. That keeps the
+    attestation deliberately narrow and makes its staleness rule unsurprising.
+    """
+    return hashlib.sha256(path.expanduser().resolve().read_bytes()).hexdigest()
+
+
+def preflight_receipt_paths(
+    state_dir: Path, manifest_path: Path, content_hash: str
+) -> tuple[Path, Path]:
+    root = state_dir.expanduser().resolve() / PREFLIGHT_STATE_DIR
+    resolved_manifest = manifest_path.expanduser().resolve()
+    manifest_identity = hashlib.sha256(
+        str(resolved_manifest).encode("utf-8")
+    ).hexdigest()
+    return (
+        root / "receipts" / f"{manifest_identity}-{content_hash}.json",
+        root / "manifests" / f"{manifest_identity}.json",
+    )
+
+
+def _read_json_object(path: Path) -> dict[str, Any] | None:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def preflight_receipt_state(
+    state_dir: Path, manifest_path: Path
+) -> tuple[str, str | None, Path]:
+    """Return (current|different|never, timestamp, content receipt path)."""
+    resolved_path = manifest_path.expanduser().resolve()
+    content_hash = manifest_content_sha256(resolved_path)
+    receipt_path, index_path = preflight_receipt_paths(
+        state_dir, resolved_path, content_hash
+    )
+    receipt = _read_json_object(receipt_path)
+    if (
+        receipt is not None
+        and receipt.get("schema") == PREFLIGHT_RECEIPT_SCHEMA
+        and receipt.get("manifest_sha256") == content_hash
+        and receipt.get("manifest_path") == str(resolved_path)
+    ):
+        timestamp = receipt.get("preflighted_at")
+        return "current", timestamp if isinstance(timestamp, str) else None, receipt_path
+
+    index = _read_json_object(index_path)
+    if (
+        index is not None
+        and index.get("schema") == PREFLIGHT_RECEIPT_SCHEMA
+        and index.get("manifest_path") == str(resolved_path)
+        and isinstance(index.get("manifest_sha256"), str)
+    ):
+        timestamp = index.get("preflighted_at")
+        return "different", timestamp if isinstance(timestamp, str) else None, receipt_path
+    return "never", None, receipt_path
+
+
+def print_preflight_receipt_state(state_dir: Path, manifest_path: Path) -> None:
+    state, timestamp, _receipt_path = preflight_receipt_state(
+        state_dir, manifest_path
+    )
+    if state == "current":
+        when = f" at {timestamp}" if timestamp else ""
+        print(f"Preflight receipt: this manifest content was preflighted{when}.")
+    elif state == "different":
+        when = f" at {timestamp}" if timestamp else ""
+        print(
+            "Preflight receipt: this manifest was preflighted at a different "
+            f"version{when}; the current content is not attested."
+        )
+    else:
+        print("Preflight receipt: this manifest has never been preflighted.")
+    print(
+        "Receipt limit: it attests only to the manifest content, not to external "
+        "scripts invoked by its checks."
+    )
+
+
+def write_preflight_receipt(
+    state_dir: Path,
+    manifest_path: Path,
+    manifest: Manifest,
+    *,
+    expected_content_hash: str,
+) -> tuple[Path, str]:
+    resolved_path = manifest_path.expanduser().resolve()
+    content_hash = manifest_content_sha256(resolved_path)
+    if content_hash != expected_content_hash:
+        raise RuntimeError(
+            "the manifest changed while preflight was running; the tested content "
+            "will not be attested"
+        )
+    receipt_path, index_path = preflight_receipt_paths(
+        state_dir, resolved_path, content_hash
+    )
+    timestamp = utc_now_iso()
+    receipt = {
+        "schema": PREFLIGHT_RECEIPT_SCHEMA,
+        "manifest_sha256": content_hash,
+        "manifest_path": str(resolved_path),
+        "preflighted_at": timestamp,
+        "stages": ["lint", "baseline", "prove-fail", "prove-pass"],
+        "tasks": [task.key for task in manifest.tasks],
+    }
+    index = {
+        "schema": PREFLIGHT_RECEIPT_SCHEMA,
+        "manifest_sha256": content_hash,
+        "manifest_path": str(resolved_path),
+        "preflighted_at": timestamp,
+        "receipt": str(receipt_path),
+    }
+    atomic_write_json(receipt_path, receipt)
+    atomic_write_json(index_path, index)
+    return receipt_path, content_hash
+
+
+def print_preflight_coverage_matrix(manifest: Manifest) -> None:
+    rows: list[tuple[str, str, str, str]] = []
+    for task in manifest.tasks:
+        if task.known_bad_cases:
+            fail_coverage = f"covered: known_bad_cases ({len(task.known_bad_cases)})"
+            has_fail = True
+        elif task.known_bad_cases_declared:
+            fail_coverage = "GAP: known_bad_cases is empty"
+            has_fail = False
+        elif task.known_bad:
+            fail_coverage = "covered: known_bad"
+            has_fail = True
+        else:
+            fail_coverage = "GAP: no known_bad or known_bad_cases"
+            has_fail = False
+        if task.known_good:
+            pass_coverage = "covered: known_good"
+            has_pass = True
+        else:
+            pass_coverage = "GAP: no known_good"
+            has_pass = False
+        rows.append(
+            (
+                task.key,
+                fail_coverage,
+                pass_coverage,
+                "YES" if has_fail and has_pass else "NO",
+            )
+        )
+
+    headers = ("TASK", "PROVE-FAIL", "PROVE-PASS", "GATED")
+    widths = [
+        max(len(headers[index]), *(len(row[index]) for row in rows))
+        for index in range(len(headers))
+    ]
+    print("Coverage matrix (a task is gated only when both proof modes cover it):")
+    print("  ".join(headers[index].ljust(widths[index]) for index in range(4)))
+    print("  ".join("-" * width for width in widths))
+    for row in rows:
+        print("  ".join(row[index].ljust(widths[index]) for index in range(4)))
+
+
+def _preflight_failed(stage: str, repair: str) -> int:
+    print(f"\nPreflight verdict: FAIL at {stage}.")
+    print(f"Repair: {repair}")
+    print("No receipt was written.")
+    return 1
+
+
+async def run_preflight_command(
+    manifest_path: Path,
+    *,
+    config: AppConfig,
+    allow_noncanonical_route: bool = False,
+) -> int:
+    resolved_path = manifest_path.expanduser().resolve()
+    starting_content_hash = manifest_content_sha256(resolved_path)
+    manifest = Manifest.from_path(resolved_path)
+    if manifest_content_sha256(resolved_path) != starting_content_hash:
+        return _preflight_failed(
+            "manifest load",
+            "leave the manifest unchanged while preflight reads it, then rerun preflight.",
+        )
+
+    print_preflight_coverage_matrix(manifest)
+
+    print("\nStage 1/4: lint")
+    lint_findings = lint_manifest(
+        manifest,
+        config=config,
+        allow_noncanonical_route=allow_noncanonical_route,
+    )
+    print_lint_nudges(lint_nudges(manifest))
+    if lint_findings:
+        print_lint_findings(lint_findings)
+        return _preflight_failed(
+            "lint",
+            "fix every lint finding above (including proof-coverage gaps), then rerun preflight.",
+        )
+    print(f"lint: clean ({len(manifest.tasks)} tasks)")
+
+    print("\nStage 2/4: baseline")
+    if await run_baseline(manifest, config=config) != 0:
+        return _preflight_failed(
+            "baseline",
+            "make every check runnable in fresh baseline state; fix missing commands, syntax errors, and timeouts, then rerun preflight.",
+        )
+
+    print("\nStage 3/4: prove-fail")
+    if await run_prove_fail(manifest, config=config) != 0:
+        return _preflight_failed(
+            "prove-fail",
+            "make each known_bad mutation succeed and make its check reject that bad state with a concrete diagnostic, then rerun preflight.",
+        )
+
+    print("\nStage 4/4: prove-pass")
+    if await run_prove_pass(manifest, config=config) != 0:
+        return _preflight_failed(
+            "prove-pass",
+            "make each known_good setup fabricate all required deliverables and make its check accept them, then rerun preflight.",
+        )
+
+    try:
+        receipt_path, content_hash = write_preflight_receipt(
+            config.state_dir,
+            resolved_path,
+            manifest,
+            expected_content_hash=starting_content_hash,
+        )
+    except Exception as exc:
+        return _preflight_failed(
+            "receipt",
+            "leave the manifest unchanged, make the configured state directory "
+            f"writable ({config.state_dir}), and rerun preflight; receipt error: {exc}",
+        )
+
+    print("\nPreflight verdict: PASS.")
+    print(f"Receipt: {receipt_path} (manifest sha256 {content_hash})")
+    print(
+        "Receipt limit: it attests only to the manifest content, not to external "
+        "scripts invoked by its checks."
+    )
+    command = f"./ringer.py run {shlex.quote(str(manifest_path))}"
+    if config.path is not None:
+        command += f" --config {shlex.quote(str(config.path))}"
+    if allow_noncanonical_route:
+        command += " --allow-noncanonical-route"
+    print(f"Next command: {command}")
+    return 0
+
+
 def append_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as fh:
@@ -14194,6 +14448,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="allow a registry-marked noncanonical model route for a deliberate bakeoff",
     )
 
+    preflight_parser = subparsers.add_parser(
+        "preflight",
+        help="run lint, baseline, prove-fail, and prove-pass as one manifest gate",
+    )
+    preflight_parser.add_argument("manifest", type=Path, help="path to ringer.json")
+    preflight_parser.add_argument(
+        "--config", type=Path, default=argparse.SUPPRESS, help=argparse.SUPPRESS
+    )
+    preflight_parser.add_argument(
+        "--allow-noncanonical-route",
+        action="store_true",
+        help="allow a registry-marked noncanonical model route for a deliberate bakeoff",
+    )
+
     rerun_parser = subparsers.add_parser(
         "rerun",
         help="write a repair manifest containing tasks that did not pass",
@@ -14509,6 +14777,14 @@ def main(argv: list[str] | None = None) -> int:
             return run_catalog_command(args)
 
         config = AppConfig.load(args.config)
+        if args.command == "preflight":
+            return asyncio.run(
+                run_preflight_command(
+                    args.manifest,
+                    config=config,
+                    allow_noncanonical_route=args.allow_noncanonical_route,
+                )
+            )
         if args.command == "rerun":
             return rerun_manifest(
                 args.manifest,
@@ -14552,6 +14828,8 @@ def main(argv: list[str] | None = None) -> int:
         else:
             manifest_path = args.manifest
         manifest = Manifest.from_path(manifest_path).with_max_parallel(args.max_parallel)
+        if args.command == "run":
+            print_preflight_receipt_state(config.state_dir, manifest_path)
         with contextlib.suppress(Exception):
             print_steering_notes(manifest, config)
         lint_findings = lint_manifest(
