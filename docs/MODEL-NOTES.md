@@ -2622,3 +2622,57 @@ mechanically — fixture names and fixture prose both — rather than by intendi
 **PREFLIGHT PAID FOR ITSELF WITHIN THE HOUR.** This manifest was gated with one
 command instead of four; it printed the coverage matrix, the verdict, the receipt
 hash and the exact next command. Shipped an hour earlier in the same session.
+
+## 2026-08-28 — paying my own debts, and two NEW ways a gate can lie
+
+Two lanes, codex gpt-5.6-sol high. Both produced correct work; both were
+reported FAIL or empty by MY tooling, not by any fault of theirs. 456 tests,
+eleven gates green.
+
+**DEBT 1 PAID: the lint nudge no longer cries wolf.** It flagged any check with
+two or more `&&`, so `gate.py . && git diff > out.patch && test -s out.patch` —
+the shape EVERY gate manifest here uses — was reported as several chained
+assertions. It now counts non-plumbing segments (redirections, cp/mv/tee/mkdir,
+git diff/add/archive are plumbing). Verified by hand: silent for the export
+shape, still firing for `gate_a && gate_b && gate_c`.
+
+**DEBT 2 PAID: `preflight` is now bound by the repo's own suite.** Four tests
+drive the real CLI and assert on its VERDICT. Proven by mutation: making the
+dispatch always exit 0 left all 452 tests passing before, and fails them now.
+
+**NEW FAILURE MODE #1 — A GATE THAT IS NONDETERMINISTIC, WITH A BIAS.** My
+mutation gate ran the whole suite twice and credited ANY newly-failing test to
+the mutation. But the mutated run always goes SECOND, so a lingering socket from
+the first run makes it systematically likelier to show an unrelated new failure.
+The gate PASSED in the lane's worktree and FAILED on my tree with identical code.
+This is not the substring-vs-claim bug that bit me six times yesterday; it is a
+new one, and the self-check I added for that would never have caught it.
+FIX: attribute a mutation-induced failure only to tests whose identifier names
+the thing under mutation, and LOG the unrelated ones rather than counting them.
+RULE: if a gate's answer can differ between two runs of the same tree, it is not
+a gate. Ask what varies between runs before trusting a pass.
+
+**NEW FAILURE MODE #2 — `git diff` DOES NOT SEE NEW FILES.** Every check I have
+written exports its deliverable with `git diff > out.patch && test -s
+out.patch`. Every lane so far MODIFIED existing files, so it worked. This lane's
+deliverable was a NEW file (`tests/test_preflight_command.py`), which is
+untracked, which `git diff` ignores — so the patch was 0 bytes, `test -s` failed,
+and the lane was marked FAIL twice for work that PASSES the gate. The worker
+wrote a correct 271-line test file and was told it had failed.
+FIX for every future kit: `git add -A -N && git diff > out.patch` (intent-to-add
+makes untracked files visible to diff), or `git add -A && git diff --cached`.
+RULE: a check that exports a deliverable must be tested against a lane that
+CREATES a file, not only one that edits one.
+
+**THE PATTERN ACROSS BOTH DAYS.** Nine lanes ran; every one produced correct or
+near-correct work. Every failure and every false pass in this whole family
+traced to the harness — my fixtures, my assertions, my export step — and not to
+a model. The repo's oldest lesson keeps holding: when a competent engine fails
+twice on a mechanical task, that is evidence about the CHECK.
+
+**ALSO CORRECTED:** I called the rail's `Lanes 0` / `0 swarms live` counters a
+pre-existing dashboard bug three times. They are not. The API supplies an
+`active` map and `runIsRunningNow` requires a run to be BOTH state=live AND
+present in it, so a run whose orchestrator died does not count as running — which
+is right. My fixtures simply never included `active`. Check before repeating a
+claim, especially one you have already repeated.
