@@ -574,7 +574,7 @@ The `--mapping` file joins old log rows to a `task_type`. Each line uses one of 
 
 Rows that match nothing keep their old `task_type` (empty); rows whose run-state JSON can't be found keep their old `model`.
 
-`docs/MODEL-NOTES.md` is where the human-readable judgment lives on top of these numbers — the scoreboard tells you the pass rates; the notes tell you why a model shines or chokes on a given task shape. Concurrent sessions write one file each under `docs/model-notes/incoming/`, using the same level-2 headings and dated bullets; the scoreboard merges those entries automatically, and a human periodically curates them into the canonical log. See the [model notes inbox convention](docs/model-notes/README.md).
+`docs/MODEL-NOTES.md` is where the human-readable judgment lives on top of these numbers — the scoreboard tells you the pass rates; the notes tell you why a model shines or chokes on a given task shape. Concurrent sessions write one file each under `docs/model-notes/incoming/`, using the same level-2 headings and dated bullets; the scoreboard merges those entries automatically, and `./ringer.py notes curate` periodically folds them into the canonical log. See the [model notes inbox convention](docs/model-notes/README.md).
 
 ### Evidence-based routing
 

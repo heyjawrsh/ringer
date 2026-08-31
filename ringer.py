@@ -8382,61 +8382,62 @@ def normalize_notes_match_text(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip().lower()
 
 
+def _parse_model_notes_file(notes_path: Path) -> dict[str, list[str]] | None:
+    try:
+        lines = notes_path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError):
+        return None
+    parsed: dict[str, list[str]] = {}
+    current_heading: str | None = None
+    current_bullets: list[str] = []
+    active_bullet: list[str] | None = None
+
+    def flush_bullet() -> None:
+        nonlocal active_bullet
+        if active_bullet is not None:
+            text = "\n".join(active_bullet).strip()
+            if re.search(r"\b\d{4}-\d{2}-\d{2}\b", text):
+                current_bullets.append(text)
+            active_bullet = None
+
+    def flush_section() -> None:
+        flush_bullet()
+        if current_heading is not None:
+            parsed[current_heading] = list(current_bullets)
+
+    for line in lines:
+        heading_match = re.match(r"^##\s+(.+?)\s*$", line)
+        if heading_match:
+            flush_section()
+            current_heading = heading_match.group(1).strip()
+            current_bullets = []
+            active_bullet = None
+            continue
+        if current_heading is None:
+            continue
+        if line.startswith("## "):
+            flush_section()
+            current_heading = None
+            current_bullets = []
+            active_bullet = None
+            continue
+        if line.startswith("- "):
+            flush_bullet()
+            active_bullet = [line[2:].strip()]
+            continue
+        if active_bullet is not None and (line.startswith("  ") or not line.strip()):
+            active_bullet.append(line.strip())
+            continue
+        flush_bullet()
+    flush_section()
+    return parsed
+
+
 def parse_model_notes_sections(path: Path) -> dict[str, list[str]]:
     """Return dated bullet blocks keyed by the raw level-2 heading text."""
     path = path.expanduser()
 
-    def parse_file(notes_path: Path) -> dict[str, list[str]] | None:
-        try:
-            lines = notes_path.read_text(encoding="utf-8").splitlines()
-        except (OSError, UnicodeDecodeError):
-            return None
-        parsed: dict[str, list[str]] = {}
-        current_heading: str | None = None
-        current_bullets: list[str] = []
-        active_bullet: list[str] | None = None
-
-        def flush_bullet() -> None:
-            nonlocal active_bullet
-            if active_bullet is not None:
-                text = "\n".join(active_bullet).strip()
-                if re.search(r"\b\d{4}-\d{2}-\d{2}\b", text):
-                    current_bullets.append(text)
-                active_bullet = None
-
-        def flush_section() -> None:
-            flush_bullet()
-            if current_heading is not None:
-                parsed[current_heading] = list(current_bullets)
-
-        for line in lines:
-            heading_match = re.match(r"^##\s+(.+?)\s*$", line)
-            if heading_match:
-                flush_section()
-                current_heading = heading_match.group(1).strip()
-                current_bullets = []
-                active_bullet = None
-                continue
-            if current_heading is None:
-                continue
-            if line.startswith("## "):
-                flush_section()
-                current_heading = None
-                current_bullets = []
-                active_bullet = None
-                continue
-            if line.startswith("- "):
-                flush_bullet()
-                active_bullet = [line[2:].strip()]
-                continue
-            if active_bullet is not None and (line.startswith("  ") or not line.strip()):
-                active_bullet.append(line.strip())
-                continue
-            flush_bullet()
-        flush_section()
-        return parsed
-
-    sections = parse_file(path)
+    sections = _parse_model_notes_file(path)
     if sections is None:
         return {}
 
@@ -8452,7 +8453,7 @@ def parse_model_notes_sections(path: Path) -> dict[str, list[str]]:
     # the name-sorted order above.
     incoming_by_heading: dict[str, list[str]] = {}
     for incoming_path in incoming_paths:
-        incoming_sections = parse_file(incoming_path)
+        incoming_sections = _parse_model_notes_file(incoming_path)
         if incoming_sections is None:
             continue
         for heading, bullets in incoming_sections.items():
@@ -8460,6 +8461,74 @@ def parse_model_notes_sections(path: Path) -> dict[str, list[str]]:
     for heading, bullets in incoming_by_heading.items():
         sections[heading] = bullets + sections.get(heading, [])
     return sections
+
+
+def curate_model_notes(path: Path, *, dry_run: bool = False) -> int:
+    """Fold the model-notes inbox into the canonical log without changing its view."""
+    path = path.expanduser()
+    incoming_dir = path.parent / "model-notes" / "incoming"
+    incoming_paths = sorted(incoming_dir.glob("*.md"), key=lambda item: item.name)
+    if not incoming_paths:
+        print("Model notes inbox is empty; nothing to curate.")
+        return 0
+
+    canonical_text = path.read_text(encoding="utf-8")
+    incoming_by_heading: dict[str, list[str]] = {}
+    for incoming_path in incoming_paths:
+        incoming_sections = _parse_model_notes_file(incoming_path)
+        if incoming_sections is None:
+            raise ValueError(f"could not read model notes inbox file: {incoming_path}")
+        for heading, bullets in incoming_sections.items():
+            incoming_by_heading.setdefault(heading, []).extend(bullets)
+
+    def render_bullets(bullets: list[str]) -> str:
+        rendered: list[str] = []
+        for bullet in bullets:
+            bullet_lines = bullet.splitlines() or [""]
+            rendered.append("- " + bullet_lines[0])
+            rendered.extend("  " + line for line in bullet_lines[1:])
+        return "\n".join(rendered)
+
+    lines = canonical_text.splitlines(keepends=True)
+    heading_positions: dict[str, int] = {}
+    for index, line in enumerate(lines):
+        match = re.match(r"^##\s+(.+?)\s*$", line.rstrip("\r\n"))
+        if match and match.group(1).strip() not in heading_positions:
+            heading_positions[match.group(1).strip()] = index
+
+    insertions: list[tuple[int, str]] = []
+    new_sections: list[str] = []
+    for heading, bullets in incoming_by_heading.items():
+        if not bullets:
+            continue
+        block = render_bullets(bullets)
+        if heading not in heading_positions:
+            new_sections.append(f"## {heading}\n\n{block}")
+            continue
+        position = heading_positions[heading] + 1
+        while position < len(lines) and not lines[position].strip():
+            position += 1
+        insertions.append((position, block + "\n\n"))
+
+    for position, text in sorted(insertions, reverse=True):
+        lines.insert(position, text)
+    curated_text = "".join(lines)
+    if new_sections:
+        curated_text = (
+            curated_text.rstrip("\r\n")
+            + "\n\n"
+            + "\n\n".join(new_sections)
+            + "\n"
+        )
+
+    action = "Would curate" if dry_run else "Curated"
+    print(f"{action} {len(incoming_paths)} model notes inbox file(s).")
+    if dry_run:
+        return 0
+    path.write_text(curated_text, encoding="utf-8")
+    for incoming_path in incoming_paths:
+        incoming_path.unlink()
+    return 0
 
 
 def model_judgment_notes(model_id: str, notes_sections: dict[str, list[str]]) -> list[str]:
@@ -14743,6 +14812,15 @@ def build_parser() -> argparse.ArgumentParser:
     models_parser.add_argument("--open", action="store_true", help="render the HTML scoreboard to the artifact library and open it")
     models_parser.add_argument("--json", action="store_true", help="print the scoreboard as JSON")
 
+    notes_parser = subparsers.add_parser("notes", help="manage the model notes log")
+    notes_subparsers = notes_parser.add_subparsers(dest="notes_command", required=True)
+    notes_curate_parser = notes_subparsers.add_parser(
+        "curate", help="fold incoming model notes into the canonical log"
+    )
+    notes_curate_parser.add_argument(
+        "--dry-run", action="store_true", help="show what would change without writing files"
+    )
+
     catalog_parser = subparsers.add_parser("catalog", help="show or refresh the local OpenRouter model catalog")
     catalog_parser.add_argument("--refresh", action="store_true", help="fetch source and rewrite the local snapshot")
     catalog_parser.add_argument("--source", help=f"OpenRouter models URL or fixture file (default: {DEFAULT_CATALOG_SOURCE})")
@@ -14871,6 +14949,10 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "catalog":
             return run_catalog_command(args)
+        if args.command == "notes":
+            return curate_model_notes(
+                default_model_notes_path(), dry_run=args.dry_run
+            )
 
         config = AppConfig.load(args.config)
         if args.command == "preflight":
