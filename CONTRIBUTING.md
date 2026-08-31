@@ -35,7 +35,7 @@ We *want* people shipping alternative Ringside faces. The rules that make a UI P
 
 ## Good first contributions
 
-- A dated observation in `docs/MODEL-NOTES.md` from your own runs (what a model shines or chokes on, with the task shape).
+- A dated observation from your own runs (what a model shines or chokes on, with the task shape). Add it as your own file under `docs/model-notes/incoming/`, named `<YYYY-MM-DD>-<short-slug>.md` — never append to `docs/MODEL-NOTES.md` directly. The canonical log is append-only, so two PRs editing its tail always conflict; a file per contributor never does. The scoreboard merges incoming entries at render time, so yours counts as soon as it lands. See the [model notes inbox convention](docs/model-notes/README.md).
 - A template kit in `templates/` for a swarm pattern that worked for you.
 - Turning the Windows CI job green (see #17's thread for the split plan).
 - A capability sheet in `registry/model-capabilities/` — sourced facts only: pricing, canonical access routes, provenance, supported reasoning-effort levels, tool-calling. No marketing tiers, no routing advice, no unsourced numbers.

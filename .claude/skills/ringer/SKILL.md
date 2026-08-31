@@ -430,8 +430,8 @@ ask so the human can veto it. Promotion ladder (computed by --explore):
 untested → probation (some evidence) → proven for a task_type (3+ tasks,
 first-try ≥ 0.67). Proven models earn bigger lanes in that type and an
 audition one rung up in adjacent types; repeated first-attempt failures end
-the audition — record the demotion in MODEL-NOTES so the next orchestrator
-doesn't re-run the experiment.
+the audition — record the demotion in `docs/model-notes/incoming/` (see the
+review step below) so the next orchestrator doesn't re-run the experiment.
 
 **OpenCode is the harness; the model is a manifest field.** Unless a model
 ships its own first-class harness (Codex does), it runs through the
@@ -532,8 +532,15 @@ against a PermissionError it cannot fix.
    crashed mid-verification (a reused scratch dir, a bad path) burns both
    attempts and reads on Ringside as the worker's failure. Two of this
    repo's own rounds looked like model misses and were mine (2026-08-12).
-5. **Update `docs/MODEL-NOTES.md`** (in the ringer repo) when a run taught
-   you something about a model: one dated line under the model — task type,
+5. **Record what a run taught you in `docs/model-notes/incoming/`** (in the
+   ringer repo) — write your OWN file, named `<YYYY-MM-DD>-<short-slug>.md`.
+   **Never append to `docs/MODEL-NOTES.md` directly.** That log is append-only
+   and every session appends to the same tail, so direct edits collide with
+   any concurrent session; one file per session never collides. Use the
+   canonical log's shape: level-2 `## <model>` headings with dated
+   `- YYYY-MM-DD — ...` bullets. The scoreboard merges incoming entries at
+   render time, so an entry counts the moment you write it — nothing has to
+   be folded in first. Content: one dated line under the model — task type,
    what happened (attempts, tokens, failure mode), what you'd do
    differently. Only what the executed checks and raw logs support. The raw
    numbers took care of themselves — every attempt already landed in the
