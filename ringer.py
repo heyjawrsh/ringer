@@ -11423,15 +11423,41 @@ class RingerRunner:
         except OSError as exc:
             return WorkerResult(returncode=None, timed_out=False, tokens=None, error=str(exc))
         async with AsyncFileCloser(log_fh):
+            master_fd: int | None = None
             try:
-                proc = await asyncio.create_subprocess_exec(
-                    *cmd,
-                    cwd=str(runtime.taskdir),
-                    stdin=asyncio.subprocess.DEVNULL,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.STDOUT,
-                    start_new_session=True,
-                )
+                child_env = os.environ.copy()
+                child_env["TERM"] = "dumb"
+                try:
+                    import pty
+
+                    master_fd, slave_fd = pty.openpty()
+                    try:
+                        proc = await asyncio.create_subprocess_exec(
+                            *cmd,
+                            cwd=str(runtime.taskdir),
+                            stdin=asyncio.subprocess.DEVNULL,
+                            stdout=slave_fd,
+                            stderr=slave_fd,
+                            start_new_session=True,
+                            env=child_env,
+                        )
+                    finally:
+                        with contextlib.suppress(OSError):
+                            os.close(slave_fd)
+                except Exception:
+                    if master_fd is not None:
+                        with contextlib.suppress(OSError):
+                            os.close(master_fd)
+                        master_fd = None
+                    proc = await asyncio.create_subprocess_exec(
+                        *cmd,
+                        cwd=str(runtime.taskdir),
+                        stdin=asyncio.subprocess.DEVNULL,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.STDOUT,
+                        start_new_session=True,
+                        env=child_env,
+                    )
             except Exception as exc:
                 message = f"[ringer.py] worker spawn failed: {exc}\n"
                 log_fh.write(message.encode("utf-8", errors="replace"))
@@ -11440,7 +11466,7 @@ class RingerRunner:
             with self.lock:
                 runtime.worker_pid = proc.pid
             self.active_processes[proc.pid] = proc
-            reader = asyncio.create_task(self._tee_stream(proc, log_fh, capture))
+            reader = asyncio.create_task(self._tee_stream(proc, log_fh, capture, master_fd))
             timed_out = False
             try:
                 try:
@@ -11488,21 +11514,104 @@ class RingerRunner:
         proc: asyncio.subprocess.Process,
         log_fh: Any,
         capture: "RollingBytes",
+        master_fd: int | None = None,
     ) -> None:
-        if proc.stdout is None:
+        if master_fd is None and proc.stdout is None:
             return
-        while True:
-            chunk = await proc.stdout.read(4096)
-            if not chunk:
-                return
-            log_fh.write(chunk)
-            log_fh.flush()
-            capture.extend(chunk)
+        terminal_state = "normal"
+        previous_cr = False
+
+        def clean_terminal_bytes(chunk: bytes) -> bytes:
+            nonlocal terminal_state, previous_cr
+            cleaned = bytearray()
+            for byte in chunk:
+                if terminal_state == "normal":
+                    if byte == 0x1B:
+                        terminal_state = "escape"
+                    elif byte == 0x9B:
+                        terminal_state = "csi"
+                    elif byte == 0x9D:
+                        terminal_state = "osc"
+                    elif byte in (0x90, 0x98, 0x9E, 0x9F):
+                        terminal_state = "string"
+                    elif byte == 0x0D:
+                        cleaned.append(0x0A)
+                        previous_cr = True
+                    elif byte == 0x0A and previous_cr:
+                        previous_cr = False
+                    else:
+                        previous_cr = False
+                        cleaned.append(byte)
+                elif terminal_state == "escape":
+                    if byte == ord("["):
+                        terminal_state = "csi"
+                    elif byte == ord("]"):
+                        terminal_state = "osc"
+                    elif byte in (ord("P"), ord("X"), ord("^"), ord("_")):
+                        terminal_state = "string"
+                    elif 0x30 <= byte <= 0x7E:
+                        terminal_state = "normal"
+                elif terminal_state == "csi":
+                    if 0x40 <= byte <= 0x7E:
+                        terminal_state = "normal"
+                elif terminal_state in ("osc", "string"):
+                    if terminal_state == "osc" and byte == 0x07:
+                        terminal_state = "normal"
+                    elif byte == 0x1B:
+                        terminal_state += "_escape"
+                else:
+                    if byte == ord("\\"):
+                        terminal_state = "normal"
+                    elif byte != 0x1B:
+                        terminal_state = terminal_state.removesuffix("_escape")
+            return bytes(cleaned)
+
+        loop = asyncio.get_running_loop()
+
+        async def read_master() -> bytes:
+            assert master_fd is not None
+            ready = loop.create_future()
+
+            def on_readable() -> None:
+                try:
+                    chunk = os.read(master_fd, 4096)
+                except BlockingIOError:
+                    return
+                except OSError:
+                    chunk = b""
+                if not ready.done():
+                    ready.set_result(chunk)
+
+            loop.add_reader(master_fd, on_readable)
             try:
-                sys.stdout.buffer.write(chunk)
-                sys.stdout.buffer.flush()
-            except Exception:
-                pass
+                return await ready
+            finally:
+                loop.remove_reader(master_fd)
+
+        try:
+            if master_fd is not None:
+                os.set_blocking(master_fd, False)
+            while True:
+                if master_fd is not None:
+                    chunk = await read_master()
+                else:
+                    try:
+                        assert proc.stdout is not None
+                        chunk = await proc.stdout.read(4096)
+                    except OSError:
+                        return
+                if not chunk:
+                    return
+                chunk = clean_terminal_bytes(chunk)
+                if not chunk:
+                    continue
+                log_fh.write(chunk)
+                log_fh.flush()
+                capture.extend(chunk)
+        finally:
+            if master_fd is not None:
+                with contextlib.suppress(OSError):
+                    os.close(master_fd)
 
     def _log_attempt(
         self,
