@@ -39,7 +39,7 @@ import urllib.request
 import uuid
 import webbrowser
 from dataclasses import asdict, dataclass, field, replace as dataclass_replace
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from html import escape as html_escape
 from http import HTTPStatus
@@ -10974,15 +10974,28 @@ class RingerRunner:
                         check_timed_out=False,
                         raw_output_excerpt="\n".join(violations)[:2000],
                     )
+                    check_duration_ms = 0
                 else:
+                    check_started = time.monotonic()
                     verify = await self.verifier.verify(runtime.task, runtime.taskdir)
+                    check_duration_ms = int((time.monotonic() - check_started) * 1000)
                 verdict = verdict_for(worker, verify)
                 with self.lock:
                     runtime.last_check_returncode = verify.check_returncode
                     runtime.last_check_timed_out = verify.check_timed_out
                     runtime.last_check_output = verify.raw_output_excerpt
                 duration_ms = int((time.monotonic() - attempt_started) * 1000)
-                self._log_attempt(runtime, current_spec, retrying, worker, verify, verdict, duration_ms)
+                self._log_attempt(
+                    runtime,
+                    current_spec,
+                    retrying,
+                    worker,
+                    verify,
+                    verdict,
+                    duration_ms,
+                    attempt_started=attempt_started,
+                    check_duration_ms=check_duration_ms,
+                )
                 self._record_attempt_outcome(verdict)
                 if verdict == "PASS":
                     self._harvest_deliverables_on_pass(runtime)
@@ -11687,8 +11700,16 @@ class RingerRunner:
         verify: VerifyResult,
         verdict: str,
         duration_ms: int,
+        *,
+        attempt_started: float | None = None,
+        check_duration_ms: int = 0,
     ) -> None:
         attempt = runtime.attempts if runtime.attempts >= 1 else (2 if retrying else 1)
+        if attempt_started is None:
+            attempt_started = runtime.started_at_monotonic or self.started_at_monotonic
+        started_at = self.started_at + timedelta(
+            seconds=attempt_started - self.started_at_monotonic
+        )
         check_output_excerpt = shorten(
             verify.raw_output_excerpt,
             TASK_ATTEMPT_EXCERPT_LIMIT,
@@ -11697,6 +11718,9 @@ class RingerRunner:
             check_output_excerpt = "[redacted check output]"
         attempt_record = {
             "attempt": attempt,
+            "started_at": started_at.isoformat(),
+            "duration_ms": duration_ms,
+            "check_duration_ms": check_duration_ms,
             "verdict": verdict,
             "check_returncode": verify.check_returncode,
             "check_timed_out": verify.check_timed_out,
