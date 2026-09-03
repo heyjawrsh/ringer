@@ -60,6 +60,11 @@ DEFAULT_INTEGRATION_TIMEOUT_S = 600
 DEFAULT_PILOT_WAIT_S = 1800
 DEFAULT_PILOT_MAX_REVISIONS = 3
 CHECK_TIMEOUT_S = 60
+# How often the state writer persists run state. This is a SAMPLING rate, not a
+# delay: a lane's activity can change several times a second, and anything that
+# changes and changes again between two flushes is never written at all. At 1.0s
+# roughly half of observed worker output never reached run state.
+STATE_FLUSH_INTERVAL_S = 0.25
 RERUN_CONTEXT_LIMIT = 2000
 DEFAULT_DASHBOARD_PORT_BASE = 8787
 DEFAULT_HUD_PORT = 8700
@@ -3314,7 +3319,7 @@ class StateWriter:
             print(f"artifact render error (index, non-fatal): {exc}", file=sys.stderr)
 
     def _loop(self) -> None:
-        while not self._stop.wait(1.0):
+        while not self._stop.wait(STATE_FLUSH_INTERVAL_S):
             try:
                 self.flush()
             except Exception as exc:
