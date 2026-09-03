@@ -14,6 +14,8 @@ One problem: parallel agents lie. "Done" doesn't mean working. Ringer doesn't ta
 
 And because a swarm you can't see is a swarm you don't trust: **Ringside**, a local web page every run opens automatically, showing every live swarm on your machine — who's running it, what each worker is doing, elapsed time, token burn — in real time, plus a versioned library of what past runs produced.
 
+Ringside ships themes based on the MIT-licensed Solarized (Ethan Schoonover), Catppuccin, Tokyo Night, Nord, Dracula, One Dark, and Gruvbox community colour schemes.
+
 ## How it works
 
 ```
