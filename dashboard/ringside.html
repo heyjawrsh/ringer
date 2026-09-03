@@ -550,6 +550,7 @@
       const checkRc = checkRcSet ? String(rawCheckRc) : "not recorded";
       const workerRc = taskWorkerReturncode(lane);
       const checkName = String(lane.check || "").trim();
+      const verdict = String(lane.verdict || "").trim().toUpperCase();
       const withCheck = evidence => checkName ? [...evidence, `check=${checkName}`] : evidence;
       if (setupError) {
         return {
@@ -570,7 +571,7 @@
         };
       }
       if (checkRcSet && Number(rawCheckRc) !== 0) {
-        if (checkCrashed(rawCheckRc, lane.check_output_tail)) {
+        if (verdict === "CRASHED" || (!verdict && checkCrashed(rawCheckRc, lane.check_output_tail))) {
           return {
             label: "CHECK COULD NOT RUN",
             sentence: "The check never executed; this lane therefore says nothing about the model.",
