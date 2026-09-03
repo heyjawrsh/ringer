@@ -6263,7 +6263,35 @@ def scan_hud_run_states_with_unreadable(
             unreadable += 1
             continue
         if len(runs) < limit:
-            data["orchestrator_alive"] = str(data.get("run_id", path.stem)) in active_runs
+            run_id = str(data.get("run_id", path.stem))
+            orchestrator_alive = run_id in active_runs
+            if (
+                not orchestrator_alive
+                and str(data.get("state", "")) == "live"
+                and not bool(data.get("finished"))
+            ):
+                data["state"] = "died"
+                data["finished"] = True
+                terminal_statuses = {"running", "working", "verifying", "pending"}
+                tasks = data.get("tasks")
+                if isinstance(tasks, list):
+                    for task in tasks:
+                        if not isinstance(task, dict):
+                            continue
+                        if str(task.get("status", "")).lower() in terminal_statuses:
+                            task["status"] = "died"
+                            task["verdict"] = "DIED"
+                            task["activity"] = (
+                                "Orchestrator ended before the lane reported completion."
+                            )
+                totals = data.get("totals")
+                if isinstance(totals, dict):
+                    totals["running"] = 0
+                # Keep serving the reconciled history even if durable repair is
+                # temporarily unavailable; the next HUD poll will retry the write.
+                with contextlib.suppress(OSError):
+                    atomic_write_json(path, data)
+            data["orchestrator_alive"] = orchestrator_alive
             runs.append(data)
     return runs, unreadable
 
@@ -10919,13 +10947,19 @@ class RingerRunner:
                 with self.lock:
                     runtime.attempts = attempt
                     runtime.status = "retrying" if retrying else "running"
+                    pre_attempt_tokens = runtime.tokens or 0
                 attempt_started = time.monotonic()
-                worker = await self._run_worker(runtime, current_spec, attempt)
+                worker = await self._run_worker(
+                    runtime,
+                    current_spec,
+                    attempt,
+                    pre_attempt_tokens=pre_attempt_tokens,
+                )
                 with self.lock:
                     runtime.worker_pid = None
                     runtime.status = "verifying"
                     if worker.tokens is not None:
-                        runtime.tokens = (runtime.tokens or 0) + worker.tokens
+                        runtime.tokens = pre_attempt_tokens + worker.tokens
                 violations = await self._task_violations(runtime)
                 if violations:
                     for violation in violations:
@@ -11330,7 +11364,14 @@ class RingerRunner:
         self._log_attempt(runtime, runtime.task.spec, False, worker, verify, "ERROR", 0)
         self._record_attempt_outcome("ERROR")
 
-    async def _run_worker(self, runtime: TaskRuntime, spec: str, attempt: int) -> WorkerResult:
+    async def _run_worker(
+        self,
+        runtime: TaskRuntime,
+        spec: str,
+        attempt: int,
+        *,
+        pre_attempt_tokens: int = 0,
+    ) -> WorkerResult:
         log_path = runtime.log_path
         engine = self.config.engines.get(runtime.task.engine)
         if engine is None:
@@ -11471,7 +11512,17 @@ class RingerRunner:
             with self.lock:
                 runtime.worker_pid = proc.pid
             self.active_processes[proc.pid] = proc
-            reader = asyncio.create_task(self._tee_stream(proc, log_fh, capture, master_fd))
+            reader = asyncio.create_task(
+                self._tee_stream(
+                    proc,
+                    log_fh,
+                    capture,
+                    master_fd,
+                    runtime=runtime,
+                    token_regex=engine.token_regex,
+                    pre_attempt_tokens=pre_attempt_tokens,
+                )
+            )
             timed_out = False
             try:
                 try:
@@ -11520,6 +11571,10 @@ class RingerRunner:
         log_fh: Any,
         capture: "RollingBytes",
         master_fd: int | None = None,
+        *,
+        runtime: TaskRuntime | None = None,
+        token_regex: str | None = DEFAULT_TOKEN_REGEX,
+        pre_attempt_tokens: int = 0,
     ) -> None:
         if master_fd is None and proc.stdout is None:
             return
@@ -11613,6 +11668,11 @@ class RingerRunner:
                 log_fh.write(chunk)
                 log_fh.flush()
                 capture.extend(chunk)
+                if runtime is not None:
+                    tokens = parse_token_count(capture.text(), token_regex)
+                    if tokens is not None:
+                        with self.lock:
+                            runtime.tokens = pre_attempt_tokens + tokens
         finally:
             if master_fd is not None:
                 with contextlib.suppress(OSError):
