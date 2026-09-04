@@ -10949,12 +10949,14 @@ class RingerRunner:
                     runtime.status = "retrying" if retrying else "running"
                     pre_attempt_tokens = runtime.tokens or 0
                 attempt_started = time.monotonic()
+                worker_started = time.monotonic()
                 worker = await self._run_worker(
                     runtime,
                     current_spec,
                     attempt,
                     pre_attempt_tokens=pre_attempt_tokens,
                 )
+                worker_duration_ms = int((time.monotonic() - worker_started) * 1000)
                 with self.lock:
                     runtime.worker_pid = None
                     runtime.status = "verifying"
@@ -10995,6 +10997,7 @@ class RingerRunner:
                     duration_ms,
                     attempt_started=attempt_started,
                     check_duration_ms=check_duration_ms,
+                    worker_duration_ms=worker_duration_ms,
                 )
                 self._record_attempt_outcome(verdict)
                 if verdict == "PASS":
@@ -11703,6 +11706,7 @@ class RingerRunner:
         *,
         attempt_started: float | None = None,
         check_duration_ms: int = 0,
+        worker_duration_ms: int = 0,
     ) -> None:
         attempt = runtime.attempts if runtime.attempts >= 1 else (2 if retrying else 1)
         if attempt_started is None:
@@ -11716,11 +11720,37 @@ class RingerRunner:
         )
         if runtime.task.redact_spec and check_output_excerpt:
             check_output_excerpt = "[redacted check output]"
+        engine = self.config.engines.get(runtime.task.engine)
+        resolved_model = resolved_task_model(
+            runtime.task,
+            engine,
+            runtime.last_worker_command,
+        )
+        reported_model = model_log_text(worker.reported_model) or None
+        mismatch = bool(reported_model and resolved_model and reported_model != resolved_model)
+        stamped_model = reported_model or resolved_model
+        expected_model = resolved_model if mismatch else None
+        reasoning_effort = effective_reasoning_effort_from_command(
+            runtime.last_worker_command
+        )
         attempt_record = {
             "attempt": attempt,
             "started_at": started_at.isoformat(),
             "duration_ms": duration_ms,
             "check_duration_ms": check_duration_ms,
+            "tokens": worker.tokens,
+            "worker_duration_ms": worker_duration_ms,
+            "worker_returncode": worker.returncode,
+            "worker_timed_out": worker.timed_out,
+            "worker_error": (
+                shorten(worker.error, TASK_ATTEMPT_EXCERPT_LIMIT)
+                if worker.error
+                else None
+            ),
+            "model": stamped_model,
+            "model_mismatch": mismatch,
+            "reasoning_effort": reasoning_effort,
+            "missing_expect_files": list(verify.missing_files),
             "verdict": verdict,
             "check_returncode": verify.check_returncode,
             "check_timed_out": verify.check_timed_out,
@@ -11732,16 +11762,6 @@ class RingerRunner:
             if overflow > 0:
                 # Keep attempt 1: it is the baseline needed to explain a rescue.
                 del runtime.attempt_records[1 : 1 + overflow]
-        engine = self.config.engines.get(runtime.task.engine)
-        resolved_model = resolved_task_model(
-            runtime.task,
-            engine,
-            runtime.last_worker_command,
-        )
-        reported_model = model_log_text(worker.reported_model) or None
-        mismatch = bool(reported_model and resolved_model and reported_model != resolved_model)
-        stamped_model = reported_model or resolved_model
-        expected_model = resolved_model if mismatch else None
         if mismatch:
             with contextlib.suppress(Exception):
                 append_text(
@@ -11749,9 +11769,6 @@ class RingerRunner:
                     f"[ringer.py] identity: harness reported {reported_model} "
                     f"but manifest/config expected {resolved_model}\n",
                 )
-        reasoning_effort = effective_reasoning_effort_from_command(
-            runtime.last_worker_command
-        )
         notes_parts = [
             f"retry={'true' if retrying else 'false'}",
             f"worker_returncode={worker.returncode}",
