@@ -607,6 +607,12 @@
     @media(prefers-reduced-motion:no-preference){.canvas-rescaled .canvas-axis-stage,.canvas-rescaled .canvas-track-plot{animation:canvasWindowGrow 280ms ease-out}@keyframes canvasWindowGrow{from{opacity:.58;transform:scaleX(.985);transform-origin:left center}to{opacity:1;transform:scaleX(1);transform-origin:left center}}}
     @media(prefers-reduced-motion:reduce){.canvas-now-head,.canvas-now-line{transition:none}}
     @media(max-width:980px){.canvas-axis,.canvas-lane-track,.canvas-footer{grid-template-columns:180px minmax(280px,1fr) 165px;column-gap:12px}.canvas-census{grid-template-columns:repeat(2,minmax(0,1fr))}.canvas-census-cell:nth-child(2){border-right:0}.canvas-census-cell:nth-child(-n+2){border-bottom:1px solid var(--rs-hairline)}}
+    .timeline-view{min-width:0;color:var(--rs-ink);font-family:var(--rs-grotesk)}
+    .timeline-head{align-items:center}.timeline-controls{margin-left:auto;display:flex;align-items:center;gap:8px}.timeline-controls label{color:var(--rs-label-muted);font:600 9px/1 var(--rs-mono);letter-spacing:.1em;text-transform:uppercase}.timeline-controls select{height:30px;padding:0 26px 0 9px;border:1px solid var(--rs-hairline);border-radius:5px;background:var(--rs-ground);font:600 10px/1 var(--rs-mono)}
+    .timeline-strip{padding:20px var(--rs-content-gutter) 0}.timeline-axis-head,.timeline-row{display:grid;grid-template-columns:246px minmax(0,1fr);gap:24px}.timeline-axis-head{min-height:30px;align-items:end}.timeline-axis-title{color:var(--rs-label-muted);font:600 9px/1.2 var(--rs-mono);letter-spacing:.1em;text-transform:uppercase}.timeline-axis-scale{position:relative;height:30px}.timeline-tick-label{position:absolute;bottom:8px;transform:translateX(-50%);color:var(--rs-label-muted);font:500 8px/1 var(--rs-mono);font-variant-numeric:tabular-nums;white-space:nowrap}.timeline-tick-label:first-child{transform:none}.timeline-tick-label:last-child{transform:translateX(-100%)}
+    .timeline-row{box-sizing:border-box;width:100%;min-height:58px;margin-bottom:7px;padding:10px 12px;align-items:center;border:0;border-radius:14px;background:var(--rs-row);color:inherit;text-align:left}.timeline-row:hover,.timeline-row:focus-visible{background:var(--rs-hover)}.timeline-row:focus-visible{outline:2px solid var(--rs-ink);outline-offset:2px}.timeline-row.live{background:var(--rs-surface-active)}.timeline-row.live:hover,.timeline-row.live:focus-visible{background:var(--rs-surface-hover)}.timeline-run-label{min-width:0;display:grid;grid-template-columns:10px minmax(0,1fr);gap:9px;align-items:center}.timeline-run-swatch{width:10px;height:10px;border-radius:3px;background:var(--rs-burn-1)}.timeline-run-swatch.burn-2{background:var(--rs-burn-2)}.timeline-run-swatch.burn-3{background:var(--rs-burn-3)}.timeline-run-swatch.burn-4{background:var(--rs-burn-4)}.timeline-run-name,.timeline-run-project{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.timeline-run-name{font:var(--rs-run-name)}.timeline-run-project{color:var(--rs-body-muted);font:var(--rs-meta)}
+    .timeline-axis{position:relative;min-width:0;height:38px;overflow:hidden}.timeline-gridline,.timeline-now{position:absolute;inset-block:0;width:1px;background:repeating-linear-gradient(to bottom,color-mix(in srgb,var(--rs-ink) 5.5%,transparent) 0 3.5px,transparent 3.5px 6.5px);pointer-events:none}.timeline-now{z-index:3;background:repeating-linear-gradient(to bottom,color-mix(in srgb,var(--rs-ink) 11.5%,transparent) 0 3.5px,transparent 3.5px 6.5px)}.timeline-bar{position:absolute;z-index:2;top:14px;height:10px;min-width:1px;border-radius:5px;background:var(--rs-waiting)}.timeline-bar.pass{background:var(--rs-pass)}.timeline-bar.fail{background:var(--rs-fail)}.timeline-bar.working,.timeline-bar.retry{background:var(--rs-working)}.timeline-missing{position:relative;z-index:2;display:inline-block;margin-top:12px;color:var(--rs-body-muted);font:600 9px/1.3 var(--rs-mono)}.timeline-census{margin:14px var(--rs-content-gutter) 22px;padding:12px 14px;border-radius:14px;background:var(--rs-row);color:var(--rs-body-muted);font:600 10px/1.4 var(--rs-mono)}.timeline-census b{color:var(--rs-ink)}.timeline-empty{margin:20px var(--rs-content-gutter);padding:18px;border-radius:14px;background:var(--rs-row);color:var(--rs-body-muted);font:400 11px/1.5 var(--rs-mono)}
+    @media(max-width:900px){.timeline-axis-head,.timeline-row{grid-template-columns:180px minmax(360px,1fr)}.timeline-strip{overflow-x:auto}}
   </style>
 </head>
 <body>
@@ -614,7 +620,8 @@
   <aside class="ringside-rail" aria-label="Ringside navigation">
     <div class="rail-header"><span id="rail-live" class="rail-live" aria-hidden="true"></span><span class="rail-title">Ringside</span><span id="rail-build" class="rail-build">unknown</span></div>
     <nav class="rail-nav" aria-label="Dashboard views">
-      <button class="rail-nav-item" type="button" data-shell-view="runs" aria-current="page"><span>Runs</span><span id="rail-runs-count" class="rail-count">0</span></button>
+      <button class="rail-nav-item" type="button" data-shell-view="timeline" aria-current="page"><span>Timeline</span></button>
+      <button class="rail-nav-item" type="button" data-shell-view="runs"><span>Runs</span><span id="rail-runs-count" class="rail-count">0</span></button>
       <button class="rail-nav-item" type="button" data-shell-view="lanes"><span>Lanes</span><span id="rail-lanes-count" class="rail-count">0</span></button>
       <button class="rail-nav-item" type="button" data-shell-view="canvas"><span>Canvas</span></button>
       <button class="rail-nav-item" type="button" data-shell-view="reviews"><span>Reviews</span><span id="rail-reviews-count" class="rail-count rail-review-badge">0</span></button>
@@ -642,7 +649,8 @@
     <div id="rail-foot" class="rail-foot" aria-live="polite">0 swarms live</div>
   </aside>
   <div class="ringside-content">
-    <section id="runs-overview" class="runs-overview shell-view" data-shell-panel="runs" aria-label="Runs overview" aria-live="polite"></section>
+    <section id="timeline-view" class="timeline-view shell-view" data-shell-panel="timeline" aria-label="Wall-clock timeline" aria-live="polite"></section>
+    <section id="runs-overview" class="runs-overview shell-view" data-shell-panel="runs" aria-label="Runs overview" aria-live="polite" hidden></section>
     <section id="lanes-view" class="shell-view" data-shell-panel="lanes" aria-label="Lane wall" hidden></section>
     <section id="canvas-view" class="time-canvas-view shell-view" data-shell-panel="canvas" data-token-max="1" data-samples="0" aria-label="Time Canvas" hidden></section>
     <section id="reviews-view" class="shell-view" data-shell-panel="reviews" aria-label="Pilot reviews" hidden></section>
@@ -731,7 +739,7 @@
     }
     buildThemePicker();
     applyThemeChoice();
-    const SHELL_VIEWS = ["runs", "lanes", "canvas", "reviews", "artifacts", "models"];
+    const SHELL_VIEWS = ["timeline", "runs", "lanes", "canvas", "reviews", "artifacts", "models"];
     function normalizeShellView(value) {
       const view = String(value || "").trim().toLowerCase();
       return SHELL_VIEWS.includes(view) ? view : "";
@@ -787,7 +795,8 @@
       shellView: migratedShellView
         || normalizeShellView(query.get("shell"))
         || normalizeShellView(localStorage.getItem(SHELL_VIEW_KEY))
-        || "runs",
+        || "timeline",
+      timelineWindowMinutes: 60,
       panelOpen: false,
       selectedRunId: "",
       selectedLaneKey: "",
@@ -803,6 +812,7 @@
     Object.assign(state, {models: null, modelsError: "", modelsFetched: false, modelsFetching: false, modelsTaskType: "(all)", artifactLoading: false, artifactRefreshKey: "", updateDismissed: false});
 
     const els = {
+      timelineView: document.getElementById("timeline-view"),
       runsOverview: document.getElementById("runs-overview"),
       lanesView: document.getElementById("lanes-view"),
       canvasView: document.getElementById("canvas-view"),
@@ -1773,6 +1783,95 @@
       morphChildren(els.lanesView, staging);
     }
 
+    function renderTimelineView() {
+      const staging = document.createElement("div");
+      appendSystemStates(staging);
+      const now = Date.now();
+      const windowMs = state.timelineWindowMinutes * 60000;
+      const windowStart = now - windowMs;
+      const windows = [15, 30, 60, 120, 360, 720, 1440];
+      const clockLabel = stamp => new Date(stamp).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+      const timedRecords = task => (Array.isArray(task?.attempt_records) ? task.attempt_records : []).map((record, index) => {
+        const started = parseTime(record?.started_at);
+        const rawDuration = record?.duration_ms === null || record?.duration_ms === undefined || record?.duration_ms === "" ? NaN : Number(record.duration_ms);
+        const duration = Number.isFinite(rawDuration) && rawDuration >= 0 ? rawDuration : null;
+        const attempt = Math.max(1, Math.floor(numberOrZero(record?.attempt)) || index + 1);
+        return {record, started, duration, attempt};
+      });
+      const runRange = run => {
+        const records = run.tasks.flatMap(timedRecords).filter(item => item.started && item.duration !== null);
+        const starts = records.map(item => item.started);
+        const ends = records.map(item => item.started + item.duration);
+        const fallbackStart = parseTime(run.started_at);
+        const fallbackEnd = parseTime(run.finished_at) || (fallbackStart ? fallbackStart + numberOrZero(run.elapsed_s) * 1000 : 0);
+        return {
+          start: starts.length ? Math.min(...starts) : fallbackStart,
+          end: run.state === "live" ? now : (ends.length ? Math.max(...ends) : fallbackEnd)
+        };
+      };
+      const runs = state.runs.filter(run => {
+        const range = runRange(run);
+        return range.start <= now && range.end >= windowStart;
+      }).sort((left, right) => {
+        const liveOrder = (left.state === "live" ? 0 : 1) - (right.state === "live" ? 0 : 1);
+        if (liveOrder) return liveOrder;
+        return runRange(right).start - runRange(left).start;
+      });
+
+      const head = document.createElement("header"); head.className = "view-title-row timeline-head"; head.dataset.key = "timeline-head";
+      const title = document.createElement("h1"); title.textContent = "Wall-clock timeline";
+      const meta = document.createElement("p"); meta.className = "view-meta"; meta.textContent = "Recorded attempts across runs";
+      const controls = document.createElement("div"); controls.className = "timeline-controls";
+      const label = document.createElement("label"); label.htmlFor = "timeline-window"; label.textContent = "Window";
+      const select = document.createElement("select"); select.id = "timeline-window"; select.setAttribute("aria-label", "Timeline window");
+      windows.forEach(minutes => { const option = document.createElement("option"); option.value = String(minutes); option.textContent = minutes < 60 ? `${minutes}m` : `${minutes / 60}h`; option.selected = minutes === state.timelineWindowMinutes; select.appendChild(option); });
+      select.addEventListener("change", () => { state.timelineWindowMinutes = Number(select.value) || 60; renderTimelineView(); });
+      controls.append(label, select); head.append(title, meta, controls); staging.appendChild(head);
+
+      if (!runs.length) {
+        const empty = document.createElement("p"); empty.className = "timeline-empty"; empty.textContent = `No runs overlap the last ${state.timelineWindowMinutes < 60 ? `${state.timelineWindowMinutes} minutes` : `${state.timelineWindowMinutes / 60} hours`}.`;
+        staging.appendChild(empty); morphChildren(els.timelineView, staging); return;
+      }
+
+      const strip = document.createElement("section"); strip.className = "timeline-strip"; strip.dataset.key = "timeline-strip";
+      const axisHead = document.createElement("div"); axisHead.className = "timeline-axis-head";
+      const axisTitle = document.createElement("span"); axisTitle.className = "timeline-axis-title"; axisTitle.textContent = "Runs · newest first";
+      const scale = document.createElement("div"); scale.className = "timeline-axis-scale"; scale.setAttribute("aria-hidden", "true");
+      const tickCount = 6;
+      for (let index = 0; index <= tickCount; index += 1) { const stamp = windowStart + (windowMs * index / tickCount); const tick = document.createElement("span"); tick.className = "timeline-tick-label"; tick.style.left = `${index / tickCount * 100}%`; tick.textContent = index === tickCount ? "NOW" : clockLabel(stamp); scale.appendChild(tick); }
+      axisHead.append(axisTitle, scale); strip.appendChild(axisHead);
+
+      const counts = {lanes:0, pass:0, fail:0, working:0};
+      runs.forEach((run, runIndex) => {
+        const row = document.createElement("button"); row.type = "button"; row.className = `timeline-row${run.state === "live" ? " live" : ""}`; row.dataset.key = `timeline:${run.__id}`; row.dataset.timelineRow = ""; row.dataset.runId = run.__id;
+        row.setAttribute("aria-label", `Open ${projectInfo(run).name}, ${run.run_name}`); row.addEventListener("click", event => openRunPanel(run.__id, event.currentTarget));
+        const identity = document.createElement("span"); identity.className = "timeline-run-label";
+        const swatch = document.createElement("span"); swatch.className = `timeline-run-swatch burn-${Math.min(4, runIndex + 1)}`; swatch.setAttribute("aria-hidden", "true");
+        const names = document.createElement("span"); const name = document.createElement("span"); name.className = "timeline-run-name"; name.textContent = run.run_name; const project = document.createElement("span"); project.className = "timeline-run-project"; project.textContent = `${projectInfo(run).name} · ${run.state === "live" ? "live" : relativeAgo(run.finished_at || run.started_at)}`; names.append(name, project); identity.append(swatch, names);
+        const axis = document.createElement("span"); axis.className = "timeline-axis"; axis.dataset.timelineAxis = "";
+        for (let index = 0; index <= tickCount; index += 1) { const line = document.createElement("span"); line.className = "timeline-gridline"; line.style.left = `${index / tickCount * 100}%`; line.setAttribute("aria-hidden", "true"); axis.appendChild(line); }
+        const nowLine = document.createElement("span"); nowLine.className = "timeline-now"; nowLine.style.left = "calc(100% - 1px)"; nowLine.setAttribute("aria-hidden", "true"); axis.appendChild(nowLine);
+        run.tasks.forEach((task, taskIndex) => {
+          counts.lanes += 1; const laneKind = taskKind(task); if (laneKind === "pass") counts.pass += 1; else if (laneKind === "fail") counts.fail += 1; else if (laneKind === "working" || laneKind === "retry") counts.working += 1;
+          const key = taskKey(task, taskIndex); const records = timedRecords(task); const complete = records.filter((item, recordIndex) => item.started && (item.duration !== null || (taskIsRunning(task) && recordIndex === records.length - 1)));
+          if (!complete.length) { const missing = document.createElement("span"); missing.className = "timeline-missing"; missing.dataset.timelineMissing = ""; missing.dataset.lane = key; missing.textContent = `${key}: timing was not recorded`; axis.appendChild(missing); return; }
+          complete.forEach((item, recordIndex) => {
+            const isLiveAttempt = taskIsRunning(task) && recordIndex === complete.length - 1;
+            const duration = isLiveAttempt ? Math.max(0, now - item.started) : item.duration;
+            const end = item.started + duration; if (end < windowStart || item.started > now) return;
+            const kind = isLiveAttempt ? "working" : attemptVerdict(item.record).kind;
+            const status = isLiveAttempt ? taskStateText("working") : attemptVerdict(item.record).label.toLowerCase();
+            const bar = document.createElement("span"); bar.className = `timeline-bar ${kind}`; bar.dataset.timelineBar = ""; bar.dataset.lane = key; bar.dataset.attempt = String(item.attempt); bar.dataset.startMs = String(item.started); bar.dataset.durationMs = String(duration);
+            bar.style.left = `${(item.started - windowStart) / windowMs * 100}%`; bar.style.width = `${duration / windowMs * 100}%`; bar.setAttribute("role", "img"); bar.setAttribute("aria-label", `${key}, attempt ${item.attempt}, ${status}`); bar.title = `${key} · attempt ${item.attempt} · ${status} · ${formatDuration(duration / 1000)}`; axis.appendChild(bar);
+          });
+        });
+        row.append(identity, axis); strip.appendChild(row);
+      });
+      staging.appendChild(strip);
+      const census = document.createElement("p"); census.className = "timeline-census"; census.dataset.key = "timeline-census"; census.append(Object.assign(document.createElement("b"), {textContent:String(runs.length)}), document.createTextNode(` runs · ${counts.lanes} lanes · ${counts.pass} passed · ${counts.fail} failed · ${counts.working} working in this window`)); staging.appendChild(census);
+      preserveScroll(() => morphChildren(els.timelineView, staging));
+    }
+
     function renderCanvasView() {
       const staging = document.createElement("div");
       appendSystemStates(staging);
@@ -2180,8 +2279,8 @@
       state.shellView=view;
       try { localStorage.setItem(SHELL_VIEW_KEY, view); } catch (_) { /* private mode */ }
       replaceUrlState();
-      document.querySelectorAll("[data-shell-view]").forEach(button=>button.setAttribute("aria-current",button.dataset.shellView===view?"page":"false")); els.runsOverview.hidden=view!=="runs"; els.lanesView.hidden=view!=="lanes"; els.canvasView.hidden=view!=="canvas"; els.reviewsView.hidden=view!=="reviews"; els.artifactsView.hidden=view!=="artifacts"; els.modelsView.hidden=view!=="models";
-      if(view==="lanes") renderLanesView(); if(view==="canvas") renderCanvasView(); if(view==="reviews") renderReviewsView(); if(view==="artifacts")renderArtifactsView(); if(view==="models"){renderModelsView();fetchModels();}
+      document.querySelectorAll("[data-shell-view]").forEach(button=>button.setAttribute("aria-current",button.dataset.shellView===view?"page":"false")); els.timelineView.hidden=view!=="timeline"; els.runsOverview.hidden=view!=="runs"; els.lanesView.hidden=view!=="lanes"; els.canvasView.hidden=view!=="canvas"; els.reviewsView.hidden=view!=="reviews"; els.artifactsView.hidden=view!=="artifacts"; els.modelsView.hidden=view!=="models";
+      if(view==="timeline") renderTimelineView(); if(view==="lanes") renderLanesView(); if(view==="canvas") renderCanvasView(); if(view==="reviews") renderReviewsView(); if(view==="artifacts")renderArtifactsView(); if(view==="models"){renderModelsView();fetchModels();}
     }
 
     function closeRunPanel() {
@@ -2255,6 +2354,7 @@
 
     function renderTop() {
       renderRunsOverview();
+      if (state.shellView === "timeline") renderTimelineView();
       if (state.shellView === "lanes") renderLanesView();
       if (state.shellView === "canvas") renderCanvasView();
       if (state.shellView === "reviews") renderReviewsView();
