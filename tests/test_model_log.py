@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from ringer import (  # noqa: E402
+    TASK_ATTEMPT_EXCERPT_LIMIT,
     AppConfig,
     ArtifactConfig,
     EngineConfig,
@@ -225,7 +226,10 @@ class ModelLogTests(unittest.TestCase):
             self.assertEqual(20, len(records))
             self.assertEqual(1, records[0]["attempt"])
             self.assertEqual(25, records[-1]["attempt"])
-            self.assertLessEqual(len(records[-1]["check_output_excerpt"]), 500)
+            self.assertLessEqual(
+                len(records[-1]["check_output_excerpt"]),
+                TASK_ATTEMPT_EXCERPT_LIMIT,
+            )
 
     def test_redacted_task_redacts_attempt_record_excerpt(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

@@ -88,7 +88,7 @@ ARTIFACT_LIBRARY_MAX_VERSIONS = 20
 DELIVERABLE_MAX_BYTES = 20 * 1024 * 1024
 WORKER_LOG_TAIL_BYTES = 64 * 1024
 TASK_ATTEMPT_RECORD_LIMIT = 20
-TASK_ATTEMPT_EXCERPT_LIMIT = 500
+TASK_ATTEMPT_EXCERPT_LIMIT = 1200
 TASK_REPORT_FILENAMES = ("report.md", "report.html")
 TEXT_DELIVERABLE_SUFFIXES = {".md", ".txt", ".log"}
 IMAGE_DELIVERABLE_SUFFIXES = {".avif", ".gif", ".jpeg", ".jpg", ".png", ".svg", ".webp"}
@@ -3137,7 +3137,7 @@ class StateWriter:
                     "check": runtime.task.check,
                     "check_returncode": runtime.last_check_returncode,
                     "check_timed_out": runtime.last_check_timed_out,
-                    "check_output_tail": shorten(runtime.last_check_output, 4000),
+                    "check_output_tail": clip_output(runtime.last_check_output, 4000),
                     "attempt_records": [dict(record) for record in runtime.attempt_records],
                     "setup_error": runtime.setup_error,
                     "timeout_s": runtime.task.timeout_s,
@@ -10095,7 +10095,7 @@ class Verifier:
             ok=ok,
             check_returncode=check_returncode,
             check_timed_out=check_timed_out,
-            raw_output_excerpt=output[:2000],
+            raw_output_excerpt=clip_output(output, 4000),
             missing_files=missing_files,
             raw_output=output,
         )
@@ -11016,7 +11016,7 @@ class RingerRunner:
                         ok=False,
                         check_returncode=1,
                         check_timed_out=False,
-                        raw_output_excerpt="\n".join(violations)[:2000],
+                        raw_output_excerpt=clip_output("\n".join(violations), 4000),
                     )
                     check_duration_ms = 0
                 else:
@@ -11756,7 +11756,7 @@ class RingerRunner:
         started_at = self.started_at + timedelta(
             seconds=attempt_started - self.started_at_monotonic
         )
-        check_output_excerpt = shorten(
+        check_output_excerpt = clip_output(
             verify.raw_output_excerpt,
             TASK_ATTEMPT_EXCERPT_LIMIT,
         )
@@ -11907,7 +11907,7 @@ class RingerRunner:
                 "verdict": verdict,
                 "duration_ms": duration_ms,
                 "worker_tokens": worker.tokens,
-                "check_excerpt": verify.raw_output_excerpt[:500],
+                "check_excerpt": clip_output(verify.raw_output_excerpt, 500),
             }
             path = (
                 steering_dir
@@ -12642,6 +12642,31 @@ def shorten(value: str, limit: int) -> str:
     if len(clean) <= limit:
         return clean
     return clean[: max(0, limit - 3)] + "..."
+
+
+def clip_output(value: str, limit: int, head_ratio: float = 0.2) -> str:
+    clean = value.replace("\r\n", "\n").replace("\r", "\n")
+    clean = "\n".join(line.rstrip() for line in clean.split("\n"))
+    if len(clean) <= limit:
+        return clean
+    if limit <= 0:
+        return ""
+
+    ratio = min(1.0, max(0.0, head_ratio))
+    dropped = len(clean)
+    while True:
+        marker = f"\n... {dropped:,} characters elided ...\n"
+        fragment_budget = limit - len(marker)
+        if fragment_budget < 0:
+            return clean[-limit:]
+        head_length = int(fragment_budget * ratio)
+        tail_length = fragment_budget - head_length
+        new_dropped = len(clean) - head_length - tail_length
+        if new_dropped == dropped:
+            break
+        dropped = new_dropped
+
+    return clean[:head_length] + marker + clean[len(clean) - tail_length :]
 
 
 def check_crashed(returncode: int | None, output: str) -> bool:
