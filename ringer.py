@@ -65,6 +65,8 @@ CHECK_TIMEOUT_S = 60
 # changes and changes again between two flushes is never written at all. At 1.0s
 # roughly half of observed worker output never reached run state.
 STATE_FLUSH_INTERVAL_S = 0.25
+TOKEN_SAMPLE_INTERVAL_S = 2.0
+TOKEN_SAMPLE_LIMIT = 600
 RERUN_CONTEXT_LIMIT = 2000
 DEFAULT_DASHBOARD_PORT_BASE = 8787
 DEFAULT_HUD_PORT = 8700
@@ -3023,6 +3025,7 @@ class StateWriter:
         self.identity = identity
         self.engines = engines
         self.started_at = started_at
+        self.started_at_monotonic = time.monotonic()
         self.runtimes = runtimes
         self.lock = lock
         self.max_parallel = max_parallel
@@ -3056,6 +3059,8 @@ class StateWriter:
         self.version_recorded = False
         self._last_library_state: str | None = None
         self._last_library_write_monotonic = 0.0
+        self.token_samples: list[dict[str, Any]] = []
+        self._last_token_sample_monotonic: float | None = None
 
     def start(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -3174,6 +3179,7 @@ class StateWriter:
                 "fail": fail_count,
                 "tokens": sum(reported_tokens) if reported_tokens else None,
             }
+            self._sample_tokens(now, totals["tokens"])
             state: dict[str, Any] = {
                 "run_id": self.run_id,
                 "run_name": self.run_name,
@@ -3195,6 +3201,7 @@ class StateWriter:
                 "pass": totals["pass"],
                 "fail": totals["fail"],
                 "tokens": totals["tokens"],
+                "token_samples": [dict(sample) for sample in self.token_samples],
                 "artifact_path": str(self.artifact_path) if self.artifact.enabled else None,
                 "live_path": str(self.live_path) if self.artifact.enabled else None,
                 "report_path": str(self.report_path) if self.artifact.enabled else None,
@@ -3205,6 +3212,35 @@ class StateWriter:
             if self.pilot is not None:
                 state["pilot"] = dict(self.pilot)
             return state
+
+    def _sample_tokens(self, now: float, total: int | None) -> None:
+        if total is None:
+            return
+        last = self.token_samples[-1] if self.token_samples else None
+        if last is not None and total <= int(last["tokens"]):
+            return
+        started_at = self.started_at
+        if started_at.tzinfo is None:
+            started_at = started_at.replace(tzinfo=timezone.utc)
+        wall = started_at.astimezone(timezone.utc) + timedelta(
+            seconds=now - self.started_at_monotonic
+        )
+        if (
+            self._last_token_sample_monotonic is not None
+            and now - self._last_token_sample_monotonic < TOKEN_SAMPLE_INTERVAL_S
+        ):
+            if self.finished:
+                self.token_samples[-1] = {"at": wall.isoformat(), "tokens": total}
+                self._last_token_sample_monotonic = now
+            return
+        self.token_samples.append({"at": wall.isoformat(), "tokens": total})
+        self._last_token_sample_monotonic = now
+        if len(self.token_samples) > TOKEN_SAMPLE_LIMIT:
+            self.token_samples = [
+                self.token_samples[0],
+                *self.token_samples[1:-1:2],
+                self.token_samples[-1],
+            ]
 
     def build_summary(self) -> dict[str, int | None]:
         with self.lock:
