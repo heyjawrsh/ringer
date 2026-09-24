@@ -9028,8 +9028,8 @@ def estimated_task_cost(row: dict[str, Any], catalog_model: dict[str, Any] | Non
         return 0.0
     try:
         tokens = float(median_tokens)
-        prompt_per_m = float(catalog_model.get("prompt_per_m") or 0)
-        completion_per_m = float(catalog_model.get("completion_per_m") or 0)
+        prompt_per_m = float(catalog_model.get("prompt_per_m"))
+        completion_per_m = float(catalog_model.get("completion_per_m"))
     except (TypeError, ValueError):
         return None
     return tokens * ((prompt_per_m + completion_per_m) / 2.0) / 1_000_000
@@ -9039,8 +9039,6 @@ def model_sort_cost(row: dict[str, Any], catalog_model: dict[str, Any] | None) -
     cost = estimated_task_cost(row, catalog_model)
     if cost is not None:
         return cost
-    if row.get("median_tokens") is None:
-        return 0.0
     return float("inf")
 
 
