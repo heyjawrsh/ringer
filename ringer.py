@@ -11638,12 +11638,25 @@ class RingerRunner:
             return
         terminal_state = "normal"
         previous_cr = False
+        utf8_pending = 0
 
         def clean_terminal_bytes(chunk: bytes) -> bytes:
-            nonlocal terminal_state, previous_cr
+            nonlocal terminal_state, previous_cr, utf8_pending
             cleaned = bytearray()
             for byte in chunk:
                 if terminal_state == "normal":
+                    if utf8_pending:
+                        if 0x80 <= byte <= 0xBF:
+                            cleaned.append(byte)
+                            utf8_pending -= 1
+                            previous_cr = False
+                            continue
+                        utf8_pending = 0
+                    if 0xC2 <= byte <= 0xF4:
+                        utf8_pending = 1 if byte <= 0xDF else (2 if byte <= 0xEF else 3)
+                        cleaned.append(byte)
+                        previous_cr = False
+                        continue
                     if byte == 0x1B:
                         terminal_state = "escape"
                     elif byte == 0x9B:
