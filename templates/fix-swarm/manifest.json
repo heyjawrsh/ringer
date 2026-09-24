@@ -13,7 +13,7 @@
       "known_bad": "printf 'invalid fix summary\\n' > fix-summary.md",
       "expect_files": [],
       "timeout_s": 1800,
-      "verified": "the validator ran the requested build or test command, exported a non-empty patch, and confirmed the patch only changes declared owned files"
+      "verified": "the validator ran the requested build or test command, exported a non-empty canonical patch plus an attempt-specific patch archive, and confirmed the patch only changes declared owned files"
     }
   ]
 }

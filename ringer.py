@@ -763,6 +763,30 @@ class EngineConfig:
 
 
 @dataclass(frozen=True)
+class EngineBinDiagnostic:
+    engine: str
+    config_key: str
+    value: str
+    path_value: str | None
+    path_was_set: bool
+    default_search_path: str = field(default_factory=lambda: os.defpath)
+
+    @property
+    def searched_path_display(self) -> str:
+        if not self.path_was_set:
+            return f"<unset> (shutil default: {self.default_search_path!r})"
+        if self.path_value == "":
+            return "<empty>"
+        return repr(self.path_value)
+
+    def warning(self) -> str:
+        return (
+            f"ringer.py: warning: {self.config_key} = {self.value!r} is not resolvable; "
+            f"searched PATH: {self.searched_path_display}"
+        )
+
+
+@dataclass(frozen=True)
 class PostgresEvalConfig:
     env_file: Path
 
@@ -1063,6 +1087,7 @@ class AppConfig:
     artifact: ArtifactConfig
     steering: SteeringConfig = field(default_factory=SteeringConfig)
     update: UpdateConfig = field(default_factory=UpdateConfig)
+    engine_bin_diagnostics: tuple[EngineBinDiagnostic, ...] = ()
 
     @classmethod
     def load(cls, path: Path | None = None) -> "AppConfig":
@@ -1087,7 +1112,12 @@ class AppConfig:
         hud_app_path = optional_path(data.get("hud_app_path"))
         allow_full_access = bool(data.get("allow_full_access", False))
         eval_config = load_eval_config(data.get("eval"), state_dir)
-        engines = load_engines(data.get("engines"))
+        raw_engines = data.get("engines")
+        engines = load_engines(raw_engines)
+        engine_bin_diagnostics = collect_engine_bin_diagnostics(
+            engines,
+            engine_names=configured_engine_names(raw_engines),
+        )
         artifact_config = load_artifact_config(data.get("artifact"), state_dir)
         update_config = load_update_config(data.get("update"))
         try:
@@ -1109,6 +1139,7 @@ class AppConfig:
             artifact=artifact_config,
             steering=steering_config,
             update=update_config,
+            engine_bin_diagnostics=engine_bin_diagnostics,
         )
 
 
@@ -1559,6 +1590,71 @@ def load_hud_port(raw: Any) -> int:
     if port <= 0:
         raise ValueError("hud.port must be positive")
     return port
+
+
+def configured_engine_names(raw: Any) -> tuple[str, ...]:
+    if not isinstance(raw, dict):
+        return ()
+    names: list[str] = []
+    for name in raw:
+        clean = str(name).strip()
+        if clean:
+            names.append(clean)
+    return tuple(names)
+
+
+def has_path_separator(value: str) -> bool:
+    separators = tuple(sep for sep in (os.sep, os.altsep) if sep)
+    return any(sep in value for sep in separators)
+
+
+def collect_engine_bin_diagnostics(
+    engines: dict[str, EngineConfig],
+    *,
+    engine_names: Iterable[str] | None = None,
+    path_value: str | None = None,
+    path_was_set: bool | None = None,
+) -> tuple[EngineBinDiagnostic, ...]:
+    if path_was_set is None:
+        path_was_set = "PATH" in os.environ
+    if path_value is None and path_was_set:
+        path_value = os.environ.get("PATH", "")
+    search_path = path_value if path_was_set else os.defpath
+    names = tuple(engine_names) if engine_names is not None else tuple(engines)
+
+    diagnostics: list[EngineBinDiagnostic] = []
+    for name in names:
+        engine = engines.get(name)
+        if engine is None:
+            continue
+        bin_value = engine.bin
+        if has_path_separator(bin_value):
+            continue
+        if shutil.which(bin_value, path=search_path) is not None:
+            continue
+        diagnostics.append(
+            EngineBinDiagnostic(
+                engine=name,
+                config_key=f"engines.{name}.bin",
+                value=bin_value,
+                path_value=path_value,
+                path_was_set=path_was_set,
+            )
+        )
+    return tuple(diagnostics)
+
+
+def print_engine_bin_diagnostics(config: AppConfig) -> None:
+    for diagnostic in config.engine_bin_diagnostics:
+        print(diagnostic.warning(), file=sys.stderr)
+
+
+def print_engine_bin_diagnostics_if_config_loads(path: Path | None) -> None:
+    try:
+        config = AppConfig.load(path)
+    except Exception:
+        return
+    print_engine_bin_diagnostics(config)
 
 
 def load_engines(raw: Any) -> dict[str, EngineConfig]:
@@ -13950,25 +14046,25 @@ def create_demo_manifest() -> Path:
         "tasks": [
             {
                 "key": "alpha",
-                "spec": "Create alpha.txt in the current working directory containing exactly: alpha ready\nDo not add punctuation. Do not write any other files.",
-                "check": "test \"$(cat alpha.txt 2>/dev/null)\" = \"alpha ready\" || { echo 'FAIL: alpha.txt missing or content is not alpha ready'; exit 1; }",
-                "verified": "alpha.txt exists and contains exactly the expected text",
+                "spec": "Create alpha.txt in the current working directory containing exactly one line: alpha ready\nEnd the file with exactly one newline. Do not add punctuation. Do not write any other files.",
+                "check": "printf 'alpha ready\\n' | diff -u - alpha.txt || { echo 'FAIL: alpha.txt must contain exactly alpha ready followed by one newline'; exit 1; }",
+                "verified": "alpha.txt exists and contains exactly alpha ready followed by one newline",
                 "expect_files": ["alpha.txt"],
                 "task_type": "probe",
             },
             {
                 "key": "bravo",
-                "spec": "Create bravo.txt in the current working directory containing exactly: bravo ready\nDo not add punctuation. Do not write any other files.",
-                "check": "test \"$(cat bravo.txt 2>/dev/null)\" = \"bravo ready\" || { echo 'FAIL: bravo.txt missing or content is not bravo ready'; exit 1; }",
-                "verified": "bravo.txt exists and contains exactly the expected text",
+                "spec": "Create bravo.txt in the current working directory containing exactly one line: bravo ready\nEnd the file with exactly one newline. Do not add punctuation. Do not write any other files.",
+                "check": "printf 'bravo ready\\n' | diff -u - bravo.txt || { echo 'FAIL: bravo.txt must contain exactly bravo ready followed by one newline'; exit 1; }",
+                "verified": "bravo.txt exists and contains exactly bravo ready followed by one newline",
                 "expect_files": ["bravo.txt"],
                 "task_type": "probe",
             },
             {
                 "key": "charlie",
-                "spec": "Create charlie.txt in the current working directory containing exactly: charlie ready\nDo not add punctuation. Do not write any other files.",
-                "check": "test \"$(cat charlie.txt 2>/dev/null)\" = \"charlie ready\" || { echo 'FAIL: charlie.txt missing or content is not charlie ready'; exit 1; }",
-                "verified": "charlie.txt exists and contains exactly the expected text",
+                "spec": "Create charlie.txt in the current working directory containing exactly one line: charlie ready\nEnd the file with exactly one newline. Do not add punctuation. Do not write any other files.",
+                "check": "printf 'charlie ready\\n' | diff -u - charlie.txt || { echo 'FAIL: charlie.txt must contain exactly charlie ready followed by one newline'; exit 1; }",
+                "verified": "charlie.txt exists and contains exactly charlie ready followed by one newline",
                 "expect_files": ["charlie.txt"],
                 "task_type": "probe",
             },
@@ -15231,6 +15327,7 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "lint":
             manifest = Manifest.from_path(args.manifest)
+            print_engine_bin_diagnostics_if_config_loads(args.config)
             findings = lint_manifest(
                 manifest,
                 allow_noncanonical_route=args.allow_noncanonical_route,
@@ -15250,6 +15347,7 @@ def main(argv: list[str] | None = None) -> int:
             )
 
         config = AppConfig.load(args.config)
+        print_engine_bin_diagnostics(config)
         if args.command == "preflight":
             return asyncio.run(
                 run_preflight_command(
