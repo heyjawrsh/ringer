@@ -7477,6 +7477,7 @@ MODEL_SCOREBOARD_COLUMNS = (
     "First try",
     "Pass",
     "Tokens (median)",
+    "Cost / task",
     "Speed (median)",
     "Last used",
     "Notes",
@@ -7851,6 +7852,10 @@ def enrich_model_groups_with_identity(
         item["display_bucket_id"] = "bucket-" + base64.urlsafe_b64encode(
             item["bucket_id"].encode("utf-8")
         ).decode("ascii").rstrip("=")
+        item["task_cost_label"] = model_task_cost_label(
+            item,
+            catalog_model_for_route(str(item.get("model") or ""), catalog_by_id),
+        )
         enriched.append(item)
     return enriched
 
@@ -8853,16 +8858,25 @@ def catalog_models_by_id(catalog_models: list[dict[str, Any]]) -> dict[str, dict
     return by_id
 
 
+def catalog_model_for_route(
+    model_key: str,
+    catalog_by_id: dict[str, dict[str, Any]],
+) -> dict[str, Any] | None:
+    """Resolve only OpenRouter routes against the OpenRouter catalog."""
+    if not model_key.startswith("openrouter/"):
+        return None
+    catalog_id = model_key.removeprefix("openrouter/")
+    return catalog_by_id.get(catalog_id) or catalog_by_id.get(model_key)
+
+
 def catalog_identity_fields(
     model_key: str,
     catalog_by_id: dict[str, dict[str, Any]],
 ) -> dict[str, str]:
-    if not model_key.startswith("openrouter/"):
-        return {}
-    catalog_id = model_key.removeprefix("openrouter/")
-    model = catalog_by_id.get(catalog_id) or catalog_by_id.get(model_key)
+    model = catalog_model_for_route(model_key, catalog_by_id)
     if model is None:
         return {}
+    catalog_id = model_key.removeprefix("openrouter/")
     name = model_log_text(model.get("name"))
     if not name or name in {catalog_id, model_key}:
         return {}
@@ -9053,7 +9067,9 @@ def order_model_scoreboard_rows(
             model_scoreboard_tier_rank(str(row.get("tier") or "")),
             -float(row.get("first_try_pass_rate") or 0),
             -float(row.get("pass_rate") or 0),
-            model_sort_cost(row, catalog_by_id.get(str(row.get("model") or ""))),
+            model_sort_cost(
+                row, catalog_model_for_route(str(row.get("model") or ""), catalog_by_id)
+            ),
             str(row.get("engine") or ""),
             str(row.get("model") or ""),
             str(row.get("reasoning_effort") or ""),
@@ -9746,12 +9762,13 @@ def render_model_table_pair(
       <td class="num rate-cell">{rate_cell_html(row.get("first_try_pass_rate"))}</td>
       <td class="num rate-cell">{rate_cell_html(row.get("pass_rate"))}</td>
       <td class="num">{html_escape(fmt_int(row.get("median_tokens"))) if row.get("median_tokens") is not None else ""}</td>
+      <td class="num">{html_escape(str(row.get("task_cost_label") or ""))}</td>
       <td>{html_escape(fmt_scoreboard_duration(row.get("median_duration_ms")))}</td>
       <td>{html_escape(humanized_log_date(row.get("last_seen")))}</td>
       <td class="notes-cell" title="{html_escape(notes_title)}">{html_escape(latest_note)}</td>
     </tr>
     <tr class="detail-row">
-      <td colspan="12">
+      <td colspan="13">
         <details class="model-detail">
           <summary>details for {html_escape(model_display)}</summary>
           <div class="detail-content">
@@ -9791,6 +9808,12 @@ def render_model_scoreboard_html(
     generated = generated_at or datetime.now().astimezone().replace(microsecond=0).isoformat()
     rendered_rows: list[str] = []
     for row in ordered:
+        if "task_cost_label" not in row:
+            row = dict(row)
+            row["task_cost_label"] = model_task_cost_label(
+                row,
+                catalog_model_for_route(str(row.get("model") or ""), catalog_by_id),
+            )
         rendered_rows.append(
             render_model_table_pair(
                 row,
@@ -9800,7 +9823,7 @@ def render_model_scoreboard_html(
         )
     table_rows = "".join(rendered_rows)
     if not table_rows:
-        table_rows = '<tr><td colspan="12" class="muted">No local model evidence matched these filters.</td></tr>'
+        table_rows = '<tr><td colspan="13" class="muted">No local model evidence matched these filters.</td></tr>'
     unregistered_slugs = sorted(
         {str(row.get("model") or "") for row in ordered if row.get("unregistered") and row.get("model")}
     )
@@ -9861,6 +9884,7 @@ def render_model_scoreboard_html(
             <th class="num">First try</th>
             <th class="num">Pass</th>
             <th class="num">Tokens (median)</th>
+            <th class="num">Cost / task</th>
             <th>Speed (median)</th>
             <th>Last used</th>
             <th>Notes</th>
@@ -9924,7 +9948,7 @@ def write_model_scoreboard_html(
 
 def print_model_log_table(path: Path, rows_read: int, skipped: int, groups: list[dict[str, Any]]) -> None:
     print(f"Model log: {path} ({rows_read} rows, {skipped} skipped lines)")
-    widths = (32, 20, 18, 18, 10, 7, 10, 7, 15, 14, 14, 60)
+    widths = (32, 20, 18, 18, 10, 7, 10, 7, 15, 15, 14, 14, 60)
     header = " | ".join(
         f"{name:<{width}}" for name, width in zip(MODEL_SCOREBOARD_COLUMNS, widths)
     )
@@ -9958,6 +9982,7 @@ def print_model_log_table(path: Path, rows_read: int, skipped: int, groups: list
             fmt_percent(group.get("first_try_pass_rate")),
             fmt_percent(group.get("pass_rate")),
             "" if group.get("median_tokens") is None else fmt_int(group.get("median_tokens")),
+            str(group.get("task_cost_label") or ""),
             fmt_scoreboard_duration(group.get("median_duration_ms")),
             humanized_log_date(group.get("last_seen")),
             shorten(str(group.get("latest_note") or ""), 60),
