@@ -4427,6 +4427,7 @@ def append_artifact_library_version(
 
 def prune_artifact_versions(state_dir: Path, versions: list[dict[str, Any]]) -> None:
     root = artifacts_dir(state_dir).resolve()
+    view_root = root / "view"
     for version in versions:
         for key in ("path", "report_path"):
             raw = version.get(key)
@@ -4441,6 +4442,16 @@ def prune_artifact_versions(state_dir: Path, versions: list[dict[str, Any]]) -> 
                     resolved.unlink()
                     with contextlib.suppress(OSError):
                         resolved.parent.rmdir()
+        run_id = version.get("run_id")
+        if not run_id:
+            continue
+        view_dir = view_root / sanitize_artifact_name(str(run_id))
+        with contextlib.suppress(OSError):
+            resolved = view_dir.resolve()
+            if resolved == view_root or view_root not in resolved.parents:
+                continue
+            # rmtree refuses a directory symlink instead of deleting its target.
+            shutil.rmtree(view_dir)
 
 
 def reconcile_artifact_library_dead_runs(state_dir: Path) -> None:
