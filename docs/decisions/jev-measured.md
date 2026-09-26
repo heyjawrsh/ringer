@@ -152,6 +152,37 @@ that is signal. It peaks around 62%.
   for display, which can sum to 0.99; the seam requires 1.0 to 1e-6. Four of
   343 calls failed until `decisions/jev.py` renormalised them.
 
+## Switching it on
+
+Off by default. To enable, add to your Ringer config:
+
+```toml
+[decisions]
+skip_retries   = true
+provider       = "jev"
+min_confidence = 0.5          # the measured gate; 0.3 trades more volume for a lower ratio
+modules        = ["decisions.jev"]   # imported so the provider registers
+```
+
+and put the credential in the environment:
+
+```sh
+export TYPESAFE_API_KEY=...   # never stored in the repo or the config
+```
+
+Expect it to touch roughly 8% of retries at `min_confidence = 0.5`. Every
+other outcome retries exactly as before, so removing the section, unsetting
+the credential, or the vendor going down all return Ringer to its current
+behaviour with no other change.
+
+A skipped retry is recorded on the task as `retry_skipped` and
+`retry_skip_reason`, so a forfeited attempt is visible in the run record
+rather than silent.
+
+Only the FIRST attempt is ever skipped. The thresholds were calibrated on
+first-attempt evidence, and applying them to a later attempt would be using
+them outside the data that justifies them.
+
 ## Reproducing
 
 ```sh
