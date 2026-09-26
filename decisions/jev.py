@@ -77,6 +77,27 @@ def _question_payload(question: Any) -> dict[str, Any]:
     raise TypeError(f"unsupported question type: {type(question).__name__}")
 
 
+def _normalised(raw: Any) -> dict[str, float]:
+    """Rescale the vendor's rounded probabilities to sum to exactly 1.
+
+    The wire format carries probabilities rounded for display, so three
+    options can arrive summing to 0.99 while the seam requires 1.0 to a
+    tolerance of 1e-6. Reconciling that is an adapter's job; leaving it to
+    the seam cost 4 of 343 real calls (2026-09-25).
+
+    Only rounding is absorbed. A distribution genuinely far from 1 is a
+    malformed response and still fails, rather than being silently rescaled
+    into looking reasonable.
+    """
+    values = {str(k): float(v) for k, v in (raw or {}).items()}
+    if not values:
+        raise JevUnavailable("answer carried no probabilities")
+    total = sum(values.values())
+    if not 0.98 <= total <= 1.02:
+        raise JevUnavailable(f"probabilities sum to {total:.4f}, not ~1")
+    return {k: v / total for k, v in values.items()}
+
+
 def _answer_object(raw: Any) -> Any:
     if not isinstance(raw, dict):
         raise JevUnavailable(f"malformed answer: {raw!r}")
@@ -87,15 +108,13 @@ def _answer_object(raw: Any) -> Any:
     if kind == "choice":
         return ChoiceAnswer(
             choice=str(raw["choice"]),
-            probabilities={str(k): float(v)
-                           for k, v in (raw.get("probabilities") or {}).items()},
+            probabilities=_normalised(raw.get("probabilities")),
             confidence=float(raw["confidence"]))
     if kind == "score":
         return ScoreAnswer(
             score=float(raw["score"]),
             legend={str(k): str(v) for k, v in (raw.get("legend") or {}).items()},
-            probabilities={str(k): float(v)
-                           for k, v in (raw.get("probabilities") or {}).items()},
+            probabilities=_normalised(raw.get("probabilities")),
             confidence=float(raw["confidence"]))
     raise JevUnavailable(f"unknown answer type: {kind!r}")
 
