@@ -37,7 +37,20 @@ _STATE_FIELDS = {
 
 
 def _first_attempt_state(case: Mapping[str, Any]) -> dict[str, Any]:
-    return deepcopy({key: case.get(key, case.get(alias)) for key, alias in _STATE_FIELDS.items()})
+    # Shape comes from the policy, so the measurement path and the runtime
+    # path cannot describe the state differently.
+    from decisions.retry_policy import build_state
+
+    raw = deepcopy({key: case.get(key, case.get(alias))
+                    for key, alias in _STATE_FIELDS.items()})
+    return build_state(
+        check_output=raw["first_check_output"],
+        returncode=raw["first_returncode"],
+        verdict=raw["first_verdict"],
+        task_type=raw["task_type"],
+        engine=raw["worker_engine"],
+        spec=raw["spec"],
+    )
 
 
 def _read_cases(corpus_path: str | PathLike[str]) -> list[dict[str, Any]]:

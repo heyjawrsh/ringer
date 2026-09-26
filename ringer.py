@@ -8,6 +8,7 @@ import contextlib
 import errno
 import fnmatch
 import hashlib
+import importlib
 import ipaddress
 import json
 import mimetypes
@@ -824,6 +825,14 @@ class SteeringConfig:
 
 
 @dataclass(frozen=True)
+class DecisionsConfig:
+    skip_retries: bool = False
+    provider: str | None = None
+    min_confidence: float = 0.5
+    modules: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class UpdateConfig:
     auto: bool = True
     check_interval_s: int = DEFAULT_UPDATE_CHECK_INTERVAL_S
@@ -881,6 +890,49 @@ def load_steering_config(raw: Any) -> SteeringConfig:
         )
     except Exception:
         return SteeringConfig()
+
+
+def load_decisions_config(raw: Any) -> DecisionsConfig:
+    """Disable retry suppression if any optional setting is malformed."""
+    try:
+        section = raw if isinstance(raw, dict) else {}
+        skip_retries = section.get("skip_retries", False)
+        provider = section.get("provider")
+        min_confidence = section.get("min_confidence", 0.5)
+        modules = section.get("modules", [])
+        if (
+            not isinstance(skip_retries, bool)
+            or (provider is not None and not isinstance(provider, str))
+            or isinstance(min_confidence, bool)
+            or not isinstance(min_confidence, (int, float))
+            or not 0.0 <= min_confidence <= 1.0
+            or not isinstance(modules, list)
+            or any(not isinstance(module, str) or not module.strip() for module in modules)
+        ):
+            return DecisionsConfig()
+        return DecisionsConfig(
+            skip_retries=skip_retries,
+            provider=provider.strip() or None if provider is not None else None,
+            min_confidence=float(min_confidence),
+            modules=tuple(module.strip() for module in modules),
+        )
+    except Exception:
+        return DecisionsConfig()
+
+
+def resolve_decision_provider(config: DecisionsConfig) -> Any | None:
+    """Load registrations only when enabled; unavailable providers mean retry."""
+    try:
+        if not config.skip_retries or not config.provider:
+            return None
+        for module in config.modules:
+            importlib.import_module(module)
+        from decisions.provider import get_provider
+
+        return get_provider(config.provider)
+    except BaseException:
+        # Optional modules and provider factories must never forfeit a retry.
+        return None
 
 
 def _steering_yaml_values(text: str) -> dict[str, str]:
@@ -1088,6 +1140,7 @@ class AppConfig:
     steering: SteeringConfig = field(default_factory=SteeringConfig)
     update: UpdateConfig = field(default_factory=UpdateConfig)
     engine_bin_diagnostics: tuple[EngineBinDiagnostic, ...] = ()
+    decisions: DecisionsConfig = field(default_factory=DecisionsConfig)
 
     @classmethod
     def load(cls, path: Path | None = None) -> "AppConfig":
@@ -1126,6 +1179,12 @@ class AppConfig:
             # Steering is optional and must never make the base config unusable,
             # including when its loader itself is replaced or extended later.
             steering_config = SteeringConfig()
+        try:
+            decisions_config = load_decisions_config(data.get("decisions"))
+        except Exception:
+            # Decisions are optional and must never make the base config unusable,
+            # including when their loader itself is replaced or extended later.
+            decisions_config = DecisionsConfig()
         return cls(
             path=config_path if config_path.exists() else None,
             identity_default=identity_default,
@@ -1140,6 +1199,7 @@ class AppConfig:
             steering=steering_config,
             update=update_config,
             engine_bin_diagnostics=engine_bin_diagnostics,
+            decisions=decisions_config,
         )
 
 
@@ -2999,6 +3059,8 @@ class TaskRuntime:
     steering: dict[str, Any] | None = None
     violations: list[str] = field(default_factory=list)
     questions: str | None = None
+    retry_skipped: bool = False
+    retry_skip_reason: str | None = None
 
     def elapsed_s(self, now: float) -> float:
         if self.started_at_monotonic is None:
@@ -3257,6 +3319,9 @@ class StateWriter:
                 }
                 if runtime.steering is not None:
                     task_state["steering"] = dict(runtime.steering)
+                if runtime.retry_skip_reason is not None:
+                    task_state["retry_skipped"] = runtime.retry_skipped
+                    task_state["retry_skip_reason"] = runtime.retry_skip_reason
                 if runtime.violations:
                     task_state["violations"] = list(runtime.violations)
                 tasks.append(task_state)
@@ -11186,15 +11251,57 @@ class RingerRunner:
                         await self._cleanup_worktree_on_pass(runtime)
                     return
                 if attempt < max_attempts and verdict in {"FAIL", "TIMEOUT"}:
-                    failure_context = build_failure_context(runtime.log_path, verify.raw_output_excerpt)
-                    current_spec = build_retry_spec(runtime.task.spec, failure_context)
-                    continue
+                    # The policy is calibrated on first-attempt evidence only.
+                    skip_retry = attempt == 1 and self._should_skip_retry(runtime, verify, verdict)
+                    if not skip_retry:
+                        failure_context = build_failure_context(runtime.log_path, verify.raw_output_excerpt)
+                        current_spec = build_retry_spec(runtime.task.spec, failure_context)
+                        continue
                 with self.lock:
                     runtime.status = "fail"
                     runtime.final_verdict = verdict
                     runtime.ended_at_monotonic = time.monotonic()
                 self._harvest_questions(runtime)
                 return
+
+    def _should_skip_retry(
+        self, runtime: TaskRuntime, verify: VerifyResult, verdict: str
+    ) -> bool:
+        try:
+            config = self.config.decisions
+            provider = resolve_decision_provider(config)
+            if provider is None:
+                return False
+            from decisions.retry_policy import decide
+
+            from decisions.retry_policy import build_state
+
+            decision = decide(
+                # Built by the policy, not spelled out here: the measured
+                # thresholds only describe a state of exactly this shape.
+                build_state(
+                    check_output=verify.raw_output_excerpt,
+                    returncode=verify.check_returncode,
+                    verdict=verdict,
+                    task_type=runtime.task.task_type,
+                    engine=runtime.task.engine,
+                    spec=runtime.task.spec,
+                ),
+                provider,
+                min_confidence=config.min_confidence,
+            )
+            if decision.skip is not True:
+                return False
+            reason = decision.reason
+            if not isinstance(reason, str) or not reason.strip():
+                return False
+            with self.lock:
+                runtime.retry_skipped = True
+                runtime.retry_skip_reason = reason
+            return True
+        except BaseException:
+            # Guard the whole consult, even if the policy itself stops failing safe.
+            return False
 
     def _harvest_deliverables_on_pass(self, runtime: TaskRuntime) -> None:
         harvested: list[dict[str, Any]] = []
