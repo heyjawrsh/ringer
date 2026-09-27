@@ -18,10 +18,37 @@ Description = str | dict[str, Any] | list[Any]
 
 @dataclass(frozen=True, slots=True)
 class Noul:
-    """Ask whether a proposition is true."""
+    """Ask whether a proposition is true.
+
+    `criteria` is optional and says what a yes and a no mean, under the keys
+    "true" and "false". The vendor contract gives all three question types a
+    criteria of their own, and leaving it off here meant the seam could not
+    express something the API supports: the answer grader had to fold those
+    descriptions into its instructions prose instead.
+
+    That workaround is not measurably worse. A/B-ing the same words as prose
+    against a criteria object across four dimensions moved separation by
+    +0.10, -0.07, -0.03 and -0.01 -- noise at that sample size. This field is
+    here for contract fidelity, so a caller can say the thing the API accepts
+    and a second vendor can be held to the same shape. It is not a
+    performance feature and should not be sold as one.
+    """
 
     instructions: Description
+    criteria: Mapping[str, Description] | None = None
     type: Literal["noul"] = field(default="noul", init=False)
+
+    def __post_init__(self) -> None:
+        if self.criteria is None:
+            return
+        if not isinstance(self.criteria, Mapping):
+            raise ValueError("Noul criteria must be a mapping or None")
+        unknown = set(self.criteria) - {"true", "false"}
+        if unknown:
+            raise ValueError(
+                f"Noul criteria takes only 'true' and 'false', got "
+                f"{sorted(unknown)}")
+        object.__setattr__(self, "criteria", dict(self.criteria))
 
 
 @dataclass(frozen=True, slots=True)
