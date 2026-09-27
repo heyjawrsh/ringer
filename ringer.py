@@ -830,6 +830,7 @@ class DecisionsConfig:
     provider: str | None = None
     min_confidence: float = 0.5
     modules: tuple[str, ...] = ()
+    grade_answers: bool = True
 
 
 @dataclass(frozen=True)
@@ -893,10 +894,13 @@ def load_steering_config(raw: Any) -> SteeringConfig:
 
 
 def load_decisions_config(raw: Any) -> DecisionsConfig:
-    """Disable retry suppression if any optional setting is malformed."""
+    """Use safe defaults for optional grading and retry settings."""
     try:
         section = raw if isinstance(raw, dict) else {}
         skip_retries = section.get("skip_retries", False)
+        grade_answers = section.get("grade_answers", True)
+        if not isinstance(grade_answers, bool):
+            grade_answers = True
         provider = section.get("provider")
         min_confidence = section.get("min_confidence", 0.5)
         modules = section.get("modules", [])
@@ -915,6 +919,7 @@ def load_decisions_config(raw: Any) -> DecisionsConfig:
             provider=provider.strip() or None if provider is not None else None,
             min_confidence=float(min_confidence),
             modules=tuple(module.strip() for module in modules),
+            grade_answers=grade_answers,
         )
     except Exception:
         return DecisionsConfig()
@@ -14358,6 +14363,51 @@ def codex_usage_from_log(path: Path) -> dict[str, int] | None:
     return totals if found else None
 
 
+def ask_answer_note(
+    answer: str, request: str, source: str, config: DecisionsConfig
+) -> str | None:
+    """Return display-only advice; no grading failure may discard an answer."""
+    try:
+        if not config.grade_answers or not config.provider:
+            return None
+        if not all(isinstance(value, str) for value in (answer, request, source)):
+            return None
+        # Grading has its own opt-out, independent of retry suppression.
+        for module in config.modules:
+            importlib.import_module(module)
+        from decisions.provider import get_provider
+        from decisions.answer_quality import grade
+
+        provider = get_provider(config.provider)
+        if provider is None:
+            return None
+        quality = grade(
+            {"QUESTION": request, "SOURCE": source, "ANSWER": answer}, provider
+        )
+        if quality.graded is not True or not isinstance(quality.flags, (tuple, list)):
+            return None
+        # Bound display text without copying or truncating the grading inputs.
+        flags = [
+            " ".join(flag[:240].split())
+            for flag in quality.flags[:5]
+            if isinstance(flag, str)
+        ]
+        concerns = " ".join(flag for flag in flags if flag)
+        if not concerns:
+            return None
+        provider_name = " ".join(config.provider[:80].split())
+        note = (
+            f"Advisory read from {provider_name}: {concerns} "
+            "Still read the answer yourself."
+        )
+        if re.search(r"\b(?:verified|confirmed|validated|proven|guaranteed)\b", note, re.I):
+            return None
+        return note
+    except BaseException:
+        # Imports, providers, and even broken result accessors are optional here.
+        return None
+
+
 def run_one_request(config: AppConfig, args: argparse.Namespace) -> int:
     request = read_one_request(args.request, args.request_file)
     workdir = one_request_workdir(config, args.workdir)
@@ -14415,7 +14465,15 @@ def run_one_request(config: AppConfig, args: argparse.Namespace) -> int:
     answer_path = workdir / "answer" / "answer.md"
     if result == 0 and answer_path.is_file():
         print("\nAnswer\n")
-        print(answer_path.read_text(encoding="utf-8").rstrip())
+        answer = answer_path.read_text(encoding="utf-8").rstrip()
+        print(answer)
+        try:
+            note = ask_answer_note(answer, request, packet.text, config.decisions)
+            if note is not None:
+                print(f"\n{note}")
+        except BaseException:
+            # Even an advisory display failure must preserve the worker result.
+            pass
     usage = codex_usage_from_log(workdir / "answer" / "worker.log")
     if usage is not None:
         print(
