@@ -123,7 +123,17 @@ class CheckHelpersTests(unittest.TestCase):
             output = self.failure_output(assert_json_valid, path)
 
         self.assertIn(str(path), output)
-        self.assertIn("Expecting property name enclosed in double quotes", output)
+        # Assert that the failure EXPLAINS itself, not that CPython words it a
+        # particular way. Python 3.12 says "Expecting property name enclosed in
+        # double quotes" for this input and 3.14 says "Illegal trailing comma
+        # before end of object" -- both diagnose the same trailing comma, and
+        # pinning either one fails the suite on an interpreter upgrade rather
+        # than on a defect.
+        self.assertRegex(
+            output,
+            r"(?i)\b(expecting|illegal|invalid|unexpected|trailing|delimiter"
+            r"|property name)\b",
+        )
         self.assertRegex(output, r"line 1 column \d+")
 
 
