@@ -14279,7 +14279,25 @@ def one_request_manifest(
         tasks=(
             TaskSpec(
                 key="answer",
-                spec=packet.text,
+                # The check is `test -s answer.md`, so the worker has to be
+                # ASKED for the file. It never was, and it did exactly as it
+                # was told -- answering in its output stream and failing the
+                # check every time, for everyone.
+                #
+                # This rides on the SPEC rather than inside the packet on
+                # purpose. max_packet_bytes is documented as a limit on the
+                # request plus selected source text, and at a tight budget
+                # there were 15 bytes of headroom -- less than any useful
+                # sentence -- so putting it in the packet silently evicted a
+                # chunk of the user's own source. It also goes last, which
+                # keeps the request inside the window the eval log records
+                # and puts the instruction closest to where the worker acts.
+                spec=(
+                    packet.text
+                    + "\nWrite your answer to ./answer.md. That file is the "
+                      "deliverable; text printed instead of written is "
+                      "discarded.\n"
+                ),
                 check=(
                     "test -s answer.md || "
                     "{ echo 'FAIL: answer.md was not created or is empty'; exit 1; }"
