@@ -6823,10 +6823,18 @@ class PersistentHudServer:
                         }
                     send_json_response(self, payload)
                     return
-                if path.startswith("/api/open-folder"):
-                    query = urllib.parse.urlparse(path).query
+                if path == "/api/open-folder":
+                    # `path` has already had its query stripped, so parsing a
+                    # query out of it found nothing and every request arrived
+                    # with an empty run -- opening the shared deliverables root
+                    # instead of the run that was asked for. Read self.path,
+                    # which still carries it. The route is matched exactly
+                    # rather than by prefix so a longer path cannot land here.
+                    query = urllib.parse.urlparse(self.path).query
                     params = urllib.parse.parse_qs(query)
-                    name = (params.get("artifact") or [""])[0]
+                    # `artifact` is accepted and ignored: the folder is located
+                    # by run alone. Parsing it into a variable nobody read made
+                    # that look like a feature rather than a choice.
                     run_id = (params.get("run") or [""])[0]
                     artifact_root_dir = (state_dir / "artifacts").resolve()
                     target = artifact_root_dir / "deliverables"

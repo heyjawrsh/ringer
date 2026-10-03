@@ -174,6 +174,43 @@ class PersistentHudServerTests(unittest.TestCase):
         self.assertEqual(404, unknown_run.status)
         unknown_run.read()
 
+    def test_open_folder_reads_the_run_from_the_query_string(self) -> None:
+        """The run id has to survive the URL.
+
+        The handler matched this route with startswith() and then parsed the
+        query out of a path that had already been stripped of it, so `run`
+        arrived empty on every request and the endpoint opened the shared
+        deliverables root instead of the run that was asked for.
+        """
+        run_id = "demo-run-20260101T000000Z-p1"
+        run_dir = self.artifacts_dir / "deliverables" / run_id
+        run_dir.mkdir(parents=True)
+        (run_dir / "result.txt").write_text("hello\n", encoding="utf-8")
+
+        opened: list[str] = []
+
+        class FakePopen:
+            def __init__(self, args, **kwargs):
+                opened.append(str(args[-1]))
+
+        _server, port = self.start_server()
+        with mock.patch.object(ringer.subprocess, "Popen", FakePopen), \
+                mock.patch.object(ringer.sys, "platform", "darwin"):
+            with urlopen(
+                f"http://127.0.0.1:{port}/api/open-folder"
+                f"?artifact=demo&run={run_id}",
+                timeout=5,
+            ) as response:
+                self.assertEqual(204, response.status)
+
+        self.assertEqual(
+            [str(run_dir.resolve())],
+            opened,
+            "The endpoint must open the run named in the query. Opening the "
+            "shared deliverables root instead means the query never reached "
+            "the handler.",
+        )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
