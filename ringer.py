@@ -7571,6 +7571,25 @@ MODEL_SCOREBOARD_COLUMNS = (
     "Last used",
     "Notes",
 )
+MODEL_SCOREBOARD_DEFINITIONS = {
+    "Model": "The display name is resolved from the logged model route using the identity registry or catalog, with reasoning effort shown when buckets differ.",
+    "Lab": "The model maker is taken from the identity registry or inferred from the catalog, with unknown or unverified identities marked.",
+    "Harness": "The worker tool that ran the tasks is taken from the logged engine's identity registry entry.",
+    "API/Plan": "The API route or subscription plan used by the worker is taken from the identity registry's access field.",
+    "Tier": "The bucket is proven with at least three tasks and a first-try pass rate of at least two-thirds, otherwise probation, while unattributed or misrouted buckets are not ranked.",
+    "Tasks": "The count is of task instances in the selected model, engine, reasoning effort and task-type bucket, grouping retries together and excluding fixtures and tasks whose final verdict is CRASHED.",
+    "First try": "The rate is the share of Tasks that passed on the first attempt, before any retry, computed as first-attempt PASS verdicts divided by Tasks.",
+    "Pass": "The rate is the share of Tasks whose final attempt has a PASS verdict, including passes after retries, divided by Tasks.",
+    "Tokens (median)": "The median uses reported worker token counts from all attempts of the counted tasks, including retries and excluding missing counts.",
+    "Cost / task": "The estimate multiplies median tokens by the average catalog input and output token price, with labels for missing tokens, missing catalog entries, free routes or variable pricing.",
+    "Speed (median)": "The median uses reported durations of the counted tasks' final attempts, excluding missing durations and earlier retry attempts.",
+    "Last used": "The date comes from the latest logged timestamp among the counted tasks' final attempts.",
+    "Notes": "The text is the newest matching judgment note from the model notes file, stripped of inline formatting and shortened to the column width.",
+}
+MODEL_SCOREBOARD_CAVEAT = (
+    "These rates are not evidence of general model quality; "
+    "they describe the checks that ran and the tasks they ran on."
+)
 
 
 def default_model_notes_path() -> Path:
@@ -10037,6 +10056,7 @@ def write_model_scoreboard_html(
 
 def print_model_log_table(path: Path, rows_read: int, skipped: int, groups: list[dict[str, Any]]) -> None:
     print(f"Model log: {path} ({rows_read} rows, {skipped} skipped lines)")
+    print(MODEL_SCOREBOARD_CAVEAT)
     widths = (32, 20, 18, 18, 10, 7, 10, 7, 15, 15, 14, 14, 60)
     header = " | ".join(
         f"{name:<{width}}" for name, width in zip(MODEL_SCOREBOARD_COLUMNS, widths)
@@ -15413,6 +15433,7 @@ def build_parser() -> argparse.ArgumentParser:
         sub.add_argument("--registry", type=Path, help="path to model identity registry")
 
     models_parser = subparsers.add_parser("models", help="show the local per-model performance scoreboard")
+    models_parser.add_argument("--legend", action="store_true", help="print scoreboard column definitions and exit")
     models_parser.add_argument("--config", type=Path, default=argparse.SUPPRESS, help=argparse.SUPPRESS)
     models_parser.add_argument("--log", type=Path, help="path to local eval JSONL log")
     models_parser.add_argument("--db", type=Path, help="path to SQLite read model (default: ~/.ringer/ringer.db)")
@@ -15570,6 +15591,11 @@ def main(argv: list[str] | None = None) -> int:
             return curate_model_notes(
                 default_model_notes_path(), dry_run=args.dry_run
             )
+
+        if args.command == "models" and args.legend:
+            for column in MODEL_SCOREBOARD_COLUMNS:
+                print(f"{column}: {MODEL_SCOREBOARD_DEFINITIONS[column]}")
+            return 0
 
         config = AppConfig.load(args.config)
         print_engine_bin_diagnostics(config)
