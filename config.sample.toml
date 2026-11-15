@@ -148,6 +148,14 @@ model_report_regex = "(?m)^model:[ \\t]*([^ \\t\\r\\n]+)[ \\t]*\\r?$"
 # ~/.local/share/opencode/auth.json ({"openrouter": {"type": "api", "key": "..."}});
 # confirm the path with your installed CLI.
 # Per-task engine_args can set reasoning effort ("--variant", "low|high|max").
+# Other plans ride the same engine block; only the model prefix changes:
+# "opencode-go/<model>" (OpenCode Go), "zai-coding-plan/<model>" (Z.ai), and
+# "otari/<selector>" (Otari Go, e.g. otari/z-ai/glm-5.3). Otari is a custom
+# provider: declare it in ~/.config/opencode/opencode.json with
+# "npm": "@ai-sdk/openai-compatible", "options.baseURL":
+# "https://api.otari.ai/api/v1" and a "models" map of catalog selectors, then
+# store the key with `opencode auth import` (integrationID "otari"). Otari Go
+# allows 3 parallel requests, so cap max_parallel for Otari-heavy manifests.
 # Uncomment and set an absolute path for `bin` to enable.
 # [engines.opencode]
 # bin = "/absolute/path/to/ringer/engines/opencode-sandboxed.sh"

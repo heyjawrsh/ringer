@@ -466,6 +466,9 @@ per task via the manifest `engine` field. Defaults are deliberate:
   to set reasoning effort — spend it on hard tasks, not boilerplate.
 - **opencode**: the universal lane — any OpenRouter model via the `model`
   field (engine `model_default` is GLM-5.2, the cheap-intelligence pick).
+  The model prefix picks the plan: `openrouter/` (per token),
+  `zai-coding-plan/`, `opencode-go/` (OpenCode Go) and `otari/` (Otari Go,
+  max 3 parallel requests). Name the plan when pitching the engine ask.
   Validate a model new to you with a trivial one-task manifest before
   trusting it with a batch.
 - Small/flash-class models are the first to choke on long conversational or

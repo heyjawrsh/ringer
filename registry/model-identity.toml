@@ -99,11 +99,14 @@ confidence = "verified"
 source = "manifest model field; OpenRouter slug meta-llama/llama-3.3-70b-instruct:free"
 last_verified = 2026-07-10
 
-# GLM family (Z.ai / Zhipu AI) reached through the OpenCode harness on three
-# different plans — same lab, different access. NOTE: the loader applies access
-# at the engine level (engines.opencode.access = "OpenRouter API"), so the
-# scoreboard's Access column reads "OpenRouter API" for all three; the flat-rate
-# OpenCode Go and Z.ai Coding Plan lanes are not distinguished there today.
+# Models reached through the OpenCode harness on different plans: same lab,
+# different access. A model entry's `access` overrides the engine-level value,
+# so the scoreboard's Access column tells the plans apart. Plan prefixes:
+#   openrouter/       OpenRouter API (pay per token)
+#   zai-coding-plan/  Z.ai Coding Plan (flat-rate)
+#   opencode-go/      OpenCode Go (flat-rate)
+#   otari/            Otari Go (Mozilla AI gateway; $10/mo, $30 allowance on
+#                     covered open-weight models, max 3 parallel requests)
 [engines.opencode.models."openrouter/z-ai/glm-4.7"]
 display = "GLM 4.7"
 lab = "Z.ai (Zhipu AI)"
@@ -114,6 +117,7 @@ last_verified = 2026-07-11
 [engines.opencode.models."zai-coding-plan/glm-4.7"]
 display = "GLM 4.7"
 lab = "Z.ai (Zhipu AI)"
+access = "Z.ai Coding Plan"
 confidence = "verified"     # Z.ai Coding Plan (flat-rate), same trained model as z-ai/glm-4.7
 source = "manifest model field; Z.ai Coding Plan slug zai-coding-plan/glm-4.7"
 last_verified = 2026-07-11
@@ -121,6 +125,87 @@ last_verified = 2026-07-11
 [engines.opencode.models."opencode-go/glm-5.1"]
 display = "GLM 5.1"
 lab = "Z.ai (Zhipu AI)"
+access = "OpenCode Go"
 confidence = "verified"     # OpenCode Go / Zen (flat-rate) access to Z.ai's GLM 5.1
 source = "manifest model field; OpenCode Go slug opencode-go/glm-5.1"
 last_verified = 2026-07-11
+
+[engines.opencode.models."zai-coding-plan/glm-5.2"]
+display = "GLM 5.2"
+lab = "Z.ai (Zhipu AI)"
+access = "Z.ai Coding Plan"
+confidence = "verified"
+source = "manifest model field; Z.ai Coding Plan slug zai-coding-plan/glm-5.2"
+last_verified = 2026-11-15
+
+[engines.opencode.models."zai-coding-plan/glm-5.3"]
+display = "GLM 5.3"
+lab = "Z.ai (Zhipu AI)"
+access = "Z.ai Coding Plan"
+confidence = "verified"
+source = "opencode models; Z.ai Coding Plan slug zai-coding-plan/glm-5.3"
+last_verified = 2026-11-15
+
+[engines.opencode.models."opencode-go/glm-5.3"]
+display = "GLM 5.3"
+lab = "Z.ai (Zhipu AI)"
+access = "OpenCode Go"
+confidence = "verified"
+source = "opencode models; OpenCode Go slug opencode-go/glm-5.3"
+last_verified = 2026-11-15
+
+[engines.opencode.models."opencode-go/deepseek-v4-pro"]
+display = "DeepSeek V4 Pro"
+lab = "DeepSeek"
+access = "OpenCode Go"
+confidence = "verified"
+source = "opencode models; OpenCode Go slug opencode-go/deepseek-v4-pro"
+last_verified = 2026-11-15
+
+[engines.opencode.models."otari/z-ai/glm-5.3"]
+display = "GLM 5.3"
+lab = "Z.ai (Zhipu AI)"
+access = "Otari Go"
+confidence = "verified"
+source = "Otari catalog selector z-ai/glm-5.3 (api.otari.ai/api/v1/catalog/models)"
+last_verified = 2026-11-15
+
+[engines.opencode.models."otari/z-ai/glm-5.2"]
+display = "GLM 5.2"
+lab = "Z.ai (Zhipu AI)"
+access = "Otari Go"
+confidence = "verified"
+source = "Otari catalog selector z-ai/glm-5.2"
+last_verified = 2026-11-15
+
+[engines.opencode.models."otari/deepseek/deepseek-v4-pro"]
+display = "DeepSeek V4 Pro"
+lab = "DeepSeek"
+access = "Otari Go"
+confidence = "verified"
+source = "Otari catalog selector deepseek/deepseek-v4-pro"
+last_verified = 2026-11-15
+
+[engines.opencode.models."otari/deepseek/deepseek-v4.1-flash"]
+display = "DeepSeek V4.1 Flash"
+lab = "DeepSeek"
+access = "Otari Go"
+confidence = "verified"
+source = "Otari catalog selector deepseek/deepseek-v4.1-flash"
+last_verified = 2026-11-15
+
+[engines.opencode.models."otari/moonshotai/kimi-k3"]
+display = "Kimi K3"
+lab = "Moonshot AI"
+access = "Otari Go"
+confidence = "verified"
+source = "Otari catalog selector moonshotai/kimi-k3"
+last_verified = 2026-11-15
+
+[engines.opencode.models."otari/minimax/minimax-m3"]
+display = "MiniMax M3"
+lab = "MiniMax"
+access = "Otari Go"
+confidence = "verified"
+source = "Otari catalog selector minimax/minimax-m3"
+last_verified = 2026-11-15
