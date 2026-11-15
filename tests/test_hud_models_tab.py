@@ -156,10 +156,12 @@ class HudModelsTabTests(unittest.TestCase):
         self.assertGreater(port, 0)
         with urlopen(f"http://127.0.0.1:{port}/", timeout=5) as response:
             page = response.read().decode("utf-8")
-        self.assertEqual((ROOT / "dashboard" / "ringside.html").read_text(encoding="utf-8"), page)
-        self.assertNotIn('id="models-panel"', page)
-        self.assertNotIn('id="ringside-tabs"', page)
-        self.assertNotIn('id="models-status"', page)
+        self.assertIn('id="models-tab"', page)
+        self.assertIn('src="/ringside.js"', page)
+        with urlopen(f"http://127.0.0.1:{port}/ringside.js", timeout=5) as response:
+            self.assertIn("/api/models", response.read().decode("utf-8"))
+        for column in MODEL_SCOREBOARD_COLUMNS:
+            self.assertIn(f">{column}<", page)
         with urlopen(f"http://127.0.0.1:{port}/api/models", timeout=5) as response:
             self.assertEqual(200, response.status)
             payload = json.loads(response.read().decode("utf-8"))
