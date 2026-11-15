@@ -21,3 +21,6 @@ hud/icons/icon.iconset/
 
 # Claude Code worktree isolation scratch (tooling, not project content)
 .claude/worktrees/
+
+# Personal exports, not project docs
+*.mhtml
