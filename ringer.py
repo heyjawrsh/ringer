@@ -757,6 +757,9 @@ class EngineConfig:
     # its own "model" — this is what makes a harness engine (OpenCode) model
     # agnostic instead of hard-coding one model into the command line.
     model_default: str = ""
+    # Optional structured token parser; "opencode-json" sums the per-step
+    # token blocks of OpenCode's `run --format json` events instead of token_regex.
+    token_format: str | None = None
 
     @property
     def process_name(self) -> str:
@@ -1725,6 +1728,9 @@ def print_engine_bin_diagnostics_if_config_loads(path: Path | None) -> None:
     print_engine_bin_diagnostics(config)
 
 
+TOKEN_FORMATS = frozenset({"opencode-json"})
+
+
 def load_engines(raw: Any) -> dict[str, EngineConfig]:
     engines: dict[str, EngineConfig] = {DEFAULT_ENGINE_NAME: built_in_codex_engine()}
     if raw is None:
@@ -1764,6 +1770,14 @@ def load_engines(raw: Any) -> dict[str, EngineConfig]:
                 re.compile(token_regex, flags=re.IGNORECASE)
             except re.error as exc:
                 raise ValueError(f"engines.{clean_name}.token_regex is invalid: {exc}") from exc
+        token_format = optional_string(section.get("token_format"))
+        if token_format is None and base is not None:
+            token_format = base.token_format
+        if token_format and token_format not in TOKEN_FORMATS:
+            raise ValueError(
+                f"engines.{clean_name}.token_format must be one of "
+                f"{', '.join(sorted(TOKEN_FORMATS))}, got {token_format!r}"
+            )
         model_report_regex = optional_string(section.get("model_report_regex"))
         if model_report_regex is None and base is not None:
             model_report_regex = base.model_report_regex
@@ -1790,6 +1804,7 @@ def load_engines(raw: Any) -> dict[str, EngineConfig]:
             token_regex=token_regex,
             model_report_regex=model_report_regex,
             model_default=model_default,
+            token_format=token_format or None,
         )
     return engines
 
@@ -11885,6 +11900,7 @@ class RingerRunner:
                     master_fd,
                     runtime=runtime,
                     token_regex=engine.token_regex,
+                    token_format=engine.token_format,
                     pre_attempt_tokens=pre_attempt_tokens,
                 )
             )
@@ -11918,7 +11934,7 @@ class RingerRunner:
                     self.active_processes.pop(proc.pid, None)
                     close_subprocess_transport(proc)
         output_tail = capture.text()
-        tokens = parse_token_count(output_tail, engine.token_regex)
+        tokens = parse_worker_tokens(output_tail, engine)
         reported_model = parse_reported_model(output_tail, engine.model_report_regex)
         if timed_out:
             append_text(log_path, f"\n[ringer.py] worker timed out after {runtime.task.timeout_s}s\n")
@@ -11939,6 +11955,7 @@ class RingerRunner:
         *,
         runtime: TaskRuntime | None = None,
         token_regex: str | None = DEFAULT_TOKEN_REGEX,
+        token_format: str | None = None,
         pre_attempt_tokens: int = 0,
     ) -> None:
         if master_fd is None and proc.stdout is None:
@@ -12047,7 +12064,14 @@ class RingerRunner:
                 log_fh.flush()
                 capture.extend(chunk)
                 if runtime is not None:
-                    tokens = parse_token_count(capture.text(), token_regex)
+                    text = capture.text()
+                    tokens = (
+                        parse_opencode_json_tokens(text)
+                        if token_format == "opencode-json"
+                        else None
+                    )
+                    if tokens is None:
+                        tokens = parse_token_count(text, token_regex)
                     if tokens is not None:
                         with self.lock:
                             runtime.tokens = pre_attempt_tokens + tokens
@@ -12375,6 +12399,44 @@ def parse_env_file(path: Path) -> dict[str, str]:
             value = value[1:-1]
         values[key.strip()] = value
     return values
+
+
+def parse_opencode_json_tokens(text: str) -> int | None:
+    """Sum the token blocks of every OpenCode step_finish event.
+
+    Counts input + cache write + output + reasoning. cache.read is excluded on
+    purpose: it re-reads context already counted and inflates long sessions.
+    """
+    total: int | None = None
+    for line in text.splitlines():
+        line = line.strip()
+        if not line.startswith("{"):
+            continue
+        try:
+            obj = json.loads(line)
+        except (ValueError, RecursionError):
+            continue
+        if not isinstance(obj, dict) or obj.get("type") != "step_finish":
+            continue
+        part = obj.get("part")
+        tokens = part.get("tokens") if isinstance(part, dict) else None
+        if not isinstance(tokens, dict):
+            continue
+        cache = tokens.get("cache")
+        values = [tokens.get("input"), tokens.get("output"), tokens.get("reasoning")]
+        if isinstance(cache, dict):
+            values.append(cache.get("write"))
+        step = sum(v for v in values if isinstance(v, int) and not isinstance(v, bool))
+        total = (total or 0) + step
+    return total
+
+
+def parse_worker_tokens(text: str, engine: EngineConfig) -> int | None:
+    if engine.token_format == "opencode-json":
+        tokens = parse_opencode_json_tokens(text)
+        if tokens is not None:
+            return tokens
+    return parse_token_count(text, engine.token_regex)
 
 
 def parse_token_count(text: str, token_regex: str | None = DEFAULT_TOKEN_REGEX) -> int | None:
