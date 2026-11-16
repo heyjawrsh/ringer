@@ -308,9 +308,9 @@ It never retries — it is the orchestrator's gate, not a worker task. Exit 0 pr
 
 ### Pilot lanes: approve the direction before the fan-out
 
-With `pilot` set, that one task runs first while every other lane is held back unspawned. If the pilot fails, nothing else spawns and the run fails. If it passes, the run pauses in an awaiting-review state — visible in the run state and on the console, which prints the exact approve and reject commands with the run id, and on Ringside, where you can now approve or reject from the page as well as the CLI.
+With `pilot` set, that one task runs first while every other lane is held back unspawned. If the pilot fails, nothing else spawns and the run fails. If it passes, the run pauses in an awaiting-review state — visible in the run state and on the console, which prints the exact approve and reject commands with the run id.
 
-`./ringer.py approve <run_id>` releases the held lanes and the run continues normally: retries and `integration_check` are unchanged. `./ringer.py reject <run_id>` ends the run nonzero; the held lanes never spawn; the pilot's deliverables, logs, and worktree are kept for review. No decision within `pilot_wait_s` (default 1800) counts as a rejection with a timeout reason. Both refuse a run whose orchestrator has exited — printing that the decision cannot be delivered and writing nothing — matching what the Ringside page and its endpoint already did.
+`./ringer.py approve <run_id>` releases the held lanes and the run continues normally: retries and `integration_check` are unchanged. `./ringer.py reject <run_id>` ends the run nonzero; the held lanes never spawn; the pilot's deliverables, logs, and worktree are kept for review. No decision within `pilot_wait_s` (default 1800) counts as a rejection with a timeout reason. Both refuse a run whose orchestrator has exited, printing that the decision cannot be delivered and writing nothing.
 
 The point: redirect after one lane, not after N — aesthetic and architectural misses cost one pilot instead of a finished build. `--dry-run`, `--baseline`, and `--prove-fail` are unaffected.
 
@@ -489,14 +489,7 @@ The top of the page is the run's live results document: what the job is, a progr
 
 **Live runs** shows every swarm, its progress, and a searchable task table. Select a task to inspect its brief, model, harness, attempts, last executed check and raw worker log. A failed check stays visible while its task retries; stopped workers are marked explicitly. **Outputs** keeps each run's result and saved versions together, with a live preview and access to its folder. **Models** shows first-try pass rates alongside task/attempt counts, task-type filtering and a low-sample warning. Expand all signals for the full scoreboard and judgment notes. Compact view keeps live runs and runs needing attention in a small window.
 
-Two surfaces that used to require the terminal or a look at the run state JSON are now on the page. When a `pilot` run pauses, Ringside shows the awaiting-review state — which task was the pilot, how many lanes are held, how long it has waited — with **Approve** and **Reject** buttons. **Reject** asks for confirmation first, because it ends the run. The buttons POST to a local endpoint, `/api/pilot/decision`, which the server accepts only from the loopback page's own origin and only while that run's pilot is actually awaiting; a cross-origin request is refused, and the endpoint does nothing on GET.
-
-A run paused for pilot review waits in its own process. If that process exits — killed, crashed, a closed terminal — the run state still says the pilot is awaiting, but nobody is listening.
-Ringside shows that honestly: the pause is still displayed, marked **abandoned** because the run's orchestrator exited, with **Approve** and **Reject** disabled — a decision written now would never be read.
-The decision endpoint refuses such a request too, so neither the page nor the CLI can pretend the run can be resumed. Restart the job instead; the pilot task's worktree, logs and deliverables are still on disk for review.
-
-- **The CLI still works.** `./ringer.py approve <run_id>` and `./ringer.py reject <run_id>` still work and remain visible on the page for terminal users.
-- **Violations on the card.** When a task records ownership or contract violations, the kind and its detail now appear on that task's card on the results page — instead of living only in the run state JSON.
+Ringside doesn't show pilot review yet ([#2](https://github.com/heyjawrsh/ringer/issues/2)). Use `./ringer.py approve <run_id>` or `./ringer.py reject <run_id>`. A run whose orchestrator has exited can't take a decision; restart the job instead. The pilot task's worktree, logs and deliverables stay on disk for review.
 
 Multiple swarms at once is the designed-for case: run three batches under three identities and Ringside shows all three, live. `--browser` opens a simpler per-run fallback dashboard, and `--no-dashboard` runs headless.
 
@@ -509,23 +502,6 @@ Each run-state JSON records two top-level provenance fields. `project` is the ab
 Live and versioned artifact paths are namespaced by project: `artifacts/live/<project-slug>/<run-name>.html` and `artifacts/versions/<project-slug>/<run-name>/<run-id>.html`. The slug combines a readable sanitized repository basename with a hash of the full absolute project path, so same-named repositories remain distinct. The artifact library records `project` on new entries. Existing flat artifacts and pre-project library indexes remain in place and readable; Ringer does not migrate or delete them.
 
 Implementation notes: project slugs use `<sanitized-basename>-<12 hex SHA-256 characters>` from the full resolved path, giving a readable name plus 48 bits of path-derived collision resistance. Clean Git checkouts use the full `git rev-parse HEAD` SHA for `ringer_version`. Dirty or non-Git installs use `source-<SHA-256 of ringer.py>`, computed once per process; this fallback cannot distinguish changes outside `ringer.py`, build/environment differences, or installations with identical `ringer.py` bytes. Backward-compatible readers checked include artifact/report/index rendering, HUD run and library endpoints, the per-run dashboard, artifact serving and reconciliation, and CLI `rerun` selection.
-
-The Runs tab now has two views. The default is unchanged — one run's results document plus that run's lanes. The lane view is a wall of lane cards drawn from every live run at once, each naming its run, its lane, engine and model, elapsed time, and current activity.
-
-The wall sorts so lanes needing a human come first (failed or errored lanes, and lanes in a run paused for pilot review), then working lanes, then finished ones. One line above it counts how many swarms are live, how many lanes are working, and how many need attention.
-
-Click a card to select that run and return to the single-run view. The active view is stored in the URL under `view`, so `?view=lanes` deep-links to the wall and a reload keeps you where you were.
-
-When nothing is live the wall shows the most recently updated run's lanes and says so.
-
-Ringside used to turn state it could not read into a confident empty answer. Run records that cannot be decoded are
-counted and shown as **unreadable** rather than silently skipped, so an empty page and an unreadable one are no longer
-the same thing. The newest-first selection counts only records it can actually read, so a few corrupt files can no
-longer crowd your valid history out of the view, and a corrupt artifact library is reported as unreadable instead of
-appearing empty. Nothing is repaired or deleted — the files stay exactly as they are, and the records that did load
-still show.
-
-A native desktop build (Tauri, under `hud/`) exists as a v0.1.1 prototype; the web dashboard is currently ahead of it — start there.
 
 A native desktop build (Tauri, under `hud/`) exists as a v0.1.1 prototype. It shares `dashboard/ringside.html`, `ringside.css` and `ringside.js` with the browser, plus the native transport in `hud/frontend/hud.js`. The browser remains the primary interface. Native Models and folder actions need the local `ringer.py hud` server; runs and artifact reads also have native transports. Build assets under `hud/dist/` are generated by `hud/scripts/sync-dist.sh`, never edited directly. The older `dashboard/dashboard.html` remains the per-run `--browser` fallback.
 
