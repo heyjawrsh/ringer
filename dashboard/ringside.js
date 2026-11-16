@@ -626,7 +626,7 @@
       sorted
         .map(
           (r) =>
-            `<tr><td>${modelName(r)}</td><td>${esc(r.lab || "Unknown")}</td><td>${esc(r.harness || r.engine || "Unknown")}</td><td>${esc(r.access || "Unknown")}</td><td>${r.misrouted || r.unattributed ? "Not ranked" : esc(r.tier || "Unranked")}</td><td>${num(r.tasks)}</td><td>${Math.round(num(r.first_try_pass_rate) * 100)}%</td><td>${Math.round(num(r.pass_rate) * 100)}%</td><td>${r.median_tokens == null ? "—" : num(r.median_tokens).toLocaleString()}</td><td>${speed(r)}</td><td>${esc(age(r.last_seen))}</td><td class="judgment-notes">${esc(r.latest_note || (r.notes || []).join("\n"))}</td></tr>`,
+            `<tr><td>${modelName(r)}</td><td>${esc(r.lab || "Unknown")}</td><td>${esc(r.harness || r.engine || "Unknown")}</td><td>${esc(r.access || "Unknown")}</td><td>${r.misrouted || r.unattributed ? "Not ranked" : esc(r.tier || "Unranked")}</td><td>${num(r.tasks)}</td><td>${Math.round(num(r.first_try_pass_rate) * 100)}%</td><td>${Math.round(num(r.pass_rate) * 100)}%</td><td>${r.median_tokens == null ? "—" : num(r.median_tokens).toLocaleString()}</td><td>${esc(r.task_cost_label || "—")}</td><td>${speed(r)}</td><td>${esc(age(r.last_seen))}</td><td class="judgment-notes">${esc(r.latest_note || (r.notes || []).join("\n"))}</td></tr>`,
         )
         .join(""),
     );
