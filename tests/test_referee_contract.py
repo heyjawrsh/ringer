@@ -54,9 +54,10 @@ class RefereeContractTests(unittest.TestCase):
             # Match test_active_runs.py's isolation of active_runs_path().
             with patch.dict(os.environ, {"RINGER_HOME": directory}):
                 ringer.active_runs_path().write_text(json.dumps(fixture["active"]))
+                active = ringer.read_active_runs_file()
                 response = {
-                    "runs": ringer.scan_hud_run_states(state_dir),
-                    "active": ringer.read_active_runs_file(),
+                    "runs": ringer.scan_hud_run_states(state_dir, active_runs=active),
+                    "active": active,
                 }
             self.assert_fields("response", response)
             self.assertEqual(len(response["runs"]), 1)
@@ -64,7 +65,8 @@ class RefereeContractTests(unittest.TestCase):
             self.assertEqual(response["active"], fixture["active"])
             for actual in response["runs"]:
                 self.assert_fields("run", actual)
-                self.assertEqual(actual, run)
+                # The fork adds fields (orchestrator_alive); upstream's must match.
+                self.assertEqual({key: actual[key] for key in run}, run)
                 self.assertTrue(actual["tasks"])
                 for task in actual["tasks"]:
                     self.assert_fields("task", task)
