@@ -1,0 +1,11 @@
+{
+  "name": "ringer",
+  "owner": { "name": "heyjawrsh" },
+  "plugins": [
+    {
+      "name": "referee",
+      "source": "./referee",
+      "description": "Watch the live Ringer run beside the chat: docked, inline above the prompt, or in the status line."
+    }
+  ]
+}
