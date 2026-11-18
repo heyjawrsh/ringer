@@ -1,6 +1,6 @@
 {
   "name": "referee",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Watch the live Ringer run beside your Claude Code chat.",
   "license": "MIT",
   "types": "./types/index.d.ts",
