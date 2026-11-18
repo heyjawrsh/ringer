@@ -42,6 +42,7 @@ import webbrowser
 from dataclasses import asdict, dataclass, field, replace as dataclass_replace
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
+from functools import lru_cache
 from html import escape as html_escape
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -6471,6 +6472,53 @@ def read_json_object(path: Path, default: dict[str, Any]) -> dict[str, Any]:
     return data if isinstance(data, dict) else default
 
 
+@lru_cache(maxsize=1024)
+def project_root_for(project: str | None) -> str | None:
+    """Resolve a checkout or worktree to its repository using only Git metadata."""
+    if not project:
+        return None
+    resolved = Path(project)
+    try:
+        resolved = resolved.absolute()
+        resolved = resolved.resolve()
+        if not resolved.exists():
+            return str(resolved)
+        home = Path.home().resolve()
+        for directory in (resolved, *resolved.parents):
+            # A home dotfiles repository must not absorb unrelated projects.
+            if directory == home and directory != resolved:
+                break
+            git_entry = directory / ".git"
+            if git_entry.is_dir():
+                return str(directory)
+            if git_entry.is_file():
+                for line in git_entry.read_text(encoding="utf-8").splitlines():
+                    if line.startswith("gitdir:"):
+                        gitdir_text = line.removeprefix("gitdir:").strip()
+                        break
+                else:
+                    return str(resolved)
+                if not gitdir_text:
+                    return str(resolved)
+                gitdir = (directory / gitdir_text).resolve()
+                commondir_file = gitdir / "commondir"
+                if commondir_file.exists():
+                    common_text = commondir_file.read_text(encoding="utf-8").strip()
+                    if not common_text:
+                        return str(resolved)
+                    common_dir = (gitdir / common_text).resolve()
+                elif gitdir.parent.name == "worktrees":
+                    common_dir = gitdir.parent.parent
+                else:
+                    return str(resolved)
+                return str(common_dir.parent) if common_dir.name == ".git" else str(resolved)
+            if git_entry.exists():
+                return str(resolved)
+    except (OSError, RuntimeError, ValueError):
+        pass
+    return str(resolved)
+
+
 def scan_hud_run_states_with_unreadable(
     state_dir: Path,
     *,
@@ -6534,6 +6582,8 @@ def scan_hud_run_states_with_unreadable(
                 with contextlib.suppress(OSError):
                     atomic_write_json(path, data)
             data["orchestrator_alive"] = orchestrator_alive
+            project = data.get("project")
+            data["project_root"] = project_root_for(project) if isinstance(project, str) else None
             runs.append(data)
     return runs, unreadable
 
