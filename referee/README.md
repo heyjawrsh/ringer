@@ -28,13 +28,20 @@ Set these plugin userConfig fields through Claude Code's plugin settings:
 | Field | Default | Meaning |
 | --- | --- | --- |
 | `port` | `8700` | Ringside port on `127.0.0.1` (1-65535). |
-| `pollMs` | `2000` | Poll interval in milliseconds (minimum 100). |
+| `pollMs` | `1000` | Poll interval in milliseconds: 1 second by default (minimum 100). |
+| `scope` | `all` | `all`: every run on this machine. `project`: runs within this session's project. |
 | `paneColumns` | `60` | Requested dock width (minimum 24). |
 | `openOnStart` | `true` | Open the pane at session start. |
 | `statusLine` | `true` | Poll and show a live-run status summary, even with the pane closed. |
 
 Polling runs while the pane is open or `statusLine` is enabled. Disable the
 status line and close the pane to stop HTTP requests.
+
+Project scope follows the session root, including changes made with `/cd`. It needs
+Ringside's `project_root` field, which this fork sends as the main checkout for git
+runs (including worktrees), or the project folder outside git. Referee falls back
+to `project` when available; upstream Ringside sends neither field, so its runs
+are hidden in project scope. An empty project view counts live runs elsewhere.
 
 ## Reading the pane
 

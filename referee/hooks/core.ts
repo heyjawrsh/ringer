@@ -1,6 +1,6 @@
 import type { Run, RunData, Snapshot, Task } from '../types'
 
-export type Config = { port: number; pollMs: number; paneColumns: number; openOnStart: boolean; statusLine: boolean }
+export type Config = { port: number; pollMs: number; paneColumns: number; openOnStart: boolean; statusLine: boolean; scope: 'all' | 'project'; root?: string }
 export type Piece = { text: string; color?: string; bold?: boolean; href?: string }
 export type Line = Piece[]
 export const EMPTY: Snapshot = { runs: [], active: {}, lastSuccess: null, error: null }
@@ -11,9 +11,10 @@ export function config(options: Readonly<Record<string, unknown>>): Config {
     return typeof value === 'number' && Number.isFinite(value) ? Math.max(min, Math.min(max, Math.round(value))) : fallback
   }
   return {
-    port: integer('port', 8700, 1, 65535), pollMs: integer('pollMs', 2000, 100, 3600000),
+    port: integer('port', 8700, 1, 65535), pollMs: integer('pollMs', 1000, 100, 3600000),
     paneColumns: integer('paneColumns', 60, 24, 500),
     openOnStart: options.openOnStart !== false, statusLine: options.statusLine !== false,
+    scope: options.scope === 'project' ? 'project' : 'all',
   }
 }
 
@@ -73,6 +74,7 @@ export function parseRuns(text: string): RunData {
       !run.tasks.every(t => object(t) && typeof t.key === 'string' && typeof t.status === 'string')) continue
     runs.push({
       run_id: run.run_id, run_name: run.run_name, state: run.state,
+      project: string(run.project), project_root: string(run.project_root),
       started_at: string(run.started_at), elapsed_s: number(run.elapsed_s), tokens: number(run.tokens), max_parallel: integer(run.max_parallel),
       tasks: run.tasks.map(t => ({
         key: t.key, status: t.status, activity: typeof t.activity === 'string' ? sanitize(t.activity) : undefined, engine: string(t.engine), model: string(t.model),
@@ -82,6 +84,23 @@ export function parseRuns(text: string): RunData {
     })
   }
   return { runs, active: data.active, skippedRuns: data.runs.length - runs.length }
+}
+
+export function scopeRuns(data: RunData, cfg: Config): RunData & { elsewhere: number } {
+  if (cfg.scope === 'all') return { ...data, elsewhere: 0 }
+  const root = cfg.root?.replace(/\/+$/, '')
+  let elsewhere = 0
+  const runs = data.runs.filter(run => {
+    const project = (run.project_root ?? run.project)?.replace(/\/+$/, '')
+    const inside = root !== undefined && project !== undefined && (project === root || project.startsWith(`${root}/`))
+    if (!inside && run.state === 'live' && Object.prototype.hasOwnProperty.call(data.active, run.run_id)) elsewhere++
+    return inside
+  })
+  return { ...data, runs, elsewhere }
+}
+
+function idleText(cfg: Config): string {
+  return cfg.scope === 'project' ? `no live run in ${sanitize(cfg.root?.replace(/\/+$/, '').split('/').pop() || 'this project')}` : 'no live run'
 }
 
 export function runState(run: Run, active: RunData['active']): string {
@@ -124,11 +143,12 @@ export function isStale(snapshot: Snapshot, now: number, pollMs: number): boolea
 }
 
 export function summary(snapshot: Snapshot, now: number, cfg: Config): string {
-  const selected = selectRun(snapshot, now)
+  const scoped = scopeRuns(snapshot, cfg)
+  const selected = selectRun(scoped, now)
   const run = selected.run
   const message = snapshot.error === 'unreachable' ? `Ringside not reachable on :${cfg.port}` :
     snapshot.error === 'contract' ? 'Ringside response missing required fields' : ''
-  const state = run ? `${selected.last ? 'last run · ' : ''}${runState(run, snapshot.active)} · ${sanitize(run.run_name)} · ${counts(run, runState(run, snapshot.active) !== 'STOPPED')} · ${duration(run.elapsed_s)}${selected.more ? ` · +${selected.more} more live` : ''}` : 'no live run'
+  const state = run ? `${selected.last ? 'last run · ' : ''}${runState(run, scoped.active)} · ${sanitize(run.run_name)} · ${counts(run, runState(run, scoped.active) !== 'STOPPED')} · ${duration(run.elapsed_s)}${selected.more ? ` · +${selected.more} more live` : ''}` : `${idleText(cfg)}${scoped.elsewhere ? ` · ${scoped.elsewhere} live elsewhere` : ''}`
   return `${isStale(snapshot, now, cfg.pollMs) ? 'STALE · ' : ''}${message ? `${message} · ` : ''}${state}`
 }
 
@@ -245,10 +265,11 @@ function omitted(tasks: Task[], stopped: boolean): Line {
 }
 
 export function layout(snapshot: Snapshot, now: number, cfg: Config, placement: string, columns: number, rows?: number): Line[] {
-  const selected = selectRun(snapshot, now)
+  const scoped = scopeRuns(snapshot, cfg)
+  const selected = selectRun(scoped, now)
   const run = selected.run
   const stale = isStale(snapshot, now, cfg.pollMs)
-  const state = run ? runState(run, snapshot.active) : ''
+  const state = run ? runState(run, scoped.active) : ''
   const stopped = state === 'STOPPED'
   const stateColor = stopped ? 'error' : state === 'LIVE' ? 'claude' : 'success'
   const heading = `${stale ? 'STALE · ' : snapshot.error ? 'CACHED · ' : ''}${selected.last ? 'last run · ' : ''}${state}`
@@ -261,11 +282,12 @@ export function layout(snapshot: Snapshot, now: number, cfg: Config, placement: 
     return priority(a) - priority(b)
   }) : []
   const values = run ? totals(run, stopped) : [0, 0, 0, 0]
-  const idle: Line = [piece('REFEREE', 'claude', true), separator(), piece(`${stale ? 'STALE · ' : ''}no live run`, 'inactive')]
+  const idle: Line = [piece('REFEREE', 'claude', true), separator(), piece(`${stale ? 'STALE · ' : ''}${idleText(cfg)}`, 'inactive')]
+  const elsewhere: Line = scoped.elsewhere ? [piece(`${scoped.elsewhere} live elsewhere`, 'inactive')] : []
 
   if (placement === 'inline') {
     const lines = [...errors]
-    if (!run) return [...lines, idle].slice(0, budget).map(line => fit(line, columns))
+    if (!run) return [...lines, [...idle, ...(elsewhere.length ? [separator(), ...elsewhere] : [])]].slice(0, budget).map(line => fit(line, columns))
     const left = [piece(`● ${heading} `, stateColor), piece(run.run_name, 'text', true), separator(), piece(duration(run.elapsed_s), 'text', true)]
     const right: Line = values.slice(0, stopped ? 2 : 3).flatMap((n, i) => [
       ...(i ? [separator()] : []), piece(String(n), statusColors[i], true), piece(` ${statusLabels[i]}`, 'inactive'),
@@ -298,6 +320,7 @@ export function layout(snapshot: Snapshot, now: number, cfg: Config, placement: 
 
   const title = run ? [piece('REFEREE', 'claude', true), separator(), piece(heading, stateColor), separator(), piece(run.run_name, 'text', true)] : idle
   const lines: Line[] = [centered(title, columns)]
+  if (!run && elsewhere.length) lines.push(centered(elsewhere, columns))
   if (columns >= 40) lines.push(centered(statusLabels.flatMap((label, i) => [
     ...(i ? [space(2)] : []), piece('■', statusColors[i]), piece(` ${label}`, 'subtle'),
   ]), columns))

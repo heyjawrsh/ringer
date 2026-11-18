@@ -13,6 +13,8 @@ export type Task = {
 export type Run = {
   run_id: string
   run_name: string
+  project?: string
+  project_root?: string
   max_parallel?: number
   started_at?: string
   state: string

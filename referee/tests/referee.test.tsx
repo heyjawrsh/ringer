@@ -1,6 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 import type { TestBody } from 'claude-code/testing'
-import { attemptCells, cellWidth, config, fit, layout, parseRuns, sanitize, selectRun, summary } from '../hooks/core'
+import { attemptCells, cellWidth, config, fit, layout, parseRuns, sanitize, scopeRuns, selectRun, summary } from '../hooks/core'
 import type { Run } from '../types'
 // Captured response: api-runs-empty.json (the test sandbox cannot import JSON or read files).
 const emptyText = "{\n  \"active\": {},\n  \"runs\": [],\n  \"update\": null\n}"
@@ -46,6 +46,8 @@ async function setup($: Engine, on: On, data: unknown = liveText, now = NOW, ini
   let requests = 0
   let status: string | undefined
   let requestUrl = ''
+  let root = '/'
+  on('session.root', () => ({ value: root }))
   on('command.register', () => ({ value: { command: 'referee' } }))
   on('ui.open', () => { open = true; return { value: { isPlaced: true } } })
   on('ui.close', () => { open = false; return { value: undefined } })
@@ -61,7 +63,7 @@ async function setup($: Engine, on: On, data: unknown = liveText, now = NOW, ini
   on('session.end', (_, e) => ({ sessionId: e.sessionId }))
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   return { clock, fail: () => { reject = true }, replace: (next: unknown) => { payload = JSON.stringify(next); reject = false },
-    requests: () => requests, status: () => status, url: () => requestUrl }
+    setRoot: (next: string) => { root = next }, requests: () => requests, status: () => status, url: () => requestUrl }
 }
 async function drawn($: Engine) {
   const ui = await $.ui.mount(PANE)
@@ -132,7 +134,7 @@ test('unknown tokens are a dash and missing models leave the engine alone', asyn
 test('unreachable Ringside gives the port and the start command', async ($, on) => {
   const world = await setup($, on, empty)
   world.fail()
-  await world.clock.advance(2000)
+  await world.clock.advance(1000)
   const text = await drawn($)
   expect(text).toContain('Ringside not reachable on :8700')
   expect(text).toContain('./ringer.py hud --no-open')
@@ -194,14 +196,14 @@ test('newest active live run wins; completed runs expire after thirty minutes', 
 test('stale data keeps its verdicts and is marked after three poll intervals', async ($, on) => {
   const world = await setup($, on)
   world.fail()
-  await world.clock.advance(6000)
+  await world.clock.advance(3000)
   expect(await drawn($)).not.toContain('STALE')
-  await world.clock.advance(2000)
+  await world.clock.advance(1000)
   expect(await drawn($)).toContain('STALE')
   expect(await drawn($)).toContain('✗ fails-twice')
   expect(world.status()).toContain('STALE')
   world.replace(live)
-  await world.clock.advance(2000)
+  await world.clock.advance(1000)
   expect(await drawn($)).not.toContain('STALE')
 })
 
@@ -210,7 +212,7 @@ test('status line clears when the run becomes idle', async ($, on) => {
   expect(world.status()).toContain('LIVE · referee-fixture-fleet')
   expect(world.status()?.startsWith('referee')).toBe(false)
   world.replace(empty)
-  await world.clock.advance(2000)
+  await world.clock.advance(1000)
   expect(world.status()).toBeUndefined()
 })
 
@@ -326,7 +328,7 @@ test('clear keeps polling; exiting cancels the timer and clears status', async (
   const world = await setup($, on)
   const end = { sessionId: 'test-session', resume: { id: 'test-session' } }
   await $.session.end({ ...end, reason: 'clear' })
-  await world.clock.advance(2000)
+  await world.clock.advance(1000)
   expect(world.requests()).toBe(2)
   await $.session.end({ ...end, reason: 'prompt_input_exit' })
   await world.clock.advance(4000)
@@ -374,7 +376,7 @@ test('a malformed run beside a live run adds a warning without hiding the live r
   const lines = layout({ ...parseRuns(JSON.stringify(data)), lastSuccess: NOW, error: null }, NOW, CFG, 'dock', 90)
   expect(lines.flat().find(p => p.text === '1 unreadable runs skipped')?.color).toBe('warning')
   world.replace(live)
-  await world.clock.advance(2000)
+  await world.clock.advance(1000)
   expect(await drawn($)).not.toContain('unreadable runs skipped')
 })
 
@@ -442,6 +444,148 @@ for (const body of ['not JSON', '{}', '{"runs":[]}', '{"active":{},"runs":{}}', 
 
 const rowText = (lines: ReturnType<typeof layout>): string[] => lines.map(line => line.map(p => p.text).join(''))
 const liveSnapshot = () => ({ ...parseRuns(liveText), lastSuccess: NOW, error: null })
+
+test('config defaults to one-second polls and all scope, with no session root', () => {
+  expect(CFG.pollMs).toBe(1000)
+  expect(CFG.scope).toBe('all')
+  expect(CFG.root).toBeUndefined()
+  expect(config({ scope: 'project', root: '/ignored' }).scope).toBe('project')
+  expect(config({ root: '/ignored' }).root).toBeUndefined()
+  expect(config({ pollMs: 1 }).pollMs).toBe(100)
+  for (const scope of ['junk', 'PROJECT', '', null, 1, true]) expect(config({ scope }).scope).toBe('all')
+})
+
+test('project fields parse only strings and remain optional for upstream runs', () => {
+  const raw = JSON.parse(liveText)
+  expect(parseRuns(liveText).runs[0]!.project).toBeUndefined()
+  expect(parseRuns(liveText).runs[0]!.project_root).toBeUndefined()
+  raw.runs[0].project = '/w/ring/worktree'
+  raw.runs[0].project_root = '/w/ring'
+  expect(parseRuns(JSON.stringify(raw)).runs[0]!.project).toBe('/w/ring/worktree')
+  expect(parseRuns(JSON.stringify(raw)).runs[0]!.project_root).toBe('/w/ring')
+  for (const value of [null, 42, true, {}, []]) {
+    raw.runs[0].project = value
+    raw.runs[0].project_root = value
+    const parsed = parseRuns(JSON.stringify(raw))
+    expect(parsed.runs.length).toBe(1)
+    expect(parsed.runs[0]!.project).toBeUndefined()
+    expect(parsed.runs[0]!.project_root).toBeUndefined()
+  }
+})
+
+for (const [name, root, fields, kept] of [
+  ['equal', '/w/ring', { project_root: '/w/ring' }, true],
+  ['inside', '/w/ring', { project_root: '/w/ring/sub/project' }, true],
+  ['segment boundary', '/w/ring', { project_root: '/w/ringer' }, false],
+  ['trailing slashes', '/w/ring///', { project_root: '/w/ring/sub///' }, true],
+  ['equal with trailing slashes', '/w/ring/', { project_root: '/w/ring///' }, true],
+  ['project fallback', '/w/ring', { project: '/w/ring/sub' }, true],
+  ['root takes precedence', '/w/ring', { project_root: '/elsewhere', project: '/w/ring' }, false],
+  ['neither field', '/w/ring', {}, false],
+  ['undefined root', undefined, { project_root: '/w/ring' }, false],
+  ['filesystem root', '/', { project_root: '/w/ring' }, true],
+] as const) {
+  test(`project scope: ${name}`, () => {
+    const data = liveSnapshot()
+    Object.assign(data.runs[0]!, fields)
+    const scoped = scopeRuns(data, { ...CFG, scope: 'project', root })
+    expect(scoped.runs.length).toBe(kept ? 1 : 0)
+    expect(scoped.elsewhere).toBe(kept ? 0 : 1)
+    expect(data.runs.length).toBe(1)
+    expect(scoped.active).toEqual(data.active)
+    expect(scoped.skippedRuns).toBe(data.skippedRuns)
+  })
+}
+
+test('elsewhere counts only dropped live runs with their own active entry', () => {
+  const data = liveSnapshot()
+  const run = data.runs[0]!
+  run.project_root = '/w/ring'
+  for (const [id, state, active] of [
+    ['outside', 'live', true], ['unknown-project', 'live', true],
+    ['stopped', 'live', false], ['finished', 'finished', true], ['died', 'died', true],
+    ['toString', 'live', false],
+  ] as const) {
+    data.runs.push({ ...run, run_id: id, state, project_root: id === 'unknown-project' ? undefined : '/elsewhere' })
+    if (active) data.active[id] = {}
+  }
+  const scoped = scopeRuns(data, { ...CFG, scope: 'project', root: '/w/ring' })
+  expect(scoped.runs).toEqual([run])
+  expect(scoped.elsewhere).toBe(2)
+})
+
+test('all scope ignores root and retains existing rendering and summaries', () => {
+  const data = liveSnapshot()
+  const cfg = { ...CFG, root: '/unrelated' }
+  expect(scopeRuns(data, cfg)).toEqual({ ...data, elsewhere: 0 })
+  expect(summary(data, NOW, cfg)).toBe(summary(data, NOW, CFG))
+  for (const placement of ['dock', 'inline', 'widget']) {
+    expect(layout(data, NOW, cfg, placement, 120)).toEqual(layout(data, NOW, CFG, placement, 120))
+  }
+  expect(summary({ ...data, runs: [] }, NOW, cfg)).toBe('no live run')
+})
+
+for (const root of ['/w/ring///', undefined]) {
+  test(`project empty states in dock, inline and summary with root ${root}`, () => {
+    const data = liveSnapshot()
+    const cfg = { ...CFG, scope: 'project' as const, root }
+    const idle = `no live run in ${root ? 'ring' : 'this project'}`
+    for (const elsewhere of [0, 1]) {
+      const snapshot = elsewhere ? data : { ...data, runs: [] }
+      const suffix = elsewhere ? ' · 1 live elsewhere' : ''
+      const dock = layout(snapshot, NOW, cfg, 'dock', 120)
+      expect(rowText(dock)[0]!.trim()).toBe(`REFEREE · ${idle}`)
+      if (elsewhere) {
+        expect(rowText(dock)[1]!.trim()).toBe('1 live elsewhere')
+        expect(dock[1]!.find(p => p.text === '1 live elsewhere')?.color).toBe('inactive')
+      } else expect(rowText(dock).join('\n')).not.toContain('live elsewhere')
+      const inline = layout(snapshot, NOW, cfg, 'inline', 120)
+      expect(rowText(inline)).toEqual([`REFEREE · ${idle}${suffix}`])
+      if (elsewhere) expect(inline[0]!.find(p => p.text === '1 live elsewhere')?.color).toBe('inactive')
+      expect(summary(snapshot, NOW, cfg)).toBe(`${idle}${suffix}`)
+      expect(rowText(layout(snapshot, NOW, cfg, 'widget', 120))).toEqual([`${idle}${suffix}`])
+    }
+  })
+}
+
+test('project scope selects and counts only local runs and their lanes', () => {
+  const data = liveSnapshot()
+  const local = data.runs[0]!
+  local.project_root = '/w/ring'
+  data.runs.push({ ...local, run_id: 'local-second', started_at: '2026-11-17T12:00:00Z' })
+  data.runs.unshift({ ...local, run_id: 'outside', run_name: 'foreign-run', project_root: '/other',
+    started_at: '2026-11-17T12:07:59Z', tasks: [{ key: 'foreign-lane', status: 'running' }] })
+  data.active['local-second'] = {}
+  data.active.outside = {}
+  const cfg = { ...CFG, scope: 'project' as const, root: '/w/ring' }
+  expect(summary(data, NOW, cfg)).toBe('LIVE · referee-fixture-fleet · 3 pass 1 fail 1 running · 0:09 · +1 more live')
+  for (const placement of ['dock', 'inline', 'widget']) {
+    const text = rowText(layout(data, NOW, cfg, placement, 120, 14)).join('\n')
+    expect(text).toContain('+1 more live')
+    expect(text).not.toContain('foreign')
+    expect(text).not.toContain('elsewhere')
+  }
+})
+
+test('project scope reads the current session root for pane, status line and command', { options: { scope: 'project' } }, async ($, on) => {
+  const data = JSON.parse(liveText)
+  data.runs[0].project_root = '/w/ring'
+  const world = await setup($, on, data)
+  world.setRoot('/w/ring')
+  await world.clock.advance(1000)
+  expect(world.status()).toContain('LIVE · referee-fixture-fleet')
+  expect(await drawn($)).toContain('LIVE · referee-fixture-fleet')
+  const command = { command: 'referee', origin: { kind: 'composer' as const }, presentation: { isFullscreen: true, columns: 140 }, args: 'status' }
+  expect((await $.command.run(command)).text).toContain('LIVE · referee-fixture-fleet')
+  world.setRoot('/w/other')
+  expect(await drawn($)).toContain('no live run in other')
+  expect((await $.command.run(command)).text).toBe('no live run in other · 1 live elsewhere')
+  await world.clock.advance(1000)
+  expect(world.status()).toBeUndefined()
+  world.setRoot('/w/ring')
+  await world.clock.advance(1000)
+  expect(world.status()).toContain('LIVE · referee-fixture-fleet')
+})
 
 for (const [name, fixture] of [
   ['empty', emptyText], ['live', liveText], ['killed', killedText],

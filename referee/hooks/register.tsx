@@ -1,6 +1,6 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, Timer } from 'claude-code'
-import { config, EMPTY, fit, isStale, layout, parseRuns, runState, selectRun, summary } from './core'
+import { config, EMPTY, fit, isStale, layout, parseRuns, runState, scopeRuns, selectRun, summary } from './core'
 import type { Config } from './core'
 
 const snapshot = atom({ plugin: 'referee', key: 'snapshot' } as const, EMPTY, { shape: 'referee-3' })
@@ -9,9 +9,10 @@ const snapshot = atom({ plugin: 'referee', key: 'snapshot' } as const, EMPTY, { 
 async function refreshStatus($: EngineInterface, cfg: Config) {
   const saved = await read($, snapshot)
   const now = await $.clock.now()
-  const run = selectRun(saved, now).run
+  const root = await $.session.root()
+  const run = selectRun(scopeRuns(saved, { ...cfg, root }), now).run
   const live = run && runState(run, saved.active) === 'LIVE'
-  $.ui.status(cfg.statusLine && live ? fit([{ text: summary(saved, now, cfg) }], 120).map(part => part.text).join('') : undefined)
+  $.ui.status(cfg.statusLine && live ? fit([{ text: summary(saved, now, { ...cfg, root }) }], 120).map(part => part.text).join('') : undefined)
 }
 
 // Open pane
@@ -88,7 +89,10 @@ export const register: Register = (on, options) => {
       await $.ui.close({ id: 'referee' })
       return { text: 'Referee closed.' }
     }
-    if (verb === 'status') return { text: summary(await read($, snapshot), await $.clock.now(), cfg) }
+    if (verb === 'status') {
+      const root = await $.session.root()
+      return { text: summary(await read($, snapshot), await $.clock.now(), { ...cfg, root }) }
+    }
     if (verb !== 'open') return { text: 'Usage: /referee open|close|status' }
     const opened = await openPane($, cfg)
     if (!timer) timer = $.clock.every(cfg.pollMs, () => { void poll($, cfg, life) })
@@ -101,7 +105,8 @@ export const register: Register = (on, options) => {
     const saved = await read($, snapshot)
     const now = await $.clock.now()
     const stale = isStale(saved, now, cfg.pollMs)
-    const lines = layout(saved, now, cfg, e.props.placement, e.props.bodyColumns, e.props.scroll.bodyRows)
+    const root = await $.session.root()
+    const lines = layout(saved, now, { ...cfg, root }, e.props.placement, e.props.bodyColumns, e.props.scroll.bodyRows)
     return (
       <Box flexDirection="column" width={e.props.bodyColumns}>
         {lines.map(line => (
