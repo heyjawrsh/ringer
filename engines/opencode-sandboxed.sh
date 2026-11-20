@@ -21,6 +21,47 @@ TASKDIR="${1:?usage: opencode-sandboxed.sh <taskdir> [--no-sandbox] <args...>}";
 SANDBOX=1
 if [ "${1:-}" = "--no-sandbox" ]; then SANDBOX=0; shift; fi
 
+# Resolve SubQ credentials before either launch path so 1Password runs outside Seatbelt.
+resolve_subq_api_key() {
+  local model=
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      -m|--model) model="${2:-}"; break ;;
+      --model=*) model="${1#--model=}"; break ;;
+      --) break ;;
+    esac
+    shift
+  done
+
+  if [[ "$model" != subq/* || -n "${SUBQ_API_KEY:-}" ]]; then
+    return 0
+  fi
+  if [ -z "${SUBQ_OP_REF:-}" ]; then
+    echo "opencode-sandboxed.sh: model $model needs SUBQ_API_KEY, or SUBQ_OP_REF naming its 1Password item" >&2
+    exit 2
+  fi
+  if ! command -v op >/dev/null; then
+    echo "opencode-sandboxed.sh: 1Password CLI op was not found on PATH" >&2
+    exit 2
+  fi
+  # Absolute paths and builtins only: callers may hand this script a minimal PATH.
+  local op_err reason="" line
+  op_err="$(/usr/bin/mktemp -t ringer-op-err)"
+  if ! SUBQ_API_KEY="$(op read "$SUBQ_OP_REF" 2>"$op_err")"; then
+    # Relay op's own "[ERROR] ..." line ("authorization timeout" when 1Password is
+    # locked) and nothing else, so stray stderr can never carry the secret out.
+    while IFS= read -r line || [ -n "$line" ]; do
+      case "$line" in "[ERROR]"*) reason="${line#\[ERROR\] }" ;; esac
+    done < "$op_err"
+    /bin/rm -f "$op_err"
+    echo "opencode-sandboxed.sh: could not read SUBQ_OP_REF with the 1Password CLI op${reason:+: ${reason:0:200}}" >&2
+    exit 2
+  fi
+  /bin/rm -f "$op_err"
+  export SUBQ_API_KEY
+}
+resolve_subq_api_key "$@"
+
 # Resolve opencode without tripping `set -e` (command -v returns nonzero when absent).
 if ! OPENCODE_BIN="$(command -v opencode)" || [ -z "$OPENCODE_BIN" ]; then
   echo "opencode-sandboxed.sh: opencode not found on PATH" >&2
