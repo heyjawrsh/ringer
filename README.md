@@ -449,6 +449,32 @@ grok login
 
 Route with per-task `"engine": "grok"` and pick the model with `"model": "grok-build"` or `"model": "grok-composer-2.5-fast"` (the shipped default — the speed pick). Grok brings its own OS sandbox on macOS (profile `workspace`: read everywhere, writes confined to the task dir, temp, and `~/.grok`), and its JSON output exposes no token counts — plan-billed workers report cost as included in plan.
 
+### The long-context lane: SubQ Savant
+
+SubQ Savant 1.4 (Subquadratic) has a 4M-token context window at $0.10/M input and $0.50/M output, called on SubQ's own OpenAI-compatible API. It runs on the OpenCode lane. Savant is early access and is turned on per organization; until it is, requests return `403 model_not_allowed`.
+
+Add a `subq` provider to `~/.config/opencode/opencode.json`:
+
+```json
+"subq": {
+  "npm": "@ai-sdk/openai-compatible",
+  "name": "SubQ",
+  "options": { "baseURL": "https://api.subq.ai/v1", "apiKey": "{env:SUBQ_API_KEY}" },
+  "models": {
+    "subq-savant-1.4": {
+      "name": "SubQ Savant 1.4", "reasoning": true, "tool_call": true, "attachment": true,
+      "temperature": false, "limit": { "context": 4000000, "output": 131072 }
+    }
+  }
+}
+```
+
+`temperature` stays `false`: Savant only accepts its fixed default. Route with `"engine": "opencode"` and `"model": "subq/subq-savant-1.4"`.
+
+The key is read at run time, never stored. Set `SUBQ_API_KEY`, or set `SUBQ_OP_REF` to its 1Password reference (`op://<vault>/<item>/credential`), and `engines/opencode-sandboxed.sh` runs `op read` once, outside the sandbox, for `subq/*` models only. A locked 1Password means a Touch ID prompt, so an unattended run should export `SUBQ_API_KEY` up front (`op run --env-file ... -- ./ringer.py run ...`).
+
+The same key drives SubQ Snap, the `subq` decision provider beside Jev (`decisions/subq.py`). Its measurement is in `docs/decisions/snap-measured.md`.
+
 `args_template` is an argv array, not a shell string. Ringer replaces `{taskdir}`, `{spec}`, and `{model}` inside each argv element. `{access_args}`, `{sandbox_args}`, `{full_access_args}`, `{model_args}` (becomes `-m <resolved model>` when the task or engine names one), and `{engine_args}` (the task's per-task `engine_args`) expand to multiple argv elements only when they appear as their own array item.
 
 Watch for variadic CLI flags. If an engine has a flag that consumes all following values, put `{spec}` before that flag. For Claude-style CLIs, prefer:
